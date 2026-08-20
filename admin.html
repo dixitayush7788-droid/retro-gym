@@ -432,14 +432,22 @@
         </div>
 
         <!-- Calculated Fee & Expiry Preview -->
-        <div class="p-3.5 bg-surfaceCard rounded-2xl border border-white/10 space-y-1.5">
+        <div class="p-3.5 bg-surfaceCard rounded-2xl border border-white/10 space-y-2">
           <div class="flex justify-between items-center">
             <span class="text-zinc-400">Calculated Expiry Date:</span>
             <span id="new-expiry-preview" class="text-goldLight font-bold font-mono">--</span>
           </div>
           <div class="flex justify-between items-center">
-            <span class="text-zinc-400">Fee Collected:</span>
-            <span id="new-fee-preview" class="text-emeraldCustom font-bold text-sm">₹1,200</span>
+            <span class="text-zinc-400">Fees Paid (₹):</span>
+            <div class="relative w-28">
+              <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-emeraldCustom font-mono text-xs">₹</span>
+              <input 
+                type="number" 
+                id="feeAmountInput" 
+                value="1200" 
+                class="w-full bg-black/40 border border-white/10 focus:border-emeraldCustom rounded-xl py-1 pl-6 pr-2 text-right text-emeraldCustom font-bold font-mono text-sm outline-none"
+              />
+            </div>
           </div>
         </div>
 
@@ -891,7 +899,8 @@
         const { error } = await db
           .from('members')
           .update({ 
-            valid_until: newExpiryIso
+            valid_until: newExpiryIso,
+            expiry_date: newExpiryIso
           })
           .eq('phone', phone);
 
@@ -1031,7 +1040,8 @@
       const future = new Date();
       future.setMonth(future.getMonth() + months);
       document.getElementById('new-expiry-preview').innerText = future.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-      document.getElementById('new-fee-preview').innerText = `₹${fee.toLocaleString()}`;
+      const feeInput = document.getElementById('feeAmountInput');
+      if (feeInput) feeInput.value = fee;
     }
 
     async function handleCreateMember(e) {
@@ -1050,13 +1060,19 @@
       btn.disabled = true;
 
       try {
+        const selectedPlanMonths = parseInt(selectedMonths, 10) || 1;
         const calculatedExpiryDate = new Date();
-        calculatedExpiryDate.setMonth(calculatedExpiryDate.getMonth() + selectedMonths);
+        calculatedExpiryDate.setMonth(calculatedExpiryDate.getMonth() + selectedPlanMonths);
+        const isoExpiry = calculatedExpiryDate.toISOString();
+        const collectedAmount = Number(document.getElementById('feeAmountInput')?.value || selectedFee || 1200);
 
         const newMemberPayload = {
           full_name: trimmedName,
-          phone: cleanPhone, // 10-digit clean string
-          valid_until: calculatedExpiryDate.toISOString(),
+          phone: cleanPhone,
+          valid_until: isoExpiry,
+          expiry_date: isoExpiry,
+          plan_duration_months: selectedPlanMonths || 1,
+          fees_paid: collectedAmount,
           streak_count: 0,
           password: null
         };
