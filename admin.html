@@ -891,8 +891,7 @@
         const { error } = await db
           .from('members')
           .update({ 
-            valid_until: newExpiryIso,
-            expiry_date: newExpiryIso 
+            valid_until: newExpiryIso
           })
           .eq('phone', phone);
 
@@ -1037,10 +1036,11 @@
 
     async function handleCreateMember(e) {
       e.preventDefault();
-      const name = document.getElementById('new-member-name').value.trim();
-      const phone = document.getElementById('new-member-phone').value.trim();
+      const trimmedName = document.getElementById('new-member-name').value.trim();
+      const rawPhone = document.getElementById('new-member-phone').value.trim();
+      const cleanPhone = rawPhone.replace(/\D/g, '').slice(-10);
 
-      if (!/^\d{10}$/.test(phone)) {
+      if (!/^\d{10}$/.test(cleanPhone)) {
         showToast("Please enter a valid 10-digit mobile number", "error");
         return;
       }
@@ -1050,23 +1050,22 @@
       btn.disabled = true;
 
       try {
-        const future = new Date();
-        future.setMonth(future.getMonth() + selectedMonths);
-        const futureIso = future.toISOString();
+        const calculatedExpiryDate = new Date();
+        calculatedExpiryDate.setMonth(calculatedExpiryDate.getMonth() + selectedMonths);
 
-        const newRecord = {
-          full_name: name,
-          phone: phone,
-          valid_until: futureIso,
-          expiry_date: futureIso,
+        const newMemberPayload = {
+          full_name: trimmedName,
+          phone: cleanPhone, // 10-digit clean string
+          valid_until: calculatedExpiryDate.toISOString(),
           streak_count: 0,
           password: null
         };
 
-        const { error } = await db.from('members').insert([newRecord]);
+        const { error } = await db.from('members').insert([newMemberPayload]);
         if (error) throw error;
 
-        showToast(`Athlete ${name} registered successfully! ⚡`, "success");
+        playAudioChirp(880, 0.15);
+        showToast(`Athlete ${trimmedName} registered successfully! ⚡`, "success");
         closeAddMemberDrawer();
         fetchAllData();
 
