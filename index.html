@@ -1,0 +1,2150 @@
+<!DOCTYPE html>
+<html lang="en" class="dark h-full bg-[#060608]">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>RETRO GYM — High-Performance Member Portal</title>
+  
+  <!-- PWA & Mobile Meta Tags -->
+  <meta name="theme-color" content="#060608" />
+  <meta name="background-color" content="#060608" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Retro Gym" />
+  <meta name="description" content="Retro Gym High-Performance Digital Member Portal — Old School Iron • Modern Discipline" />
+
+  <!-- Dynamically injected PWA Manifest script -->
+  <script>
+    (function initPWAManifest() {
+      // 512x512 Gold & Neon SVG Icon
+      const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+        <defs>
+          <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#fbbf24"/>
+            <stop offset="50%" stop-color="#f59e0b"/>
+            <stop offset="100%" stop-color="#22c55e"/>
+          </linearGradient>
+        </defs>
+        <rect width="512" height="512" rx="110" fill="#060608"/>
+        <rect x="18" y="18" width="476" height="476" rx="94" fill="none" stroke="url(#goldGrad)" stroke-width="12" stroke-opacity="0.6"/>
+        <g stroke="url(#goldGrad)" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" fill="none">
+          <path d="M128 110v292M384 110v292M64 190v132M448 190v132M128 256h256"/>
+        </g>
+        <text x="256" y="445" font-family="'Bebas Neue', 'Plus Jakarta Sans', sans-serif" font-size="44" font-weight="bold" fill="#fbbf24" text-anchor="middle" letter-spacing="8">RETRO GYM</text>
+      </svg>`;
+
+      const svgBlob = new Blob([iconSvg], { type: 'image/svg+xml' });
+      const iconUrl = URL.createObjectURL(svgBlob);
+
+      // Favicon & Apple Touch Icon
+      const appleTouchIcon = document.createElement('link');
+      appleTouchIcon.rel = 'apple-touch-icon';
+      appleTouchIcon.href = iconUrl;
+      document.head.appendChild(appleTouchIcon);
+
+      const favicon = document.createElement('link');
+      favicon.rel = 'icon';
+      favicon.type = 'image/svg+xml';
+      favicon.href = iconUrl;
+      document.head.appendChild(favicon);
+
+      // Web App Manifest
+      const manifest = {
+        name: "Retro Gym Member Portal",
+        short_name: "Retro Gym",
+        description: "Old School Iron • Modern Discipline Digital HUD",
+        start_url: "./",
+        display: "standalone",
+        orientation: "portrait",
+        background_color: "#060608",
+        theme_color: "#060608",
+        icons: [
+          {
+            src: iconUrl,
+            sizes: "512x512",
+            type: "image/svg+xml",
+            purpose: "any maskable"
+          }
+        ]
+      };
+
+      const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+      const manifestLink = document.createElement('link');
+      manifestLink.rel = 'manifest';
+      manifestLink.href = URL.createObjectURL(manifestBlob);
+      document.head.appendChild(manifestLink);
+    })();
+  </script>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Bebas Neue, Plus Jakarta Sans, JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <!-- Supabase JS v2 Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Tailwind Config -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            obsidian: '#060608',
+            surface: '#101014',
+            surfaceCard: '#16161e',
+            surfaceMuted: '#1f1f2a',
+            gold: '#f59e0b',
+            goldLight: '#fbbf24',
+            goldGlow: '#d97706',
+            neon: '#22c55e',
+            neonLime: '#84cc16',
+            emeraldGlow: '#10b981'
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            display: ['"Bebas Neue"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          },
+          boxShadow: {
+            'glow-gold': '0 0 22px rgba(245, 158, 11, 0.25)',
+            'glow-neon': '0 0 22px rgba(34, 197, 94, 0.25)',
+            'glow-card': '0 12px 36px -10px rgba(0,0,0,0.85), 0 0 1px 1px rgba(255,255,255,0.07)',
+            'holo-badge': '0 0 15px rgba(251, 191, 36, 0.35)'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * {
+      -webkit-tap-highlight-color: transparent;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(245, 158, 11, 0.2) transparent;
+    }
+    ::-webkit-scrollbar { width: 3px; height: 3px; }
+    ::-webkit-scrollbar-thumb { background: rgba(245, 158, 11, 0.25); border-radius: 9999px; }
+    
+    .holo-glow {
+      background: linear-gradient(135deg, rgba(245,158,11,0.38) 0%, rgba(34,197,94,0.22) 40%, rgba(251,191,36,0.3) 70%, rgba(132,204,22,0.25) 100%);
+      background-size: 200% 200%;
+      animation: holoShift 7s ease infinite alternate;
+    }
+    @keyframes holoShift {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 100% 50%; }
+    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* Touch-friendly transitions */
+    .tab-view {
+      transition: opacity 0.22s ease-in-out, transform 0.22s ease-in-out;
+    }
+    .sheet-up {
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    }
+  </style>
+</head>
+<body class="h-full bg-obsidian text-zinc-100 font-sans antialiased selection:bg-gold selection:text-black overflow-x-hidden">
+
+  <!-- Toast Notification Overlay -->
+  <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none w-11/12 max-w-sm flex flex-col gap-2"></div>
+
+  <!-- ======================================================== -->
+  <!-- AUTHENTICATION & PIN SETUP MODAL -->
+  <!-- ======================================================== -->
+  <div id="auth-modal" class="fixed inset-0 z-50 bg-black/94 backdrop-blur-2xl flex items-center justify-center p-4">
+    <div class="w-full max-w-sm bg-surface rounded-3xl border border-gold/25 p-6 shadow-glow-card relative overflow-hidden space-y-5">
+      
+      <!-- Top Ambient Gradient -->
+      <div class="absolute -top-12 -right-12 w-36 h-36 bg-gold/20 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-neon/15 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="text-center space-y-1.5 relative z-10">
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-gold/25 via-goldLight/20 to-neon/20 border border-gold/40 text-goldLight flex items-center justify-center mx-auto mb-2 shadow-glow-gold">
+          <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 5v14M18 5v14M3 9v6M21 9v6M6 12h12" />
+          </svg>
+        </div>
+        <h1 class="font-display text-3xl text-white tracking-widest leading-none">RETRO GYM</h1>
+        <p class="text-[11px] font-mono uppercase tracking-wider text-amber-300/80">Old School Iron • Modern Discipline</p>
+      </div>
+
+      <!-- Step 1: Phone Search -->
+      <div id="auth-step-phone" class="space-y-4 relative z-10">
+        <div>
+          <label class="block text-[10px] font-mono uppercase tracking-wider text-zinc-400 mb-1.5">Registered Mobile Number</label>
+          <div class="relative">
+            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gold font-mono text-xs">📱 +91</span>
+            <input 
+              type="tel" 
+              id="auth-phone-input" 
+              placeholder="9876543210" 
+              maxlength="10"
+              class="w-full bg-surfaceCard border border-white/10 focus:border-gold focus:ring-2 focus:ring-gold/20 rounded-2xl py-3.5 pl-16 pr-3 text-white font-mono text-sm outline-none transition-all"
+            />
+          </div>
+        </div>
+        <button 
+          onclick="handlePhoneVerify()" 
+          id="btn-phone-verify"
+          class="w-full py-4 bg-gradient-to-r from-gold via-goldLight to-neon text-black font-display text-lg tracking-wider rounded-2xl shadow-glow-gold hover:brightness-110 active:scale-95 transition-all uppercase cursor-pointer"
+        >
+          Verify Member Profile →
+        </button>
+      </div>
+
+      <!-- Step 2: 4-Digit Passkey Verification -->
+      <div id="auth-step-pin" class="space-y-4 hidden relative z-10">
+        <div class="bg-surfaceCard p-3 rounded-2xl border border-gold/20 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-gold/20 border border-gold/40 text-goldLight font-display text-base flex items-center justify-center" id="auth-avatar-preview">M</div>
+            <div>
+              <p class="text-xs font-bold text-white truncate" id="auth-name-preview">Member</p>
+              <p class="text-[10px] font-mono text-zinc-400" id="auth-phone-preview">--</p>
+            </div>
+          </div>
+          <button onclick="resetAuthStep()" class="text-[10px] font-mono text-gold hover:underline">Change</button>
+        </div>
+
+        <div>
+          <label id="auth-pin-label" class="block text-[10px] font-mono uppercase tracking-wider text-zinc-400 mb-2 text-center">Enter 4-Digit Passkey</label>
+          <div class="flex justify-center gap-2.5">
+            <input type="password" maxlength="1" class="pin-box w-12 h-14 bg-surfaceCard border border-white/15 focus:border-gold rounded-2xl text-center text-2xl font-bold font-mono text-white outline-none" data-idx="0" inputmode="numeric" />
+            <input type="password" maxlength="1" class="pin-box w-12 h-14 bg-surfaceCard border border-white/15 focus:border-gold rounded-2xl text-center text-2xl font-bold font-mono text-white outline-none" data-idx="1" inputmode="numeric" />
+            <input type="password" maxlength="1" class="pin-box w-12 h-14 bg-surfaceCard border border-white/15 focus:border-gold rounded-2xl text-center text-2xl font-bold font-mono text-white outline-none" data-idx="2" inputmode="numeric" />
+            <input type="password" maxlength="1" class="pin-box w-12 h-14 bg-surfaceCard border border-white/15 focus:border-gold rounded-2xl text-center text-2xl font-bold font-mono text-white outline-none" data-idx="3" inputmode="numeric" />
+          </div>
+        </div>
+
+        <button 
+          onclick="handlePinSubmit()" 
+          class="w-full py-4 bg-gradient-to-r from-gold via-goldLight to-neon text-black font-display text-lg tracking-wider rounded-2xl shadow-glow-gold hover:brightness-110 active:scale-95 transition-all uppercase cursor-pointer"
+        >
+          Unlock Digital Pass ⚡
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- SLIDE-OUT SIDEBAR DRAWER (☰) -->
+  <!-- ======================================================== -->
+  <div id="drawer" class="fixed inset-0 z-40 pointer-events-none">
+    <div id="drawer-backdrop" onclick="toggleDrawer(false)" class="fixed inset-0 bg-black/80 backdrop-blur-md opacity-0 transition-opacity duration-300 pointer-events-none"></div>
+    <aside id="drawer-panel" class="fixed top-0 left-0 bottom-0 w-[84%] max-w-xs bg-surface border-r border-gold/20 p-5 shadow-2xl -translate-x-full transition-transform duration-300 overflow-y-auto space-y-4 pointer-events-auto flex flex-col justify-between">
+      
+      <div class="space-y-4">
+        <!-- Drawer Header -->
+        <div class="flex items-center justify-between pb-3 border-b border-white/10">
+          <div class="flex items-center gap-2">
+            <div class="w-9 h-9 rounded-xl bg-gold/20 border border-gold/40 text-goldLight font-display text-base flex items-center justify-center shadow-glow-gold">⚡</div>
+            <div>
+              <span class="font-display text-lg text-white tracking-wider block leading-tight">RETRO GYM</span>
+              <span class="text-[9px] font-mono text-zinc-400 uppercase tracking-widest">CLUB COMMAND</span>
+            </div>
+          </div>
+          <button onclick="toggleDrawer(false)" class="w-8 h-8 rounded-xl bg-surfaceCard hover:bg-surfaceMuted text-zinc-400 hover:text-white flex items-center justify-center cursor-pointer">✕</button>
+        </div>
+
+        <!-- 1. Member Profile Card -->
+        <div class="bg-surfaceCard p-3.5 rounded-2xl border border-gold/20 flex items-center gap-3">
+          <div id="drawer-avatar" class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-gold/30 via-goldLight/20 to-neon/20 border border-gold/40 text-goldLight font-display text-lg flex items-center justify-center shadow-glow-gold">RG</div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-1.5">
+              <p id="drawer-name" class="text-xs font-bold text-white truncate">Member</p>
+              <span class="text-[8px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-gold/20 border border-gold/40 text-goldLight" id="drawer-tier">VIP</span>
+            </div>
+            <p id="drawer-phone" class="text-[10px] font-mono text-zinc-400 mt-0.5">--</p>
+          </div>
+        </div>
+
+        <!-- PWA DIRECT INSTALL BUTTON (HIGH-VISIBILITY CYBER GOLD) -->
+        <button 
+          id="drawer-install-btn"
+          onclick="handlePWAInstall()" 
+          class="w-full py-3.5 bg-gradient-to-r from-amber-500 via-yellow-400 to-emerald-400 text-black font-display text-base tracking-wider rounded-2xl shadow-glow-gold hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer uppercase border border-amber-300"
+        >
+          <span class="text-lg">📲</span>
+          <span id="drawer-install-text">INSTALL RETRO GYM APP</span>
+        </button>
+
+        <!-- 2. Notice Board Card -->
+        <div class="bg-surfaceCard p-3.5 rounded-2xl border border-amber-500/30 bg-amber-500/5 space-y-1.5">
+          <div class="flex items-center gap-1.5 text-xs font-mono font-bold text-goldLight">
+            <span>📢</span>
+            <span>Gym Timings & Bulletin</span>
+          </div>
+          <p class="text-[11px] text-zinc-300 leading-relaxed">
+            • Regular Hours: 5:30 AM – 10:30 PM.<br>
+            • Sunday Special: 7:00 AM – 12:00 PM.<br>
+            • Free electrolytes available at Zone B.<br>
+            • Re-rack all iron dumbbells after sets!
+          </p>
+        </div>
+
+        <!-- 3. Dynamic Live Crowd Meter -->
+        <div class="bg-surfaceCard p-3.5 rounded-2xl border border-white/10 space-y-2">
+          <div class="flex justify-between items-center text-[10px] font-mono">
+            <span class="text-zinc-400">🕒 Live Gym Crowd Telemetry</span>
+            <span id="crowd-status-badge" class="px-2 py-0.5 rounded-full font-bold bg-neon/15 text-neon border border-neon/30">Moderate (45%)</span>
+          </div>
+          <div class="w-full bg-zinc-950 rounded-full h-2 overflow-hidden border border-white/5">
+            <div id="crowd-bar" class="bg-gradient-to-r from-neon via-goldLight to-gold h-2 rounded-full transition-all duration-700" style="width: 45%;"></div>
+          </div>
+          <p id="crowd-tip" class="text-[9px] font-mono text-zinc-400 text-right">Smooth bench press availability</p>
+        </div>
+
+        <!-- 4. Body Metric Quick Logger + History Trigger -->
+        <div class="bg-surfaceCard p-3.5 rounded-2xl border border-white/10 space-y-2.5">
+          <div class="flex justify-between items-center text-[10px] font-mono">
+            <span class="text-zinc-400">📏 Body Metric Log</span>
+            <button onclick="openBodyHistoryModal()" class="text-goldLight hover:underline font-bold">View History ↗</button>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <input type="number" id="drawer-weight-in" placeholder="Weight (kg)" step="0.1" class="bg-obsidian border border-white/10 focus:border-gold rounded-xl p-2 text-xs font-mono text-white outline-none" />
+            <input type="number" id="drawer-waist-in" placeholder="Waist (in)" step="0.5" class="bg-obsidian border border-white/10 focus:border-gold rounded-xl p-2 text-xs font-mono text-white outline-none" />
+          </div>
+          <button onclick="handleSaveBodyMetrics()" class="w-full py-2.5 bg-surfaceMuted hover:bg-gold hover:text-black rounded-xl font-mono text-[10px] font-bold text-zinc-300 transition-all cursor-pointer">
+            Save Measurements
+          </button>
+        </div>
+
+        <!-- 5. 1-Tap Fee Renewal Button -->
+        <button 
+          onclick="openUpiModal()"
+          class="w-full py-3.5 bg-gradient-to-r from-gold via-goldLight to-neon text-black font-display text-base tracking-wider rounded-2xl shadow-glow-gold active:scale-95 transition-all flex items-center justify-center gap-1.5 uppercase cursor-pointer"
+        >
+          <span>⚡ 1-Tap UPI Renew (₹1,200)</span>
+        </button>
+
+        <!-- 6. Helpdesk & Security -->
+        <div class="space-y-2">
+          <a 
+            id="drawer-whatsapp-link" 
+            href="https://wa.me/918467895365" 
+            target="_blank" 
+            class="w-full py-2.5 px-3 bg-[#075e54]/30 hover:bg-[#075e54]/50 border border-[#25d366]/30 text-[#25d366] font-mono text-xs rounded-xl flex items-center justify-between transition-all"
+          >
+            <span class="flex items-center gap-2">💬 WhatsApp Reception</span>
+            <span>→</span>
+          </a>
+          <button 
+            onclick="openChangePinModal()"
+            class="w-full py-2.5 bg-surfaceCard hover:bg-surfaceMuted border border-white/10 text-zinc-300 font-mono text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <span>🔒 Change 4-Digit Passkey</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Drawer Bottom: Sign Out -->
+      <div class="pt-3 border-t border-white/10">
+        <button onclick="handleLogout()" class="w-full py-2 text-rose-400 hover:text-rose-300 font-mono text-xs flex items-center justify-center gap-1.5 cursor-pointer">
+          <span>Logout Account ✕</span>
+        </button>
+      </div>
+
+    </aside>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- iOS PWA INSTALLATION GUIDE MODAL / SUB-SHEET -->
+  <!-- ======================================================== -->
+  <div id="ios-pwa-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="w-full max-w-md bg-surface border-t sm:border border-gold/40 rounded-t-3xl sm:rounded-3xl p-5 shadow-glow-card space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-2 border-b border-white/10">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">📲</span>
+          <h3 class="font-display text-xl text-white tracking-wider">ADD TO IPHONE HOME SCREEN</h3>
+        </div>
+        <button onclick="closeIosPwaModal()" class="w-8 h-8 rounded-xl bg-surfaceCard hover:bg-surfaceMuted text-zinc-400 hover:text-white flex items-center justify-center cursor-pointer">✕</button>
+      </div>
+
+      <p class="text-xs font-mono text-amber-200/80">Install Retro Gym as a full-screen, standalone app on iOS Safari in 3 easy steps:</p>
+
+      <div class="space-y-3 font-sans text-xs">
+        <div class="p-3 bg-surfaceCard rounded-2xl border border-white/10 flex items-start gap-3">
+          <div class="w-7 h-7 rounded-xl bg-gold/20 text-goldLight font-mono font-bold flex items-center justify-center shrink-0">1</div>
+          <div>
+            <p class="font-bold text-white">Tap Safari Share Button</p>
+            <p class="text-zinc-400 text-[11px] mt-0.5">Tap the <span class="text-goldLight font-bold">Share (📤)</span> icon in the bottom menu bar of Safari.</p>
+          </div>
+        </div>
+
+        <div class="p-3 bg-surfaceCard rounded-2xl border border-white/10 flex items-start gap-3">
+          <div class="w-7 h-7 rounded-xl bg-gold/20 text-goldLight font-mono font-bold flex items-center justify-center shrink-0">2</div>
+          <div>
+            <p class="font-bold text-white">Select 'Add to Home Screen'</p>
+            <p class="text-zinc-400 text-[11px] mt-0.5">Scroll down in the action sheet and tap <span class="text-goldLight font-bold">Add to Home Screen (➕)</span>.</p>
+          </div>
+        </div>
+
+        <div class="p-3 bg-surfaceCard rounded-2xl border border-white/10 flex items-start gap-3">
+          <div class="w-7 h-7 rounded-xl bg-neon/20 text-neon font-mono font-bold flex items-center justify-center shrink-0">3</div>
+          <div>
+            <p class="font-bold text-white">Launch Fullscreen App</p>
+            <p class="text-zinc-400 text-[11px] mt-0.5">Open Retro Gym from your home screen with zero browser bars & instant load!</p>
+          </div>
+        </div>
+      </div>
+
+      <button onclick="closeIosPwaModal()" class="w-full py-3 bg-gradient-to-r from-gold via-goldLight to-neon text-black font-display text-base tracking-wider rounded-2xl shadow-glow-gold uppercase cursor-pointer">
+        Got It! Close Guide ⚡
+      </button>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- 1-TAP ZERO-COMMISSION UPI RENEWAL & QR MODAL -->
+  <!-- ======================================================== -->
+  <div id="upi-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="w-full max-w-sm bg-surface rounded-3xl border border-gold/30 p-5 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+      
+      <div class="flex items-center justify-between pb-2 border-b border-white/10">
+        <div class="flex items-center gap-2">
+          <span class="text-gold text-lg">⚡</span>
+          <h3 class="font-display text-lg text-white tracking-wider">MEMBERSHIP RENEWAL</h3>
+        </div>
+        <button onclick="closeUpiModal()" class="text-zinc-400 hover:text-white cursor-pointer">✕</button>
+      </div>
+
+      <!-- Plan Selector -->
+      <div class="grid grid-cols-2 gap-2 bg-surfaceCard p-1 rounded-2xl border border-white/10">
+        <button 
+          id="upi-plan-monthly" 
+          onclick="selectUpiPlan('monthly')" 
+          class="py-2.5 rounded-xl bg-gold text-black font-display text-base tracking-wider shadow-glow-gold transition-all cursor-pointer"
+        >
+          <span>Monthly (1 Mo)</span>
+          <span class="block text-[10px] font-mono font-bold">₹1,200</span>
+        </button>
+        <button 
+          id="upi-plan-quarterly" 
+          onclick="selectUpiPlan('quarterly')" 
+          class="py-2.5 rounded-xl text-zinc-400 hover:text-white font-display text-base tracking-wider transition-all cursor-pointer"
+        >
+          <span>Quarterly (3 Mo)</span>
+          <span class="block text-[10px] font-mono font-bold text-goldLight">₹3,200</span>
+        </button>
+      </div>
+
+      <!-- Payment Details Box -->
+      <div class="bg-surfaceCard p-3.5 rounded-2xl border border-gold/20 text-center space-y-1">
+        <span class="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">Amount Due (0% Surcharge)</span>
+        <p class="font-display text-4xl text-goldLight tracking-wider"><span id="upi-display-amount">₹1,200</span></p>
+        <p class="text-[10px] font-mono text-zinc-400">VPA: <span class="text-zinc-200 font-bold">retrogym@upi</span></p>
+      </div>
+
+      <!-- 1-Tap Mobile Button -->
+      <a 
+        id="upi-direct-btn"
+        href="upi://pay?pa=retrogym@upi&pn=RETRO%20GYM&am=1200&cu=INR&tn=Retro%20Gym%20Renewal"
+        class="w-full py-4 bg-gradient-to-r from-gold via-goldLight to-neon text-black font-display text-base tracking-wider rounded-2xl shadow-glow-gold flex items-center justify-center gap-2 uppercase cursor-pointer hover:brightness-110 active:scale-95 transition-all text-center"
+      >
+        <span>⚡ 1-TAP PAY (GPAY / PHONEPE / PAYTM)</span>
+      </a>
+
+      <!-- Dynamic QR Code Card -->
+      <div class="bg-surfaceCard p-3 rounded-2xl border border-white/10 flex flex-col items-center space-y-2">
+        <span class="text-[10px] font-mono text-zinc-400">Or Scan UPI QR Code with Any App:</span>
+        <div class="bg-white p-2.5 rounded-2xl shadow-lg">
+          <img id="upi-qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=upi%3A%2F%2Fpay%3Fpa%3Dretrogym%40upi%26pn%3DRETRO%2520GYM%26am%3D1200%26cu%3DINR%26tn%3DRenewal" alt="UPI QR" class="w-32 h-32" />
+        </div>
+      </div>
+
+      <!-- WhatsApp Confirmation -->
+      <button 
+        onclick="handleNotifyReceptionWhatsApp()"
+        class="w-full py-3 bg-[#075e54]/40 hover:bg-[#075e54]/70 border border-[#25d366]/30 text-[#25d366] font-mono text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all"
+      >
+        <span>💬 Send Receipt on WhatsApp</span>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- CHANGE 4-DIGIT PASSKEY MODAL -->
+  <!-- ======================================================== -->
+  <div id="change-pin-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="w-full max-w-sm bg-surface rounded-3xl border border-gold/30 p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between pb-2 border-b border-white/10">
+        <div class="flex items-center gap-2">
+          <span class="text-gold text-lg">🔒</span>
+          <h3 class="font-display text-lg text-white tracking-wider">UPDATE PASSKEY PIN</h3>
+        </div>
+        <button onclick="closeChangePinModal()" class="text-zinc-400 hover:text-white cursor-pointer">✕</button>
+      </div>
+      
+      <p class="text-xs font-mono text-zinc-400 text-center">Set your new 4-digit security PIN for instant member access.</p>
+      
+      <div class="flex justify-center gap-2.5 my-3">
+        <input type="password" maxlength="1" class="new-pin-box w-12 h-14 bg-surfaceCard border border-white/15 focus:border-gold rounded-2xl text-center text-2xl font-bold font-mono text-white outline-none" data-nidx="0" inputmode="numeric" />
+        <input type="password" maxlength="1" class="new-pin-box w-12 h-14 bg-surfaceCard border border-white/15 focus:border-gold rounded-2xl text-center text-2xl font-bold font-mono text-white outline-none" data-nidx="1" inputmode="numeric" />
+        <input type="password" maxlength="1" class="new-pin-box w-12 h-14 bg-surfaceCard border border-white/15 focus:border-gold rounded-2xl text-center text-2xl font-bold font-mono text-white outline-none" data-nidx="2" inputmode="numeric" />
+        <input type="password" maxlength="1" class="new-pin-box w-12 h-14 bg-surfaceCard border border-white/15 focus:border-gold rounded-2xl text-center text-2xl font-bold font-mono text-white outline-none" data-nidx="3" inputmode="numeric" />
+      </div>
+
+      <div class="flex gap-2">
+        <button onclick="closeChangePinModal()" class="flex-1 py-3 bg-surfaceCard hover:bg-surfaceMuted text-zinc-300 font-mono text-xs rounded-2xl border border-white/5 cursor-pointer">Cancel</button>
+        <button onclick="saveNewPasskeyPin()" class="flex-1 py-3 bg-gradient-to-r from-gold via-goldLight to-neon text-black font-display text-base tracking-wider rounded-2xl shadow-glow-gold cursor-pointer">Save PIN ⚡</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- BODY METRICS HISTORY MODAL -->
+  <!-- ======================================================== -->
+  <div id="body-history-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="w-full max-w-sm bg-surface rounded-3xl border border-gold/30 p-5 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-2 border-b border-white/10">
+        <div class="flex items-center gap-2">
+          <span class="text-gold text-lg">📏</span>
+          <h3 class="font-display text-lg text-white tracking-wider">BODY METRIC LOGS</h3>
+        </div>
+        <button onclick="closeBodyHistoryModal()" class="text-zinc-400 hover:text-white cursor-pointer">✕</button>
+      </div>
+      
+      <div id="body-history-list" class="space-y-2 max-h-64 overflow-y-auto pr-1"></div>
+      
+      <button onclick="closeBodyHistoryModal()" class="w-full py-3 bg-surfaceCard hover:bg-surfaceMuted text-zinc-300 font-mono text-xs rounded-2xl border border-white/10">
+        Close History
+      </button>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- EXERCISE INTEL SUB-SHEET MODAL -->
+  <!-- ======================================================== -->
+  <div id="exercise-sheet-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div id="exercise-sheet-card" class="w-full max-w-md bg-surface border-t sm:border border-gold/30 rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto sheet-up translate-y-full">
+      
+      <div class="flex items-start justify-between pb-2 border-b border-white/10">
+        <div>
+          <span id="sheet-ex-target" class="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-gold/20 border border-gold/40 text-goldLight">Target Muscle</span>
+          <h3 id="sheet-ex-title" class="font-display text-2xl text-white tracking-wider mt-1">Exercise Name</h3>
+        </div>
+        <button onclick="closeExerciseSheet()" class="w-8 h-8 rounded-xl bg-surfaceCard hover:bg-surfaceMuted text-zinc-400 hover:text-white flex items-center justify-center cursor-pointer">✕</button>
+      </div>
+
+      <!-- Sets & Reps Blueprint -->
+      <div class="grid grid-cols-2 gap-2 text-xs font-mono bg-surfaceCard p-3 rounded-2xl border border-white/10">
+        <div>
+          <span class="text-[9px] text-zinc-400 uppercase block">Working Protocol</span>
+          <span id="sheet-ex-sets" class="font-bold text-goldLight text-sm">4 Sets × 8-12 Reps</span>
+        </div>
+        <div>
+          <span class="text-[9px] text-zinc-400 uppercase block">Tempo / Cadence</span>
+          <span id="sheet-ex-tempo" class="font-bold text-neon text-sm">3-1-1 Controlled</span>
+        </div>
+      </div>
+
+      <!-- 3 Execution Cues -->
+      <div class="space-y-2">
+        <span class="text-xs font-mono font-bold text-white uppercase tracking-wider block">🎯 3 Form Execution Cues</span>
+        <div id="sheet-ex-cues" class="space-y-1.5 text-xs text-zinc-300 font-sans"></div>
+      </div>
+
+      <!-- Quick Action: Rest Timer -->
+      <div class="pt-2 border-t border-white/10 flex gap-2">
+        <button 
+          onclick="startRestTimerFromSheet(60)" 
+          class="flex-1 py-3.5 bg-gradient-to-r from-gold via-goldLight to-neon text-black font-display text-base tracking-wider rounded-2xl shadow-glow-gold flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-all"
+        >
+          <span>⏱️ Start 60s Rest Timer</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- VEG RECIPE BLUEPRINT SUB-SHEET MODAL -->
+  <!-- ======================================================== -->
+  <div id="recipe-sheet-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div id="recipe-sheet-card" class="w-full max-w-md bg-surface border-t sm:border border-neon/30 rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto sheet-up translate-y-full">
+      
+      <div class="flex items-start justify-between pb-2 border-b border-white/10">
+        <div>
+          <span id="recipe-sheet-tag" class="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-neon/20 border border-neon/40 text-neon">Vegetarian Protein</span>
+          <h3 id="recipe-sheet-title" class="font-display text-2xl text-white tracking-wider mt-1">Recipe Blueprint</h3>
+        </div>
+        <button onclick="closeRecipeSheet()" class="w-8 h-8 rounded-xl bg-surfaceCard hover:bg-surfaceMuted text-zinc-400 hover:text-white flex items-center justify-center cursor-pointer">✕</button>
+      </div>
+
+      <!-- Macro Profile -->
+      <div class="grid grid-cols-3 gap-2 text-center font-mono text-xs">
+        <div class="bg-surfaceCard p-2.5 rounded-2xl border border-neon/20">
+          <span class="text-[9px] text-zinc-400 uppercase block">PROTEIN</span>
+          <span id="recipe-sheet-protein" class="font-display text-xl text-neon">52g</span>
+        </div>
+        <div class="bg-surfaceCard p-2.5 rounded-2xl border border-white/10">
+          <span class="text-[9px] text-zinc-400 uppercase block">CARBS</span>
+          <span id="recipe-sheet-carbs" class="font-display text-xl text-goldLight">33g</span>
+        </div>
+        <div class="bg-surfaceCard p-2.5 rounded-2xl border border-white/10">
+          <span class="text-[9px] text-zinc-400 uppercase block">CALORIES</span>
+          <span id="recipe-sheet-cals" class="font-display text-xl text-zinc-200">345 kcal</span>
+        </div>
+      </div>
+
+      <!-- Preparation Protocol -->
+      <div class="space-y-2">
+        <span class="text-xs font-mono font-bold text-white uppercase tracking-wider block">👨‍🍳 5-Minute High-Yield Preparation</span>
+        <p id="recipe-sheet-prep" class="text-xs text-zinc-300 leading-relaxed font-sans"></p>
+      </div>
+
+      <!-- Bioavailability note -->
+      <div class="p-3 rounded-2xl bg-surfaceCard border border-white/10 text-[11px] text-zinc-400 font-sans">
+        💡 <span id="recipe-sheet-bio">Rich in branched-chain amino acids (Leucine & Isoleucine) for maximal muscle protein synthesis.</span>
+      </div>
+
+      <button onclick="closeRecipeSheet()" class="w-full py-3 bg-surfaceCard hover:bg-surfaceMuted text-zinc-300 font-mono text-xs rounded-2xl border border-white/10">
+        Close Blueprint
+      </button>
+
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MAIN SCROLLABLE VIEWPORT CONTAINER (ZERO CUT-OFF FIX) -->
+  <!-- ======================================================== -->
+  <div class="min-h-screen pb-36 px-4 pt-3 max-w-md mx-auto space-y-4 overflow-y-auto">
+    
+    <!-- TOP APP HEADER -->
+    <header class="flex items-center justify-between pb-3 border-b border-gold/20">
+      <div class="flex items-center gap-2.5">
+        <button 
+          onclick="toggleDrawer(true)" 
+          class="w-10 h-10 rounded-2xl bg-surfaceCard hover:bg-surfaceMuted border border-gold/30 text-goldLight flex items-center justify-center shadow-glow-gold active:scale-95 transition-all cursor-pointer"
+          title="Open Menu"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+
+        <div class="flex items-center gap-2">
+          <!-- Custom SVG Retro Gym Emblem -->
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-gold/30 via-goldLight/20 to-neon/20 border border-gold/50 text-goldLight flex items-center justify-center shadow-glow-gold">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 5v14M18 5v14M3 9v6M21 9v6M6 12h12" />
+            </svg>
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <h1 class="font-display text-xl text-white tracking-wider leading-none">RETRO GYM</h1>
+              <span class="text-[8px] font-mono font-bold px-1.5 py-0.2 rounded bg-gold/20 text-goldLight border border-gold/40 flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-goldLight animate-pulse"></span> VIP
+              </span>
+            </div>
+            <p class="text-[9px] font-mono text-zinc-400 tracking-widest uppercase">DIGITAL MEMBER HUD</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <div id="header-avatar" class="w-9 h-9 rounded-xl bg-gold/20 border border-gold/40 text-goldLight font-display text-sm flex items-center justify-center shadow-glow-gold">
+          RG
+        </div>
+        <button 
+          onclick="handleLogout()" 
+          class="text-xs font-mono text-zinc-400 hover:text-white px-2.5 py-1.5 bg-surfaceCard rounded-xl border border-white/10 transition-all cursor-pointer"
+        >
+          Switch ✕
+        </button>
+      </div>
+    </header>
+
+    <!-- ======================================================== -->
+    <!-- SCREEN 1: DIGITAL PASS (HOME HUD) -->
+    <!-- ======================================================== -->
+    <main id="tab-pass" class="tab-view space-y-4">
+      
+      <!-- HOLOGRAPHIC VIP PASS CARD -->
+      <div class="p-[1.5px] rounded-3xl holo-glow shadow-glow-card">
+        <div class="bg-gradient-to-b from-[#181822] via-[#121218] to-[#08080c] rounded-[22px] p-5 relative overflow-hidden space-y-4">
+          
+          <div class="flex items-start justify-between relative z-10">
+            <div>
+              <span class="text-[9px] font-mono font-bold uppercase px-2.5 py-1 rounded-full bg-gold/20 border border-gold/40 text-goldLight tracking-widest shadow-holo-badge">
+                RETRO VIP ATHLETE PASS
+              </span>
+              <h2 id="pass-name" class="font-display text-3xl text-white mt-2 leading-none tracking-wider">Member</h2>
+              <p id="pass-phone" class="text-xs font-mono text-amber-200/70 mt-0.5">--</p>
+            </div>
+
+            <!-- Animated Days Remaining Circular SVG Ring -->
+            <div class="relative w-16 h-16 flex items-center justify-center">
+              <svg class="w-16 h-16 transform -rotate-90">
+                <circle cx="32" cy="32" r="26" stroke="rgba(255,255,255,0.08)" stroke-width="4.5" fill="transparent"/>
+                <circle id="pass-ring-circle" cx="32" cy="32" r="26" stroke="#f59e0b" stroke-width="4.5" stroke-linecap="round" fill="transparent" stroke-dasharray="163" stroke-dashoffset="35" class="transition-all duration-1000"/>
+              </svg>
+              <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                <span id="pass-days-val" class="font-display text-2xl text-white leading-none">28</span>
+                <span class="text-[7px] font-mono text-goldLight uppercase font-bold">DAYS</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Validity & Streak Row -->
+          <div class="grid grid-cols-2 gap-2 text-xs font-mono bg-black/60 p-3 rounded-2xl border border-gold/20 relative z-10">
+            <div>
+              <span class="text-[9px] text-zinc-400 uppercase tracking-wider block">VALID UNTIL</span>
+              <span id="pass-expiry-val" class="font-bold text-zinc-200">19 Sep 2026</span>
+            </div>
+            <div>
+              <span class="text-[9px] text-zinc-400 uppercase tracking-wider block">ACTIVE STREAK</span>
+              <span class="font-bold text-amber-400 flex items-center gap-1">
+                🔥 <span id="pass-streak-val">0</span> Days
+              </span>
+            </div>
+          </div>
+
+          <!-- Barcode Element -->
+          <div class="text-center font-mono text-[9px] text-zinc-400 tracking-[0.35em] bg-black/80 py-2 rounded-xl border border-white/10 relative z-10" id="pass-barcode-text">
+            RT-8467895365
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 1-TAP ATTENDANCE PUNCH BUTTON -->
+      <div class="bg-surface rounded-3xl p-4 border border-gold/20 shadow-glow-card space-y-3">
+        <div class="flex items-center justify-between text-xs font-mono">
+          <span class="text-zinc-400">Attendance Telemetry</span>
+          <span id="pass-punch-status" class="text-goldLight font-bold">Ready</span>
+        </div>
+
+        <button 
+          id="btn-main-punch"
+          onclick="logAttendancePunch()"
+          class="w-full py-4 bg-gradient-to-r from-gold via-goldLight to-neon text-black font-display text-lg tracking-wider rounded-2xl shadow-glow-gold active:scale-95 transition-all flex items-center justify-center gap-2 uppercase cursor-pointer hover:brightness-110"
+        >
+          <span class="text-xl">⚡</span>
+          <span id="btn-punch-label">LOG TODAY'S ATTENDANCE</span>
+        </button>
+
+        <p class="text-[10px] text-center font-mono text-zinc-500">1-Tap Verified Entry • Increments live cloud streak count</p>
+      </div>
+
+      <!-- Quick Metrics Grid -->
+      <div class="grid grid-cols-2 gap-3">
+        <div class="bg-surface rounded-3xl p-4 border border-white/10 space-y-1">
+          <span class="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">Total Workouts</span>
+          <p id="pass-total-punches" class="font-display text-4xl text-goldLight tracking-wider">0</p>
+          <p class="text-[10px] font-mono text-neon">Verified punches</p>
+        </div>
+        <div class="bg-surface rounded-3xl p-4 border border-white/10 space-y-1">
+          <span class="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">Target Weight</span>
+          <div class="flex items-baseline gap-1">
+            <span id="pass-weight-metric" class="font-display text-4xl text-white tracking-wider">72</span>
+            <span class="text-xs font-mono text-goldLight">KG</span>
+          </div>
+          <p class="text-[10px] font-mono text-zinc-400">Hypertrophy Goal</p>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- ======================================================== -->
+    <!-- SCREEN 2: WORKOUT PROTOCOL + SUB-SHEETS -->
+    <!-- ======================================================== -->
+    <main id="tab-workouts" class="tab-view space-y-4 hidden">
+      <div>
+        <h2 class="font-display text-3xl text-white tracking-wider leading-none">HYPERTROPHY PROTOCOL</h2>
+        <p class="text-xs font-mono text-amber-200/80">6-Day split with execution cues & deep anatomy sheets</p>
+      </div>
+
+      <!-- Split Navigator Carousel -->
+      <div class="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar text-xs font-mono">
+        <button onclick="renderWorkoutDay(1)" id="wday-btn-1" class="wday-pill px-3.5 py-2.5 rounded-2xl bg-gold text-black font-bold shrink-0 shadow-glow-gold cursor-pointer font-display text-sm tracking-wider">Day 1: Push</button>
+        <button onclick="renderWorkoutDay(2)" id="wday-btn-2" class="wday-pill px-3.5 py-2.5 rounded-2xl bg-surfaceCard text-zinc-300 font-bold shrink-0 border border-white/10 cursor-pointer font-display text-sm tracking-wider">Day 2: Pull</button>
+        <button onclick="renderWorkoutDay(3)" id="wday-btn-3" class="wday-pill px-3.5 py-2.5 rounded-2xl bg-surfaceCard text-zinc-300 font-bold shrink-0 border border-white/10 cursor-pointer font-display text-sm tracking-wider">Day 3: Legs</button>
+        <button onclick="renderWorkoutDay(4)" id="wday-btn-4" class="wday-pill px-3.5 py-2.5 rounded-2xl bg-surfaceCard text-zinc-300 font-bold shrink-0 border border-white/10 cursor-pointer font-display text-sm tracking-wider">Day 4: Shoulders</button>
+        <button onclick="renderWorkoutDay(5)" id="wday-btn-5" class="wday-pill px-3.5 py-2.5 rounded-2xl bg-surfaceCard text-zinc-300 font-bold shrink-0 border border-white/10 cursor-pointer font-display text-sm tracking-wider">Day 5: Arms</button>
+        <button onclick="renderWorkoutDay(6)" id="wday-btn-6" class="wday-pill px-3.5 py-2.5 rounded-2xl bg-surfaceCard text-zinc-300 font-bold shrink-0 border border-white/10 cursor-pointer font-display text-sm tracking-wider">Day 6: HIIT</button>
+      </div>
+
+      <!-- Exercise Cards Container (Tap opens deep sheet) -->
+      <div id="workout-cards-list" class="space-y-2.5"></div>
+
+      <!-- INTERACTIVE WORKOUT REST TIMER -->
+      <div class="bg-surface rounded-3xl p-4 border border-gold/30 shadow-glow-gold space-y-3 text-center">
+        <div class="flex justify-between items-center text-xs font-mono">
+          <span class="text-zinc-400">⏱️ Rest Interval Stopwatch</span>
+          <span id="timer-badge" class="px-2 py-0.5 rounded-full bg-gold/15 text-goldLight font-bold">Ready</span>
+        </div>
+
+        <div class="flex items-center justify-between px-2">
+          <div class="text-left">
+            <span id="timer-display-val" class="font-display text-5xl text-goldLight tracking-wider">60</span>
+            <span class="text-xs font-mono text-zinc-400">SEC</span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button 
+              id="timer-toggle-btn"
+              onclick="toggleRestTimer()"
+              class="px-6 py-3 bg-gradient-to-r from-gold to-neon text-black font-display text-base tracking-wider rounded-2xl shadow-glow-gold active:scale-95 transition-all cursor-pointer"
+            >
+              Start ▶
+            </button>
+            <button 
+              onclick="resetRestTimer()"
+              class="p-3 bg-surfaceCard hover:bg-surfaceMuted text-zinc-300 rounded-2xl border border-white/10 cursor-pointer"
+            >
+              ↺
+            </button>
+          </div>
+        </div>
+
+        <!-- Presets -->
+        <div class="flex justify-between gap-1.5 pt-1 border-t border-white/10">
+          <button onclick="setTimerPreset(30)" class="timer-chip flex-1 py-1.5 rounded-xl bg-surfaceCard text-zinc-300 text-xs font-mono border border-white/10 cursor-pointer">30s (Pump)</button>
+          <button onclick="setTimerPreset(60)" class="timer-chip flex-1 py-1.5 rounded-xl bg-gold text-black font-bold text-xs font-mono shadow-glow-gold cursor-pointer">60s (Standard)</button>
+          <button onclick="setTimerPreset(90)" class="timer-chip flex-1 py-1.5 rounded-xl bg-surfaceCard text-zinc-300 text-xs font-mono border border-white/10 cursor-pointer">90s (Heavy)</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- ======================================================== -->
+    <!-- SCREEN 3: NUTRITION ENGINE + VEG RECIPE BLUEPRINTS -->
+    <!-- ======================================================== -->
+    <main id="tab-nutrition" class="tab-view space-y-4 hidden">
+      <div>
+        <h2 class="font-display text-3xl text-white tracking-wider leading-none">VEG MACRO ENGINE</h2>
+        <p class="text-xs font-mono text-amber-200/80">Science-based vegetarian hypertrophy targets</p>
+      </div>
+
+      <!-- Goal Selector -->
+      <div class="bg-surface rounded-3xl p-4 border border-gold/20 space-y-3">
+        <span class="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block">1. Select Target Protocol</span>
+        <div class="grid grid-cols-3 gap-2">
+          <button onclick="setNutritionGoal('gain')" id="goal-btn-gain" class="goal-chip py-2.5 px-1 rounded-2xl bg-gold text-black font-display text-sm tracking-wider shadow-glow-gold cursor-pointer">💪 Hypertrophy</button>
+          <button onclick="setNutritionGoal('fatloss')" id="goal-btn-fatloss" class="goal-chip py-2.5 px-1 rounded-2xl bg-surfaceCard text-zinc-300 font-display text-sm tracking-wider border border-white/10 cursor-pointer">🔥 Fat Shred</button>
+          <button onclick="setNutritionGoal('strength')" id="goal-btn-strength" class="goal-chip py-2.5 px-1 rounded-2xl bg-surfaceCard text-zinc-300 font-display text-sm tracking-wider border border-white/10 cursor-pointer">⚡ Strength</button>
+        </div>
+      </div>
+
+      <!-- Bodyweight Selector -->
+      <div class="bg-surface rounded-3xl p-4 border border-white/10 space-y-3">
+        <div class="flex justify-between items-center text-xs font-mono">
+          <span class="text-zinc-400">2. Current Body Weight:</span>
+          <span class="text-goldLight font-bold text-sm"><span id="nutri-weight-display">72</span> KG</span>
+        </div>
+        <input type="range" id="nutri-weight-slider" min="50" max="110" value="72" oninput="updateNutrition(this.value)" class="w-full accent-amber-400 bg-surfaceCard h-2.5 rounded-lg cursor-pointer" />
+        
+        <!-- Quick Chips -->
+        <div class="flex justify-between gap-1 pt-1">
+          <button onclick="updateNutrition(60)" class="px-2.5 py-1 rounded-xl bg-surfaceCard hover:bg-surfaceMuted text-xs font-mono text-zinc-300 border border-white/10">60kg</button>
+          <button onclick="updateNutrition(70)" class="px-2.5 py-1 rounded-xl bg-surfaceCard hover:bg-surfaceMuted text-xs font-mono text-zinc-300 border border-white/10">70kg</button>
+          <button onclick="updateNutrition(75)" class="px-2.5 py-1 rounded-xl bg-surfaceCard hover:bg-surfaceMuted text-xs font-mono text-zinc-300 border border-white/10">75kg</button>
+          <button onclick="updateNutrition(85)" class="px-2.5 py-1 rounded-xl bg-surfaceCard hover:bg-surfaceMuted text-xs font-mono text-zinc-300 border border-white/10">85kg</button>
+          <button onclick="updateNutrition(95)" class="px-2.5 py-1 rounded-xl bg-surfaceCard hover:bg-surfaceMuted text-xs font-mono text-zinc-300 border border-white/10">95kg</button>
+        </div>
+      </div>
+
+      <!-- Metric Rings / Display -->
+      <div class="grid grid-cols-3 gap-2.5 text-center">
+        <div class="bg-surface rounded-3xl p-3 border border-gold/20 space-y-1">
+          <span class="text-[9px] font-mono text-zinc-400 uppercase tracking-widest block">PROTEIN</span>
+          <p id="nutri-protein-val" class="font-display text-3xl text-goldLight tracking-wider">144g</p>
+          <span class="text-[8px] font-mono text-zinc-400 block">2.0g / kg</span>
+        </div>
+        <div class="bg-surface rounded-3xl p-3 border border-white/10 space-y-1">
+          <span class="text-[9px] font-mono text-zinc-400 uppercase tracking-widest block">ENERGY</span>
+          <p id="nutri-calories-val" class="font-display text-3xl text-amber-400 tracking-wider">2450</p>
+          <span id="nutri-cal-badge" class="text-[8px] font-mono text-zinc-400 block">Surplus +300</span>
+        </div>
+        <div class="bg-surface rounded-3xl p-3 border border-neon/20 space-y-1">
+          <span class="text-[9px] font-mono text-zinc-400 uppercase tracking-widest block">WATER</span>
+          <p id="nutri-water-val" class="font-display text-3xl text-neon tracking-wider">3.6L</p>
+          <span class="text-[8px] font-mono text-zinc-400 block">Hydration</span>
+        </div>
+      </div>
+
+      <!-- High-Yield Veg Protein Breakdown (Tap opens Blueprint Sub-sheet) -->
+      <div class="bg-surface rounded-3xl p-4 border border-gold/20 space-y-2.5">
+        <div class="flex items-center justify-between pb-1 border-b border-white/10">
+          <span class="text-xs font-mono font-bold text-white uppercase">🌱 Vegetarian Protein Blueprints</span>
+          <span class="text-[10px] font-mono text-goldLight">Tap for Recipes ↗</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+          <div onclick="openRecipeSheet('soya')" class="bg-surfaceCard hover:border-gold/50 cursor-pointer p-3 rounded-2xl border border-white/10 flex justify-between items-center transition-all">
+            <span>Soya Chunks</span><span class="font-bold text-goldLight">52g</span>
+          </div>
+          <div onclick="openRecipeSheet('paneer')" class="bg-surfaceCard hover:border-gold/50 cursor-pointer p-3 rounded-2xl border border-white/10 flex justify-between items-center transition-all">
+            <span>Low-Fat Paneer</span><span class="font-bold text-goldLight">20g</span>
+          </div>
+          <div onclick="openRecipeSheet('tofu')" class="bg-surfaceCard hover:border-gold/50 cursor-pointer p-3 rounded-2xl border border-white/10 flex justify-between items-center transition-all">
+            <span>Organic Tofu</span><span class="font-bold text-goldLight">17g</span>
+          </div>
+          <div onclick="openRecipeSheet('moong')" class="bg-surfaceCard hover:border-gold/50 cursor-pointer p-3 rounded-2xl border border-white/10 flex justify-between items-center transition-all">
+            <span>Moong Sprouts</span><span class="font-bold text-goldLight">24g</span>
+          </div>
+          <div onclick="openRecipeSheet('yogurt')" class="bg-surfaceCard hover:border-gold/50 cursor-pointer p-3 rounded-2xl border border-white/10 flex justify-between items-center transition-all">
+            <span>Greek Yogurt</span><span class="font-bold text-goldLight">10g</span>
+          </div>
+          <div onclick="openRecipeSheet('whey')" class="bg-surfaceCard hover:border-gold/50 cursor-pointer p-3 rounded-2xl border border-white/10 flex justify-between items-center transition-all">
+            <span>Whey / Plant Scoop</span><span class="font-bold text-goldLight">25g</span>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ======================================================== -->
+    <!-- SCREEN 4: ACTIVITY & TELEMETRY STREAM -->
+    <!-- ======================================================== -->
+    <main id="tab-activity" class="tab-view space-y-4 hidden">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="font-display text-3xl text-white tracking-wider leading-none">ATTENDANCE STREAM</h2>
+          <p class="text-xs font-mono text-amber-200/80">Directly synchronized from Supabase</p>
+        </div>
+        <button onclick="fetchAttendanceLogs(true)" class="text-xs font-mono text-goldLight hover:underline cursor-pointer">
+          Sync Logs ⟳
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div class="bg-surface rounded-3xl p-4 border border-gold/20">
+          <span class="text-[10px] font-mono text-zinc-400 uppercase block mb-1">Total Logs</span>
+          <p id="activity-total-val" class="font-display text-4xl text-goldLight tracking-wider">0</p>
+        </div>
+        <div class="bg-surface rounded-3xl p-4 border border-neon/20">
+          <span class="text-[10px] font-mono text-zinc-400 uppercase block mb-1">Consistency</span>
+          <p id="activity-score-val" class="font-display text-4xl text-neon tracking-wider">100%</p>
+        </div>
+      </div>
+
+      <!-- Logs Container -->
+      <div class="bg-surface rounded-3xl p-4 border border-white/10 space-y-3">
+        <span class="text-xs font-mono font-bold text-white uppercase tracking-wider block pb-2 border-b border-white/10">
+          Verified Check-in Stream
+        </span>
+        <div id="activity-logs-list" class="space-y-2 max-h-[380px] overflow-y-auto pr-1"></div>
+      </div>
+    </main>
+
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- FIXED BOTTOM NAVIGATION BAR (4 TABS) -->
+  <!-- ======================================================== -->
+  <nav class="fixed bottom-3 left-1/2 -translate-x-1/2 w-[92%] max-w-md bg-surface/95 backdrop-blur-2xl border border-gold/30 rounded-3xl p-1.5 shadow-2xl flex justify-between z-30">
+    <button onclick="switchTab('pass')" id="nav-btn-pass" class="nav-btn flex-1 py-2.5 rounded-2xl flex flex-col items-center gap-0.5 text-[11px] font-bold text-goldLight bg-gold/15 border border-gold/30 transition-all cursor-pointer">
+      <span class="text-base leading-none">💳</span>
+      <span class="font-display tracking-wider text-xs">PASS</span>
+    </button>
+    <button onclick="switchTab('workouts')" id="nav-btn-workouts" class="nav-btn flex-1 py-2.5 rounded-2xl flex flex-col items-center gap-0.5 text-[11px] font-bold text-zinc-400 hover:text-white transition-all cursor-pointer">
+      <span class="text-base leading-none">🏋️</span>
+      <span class="font-display tracking-wider text-xs">WORKOUTS</span>
+    </button>
+    <button onclick="switchTab('nutrition')" id="nav-btn-nutrition" class="nav-btn flex-1 py-2.5 rounded-2xl flex flex-col items-center gap-0.5 text-[11px] font-bold text-zinc-400 hover:text-white transition-all cursor-pointer">
+      <span class="text-base leading-none">🥗</span>
+      <span class="font-display tracking-wider text-xs">NUTRITION</span>
+    </button>
+    <button onclick="switchTab('activity')" id="nav-btn-activity" class="nav-btn flex-1 py-2.5 rounded-2xl flex flex-col items-center gap-0.5 text-[11px] font-bold text-zinc-400 hover:text-white transition-all cursor-pointer">
+      <span class="text-base leading-none">📊</span>
+      <span class="font-display tracking-wider text-xs">ACTIVITY</span>
+    </button>
+  </nav>
+
+  <!-- ======================================================== -->
+  <!-- JAVASCRIPT APPLICATION ENGINE -->
+  <!-- ======================================================== -->
+  <script>
+    const GYM_CONFIG = {
+      name: "RETRO GYM",
+      tagline: "Old School Iron • Modern Discipline",
+      upi: "retrogym@upi",
+      phone: "918467895365",
+      monthlyFee: 1200,
+      quarterlyFee: 3200
+    };
+
+    const SUPABASE_URL = "https://zfvkvrhuovvbfbrutpph.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpmdmt2cmh1b3Z2YmZicnV0cHBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMzIyODQsImV4cCI6MjEwMjcwODI4NH0.M-WK1bgZDLXcuMTldMSwptx5XRpRnLAi-BxMFEoph4U";
+
+    let _supabase = null;
+    function getSupabaseClient() {
+      if (!_supabase && window.supabase && typeof window.supabase.createClient === 'function') {
+        try {
+          _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        } catch (e) {
+          console.warn('Supabase initialization warning:', e);
+        }
+      }
+      return _supabase;
+    }
+
+    let currentMember = null;
+    let attendanceLogs = [];
+    let isPunchedToday = false;
+    let currentNutritionGoal = 'gain';
+    let currentWeight = 72;
+    let selectedUpiPlan = 'monthly';
+    
+    // Rest Timer State
+    let timerDuration = 60;
+    let timerRemaining = 60;
+    let timerInterval = null;
+
+    // PWA Deferred Prompt State
+    let deferredInstallPrompt = null;
+
+    // 6-Day Workout Splits Data with Deep Intel
+    const WORKOUT_DATABASE = {
+      1: {
+        name: "Push (Chest & Triceps)",
+        exercises: [
+          {
+            name: "Barbell Incline Bench Press",
+            target: "Upper Pectorals, Anterior Deltoids",
+            sets: "4 Sets × 8-10 Reps",
+            tempo: "3-1-1 Controlled",
+            cues: [
+              "Retract and depress scapulae firmly against the bench pad.",
+              "Lower bar to clavicle line with a 45-degree elbow tuck.",
+              "Drive through palms without flaring shoulders at lockout."
+            ]
+          },
+          {
+            name: "Flat Dumbbell Press",
+            target: "Mid Sternal Pectoralis Major",
+            sets: "4 Sets × 10-12 Reps",
+            tempo: "2-1-1 Controlled",
+            cues: [
+              "Maintain full arch in thoracic spine, feet planted on floor.",
+              "Descend until deep stretch across chest fiber origin.",
+              "Converge dumbbells smoothly at peak contraction."
+            ]
+          },
+          {
+            name: "Standing Cable Flyes",
+            target: "Inner Pectoral Contraction",
+            sets: "3 Sets × 12-15 Reps",
+            tempo: "2-2-1 Peak Squeeze",
+            cues: [
+              "Slight forward lean with steady athletic stance.",
+              "Bring handles together matching sternum angle.",
+              "Hold 2-second peak isometric contraction."
+            ]
+          },
+          {
+            name: "Parallel Bar Dips",
+            target: "Lower Pectorals & Triceps",
+            sets: "3 Sets × Max Bodyweight",
+            tempo: "2-0-1 Explosive",
+            cues: [
+              "Lean torso 30° forward to shift tension directly to lower chest.",
+              "Lower to 90° elbow flexion before driving straight upward."
+            ]
+          },
+          {
+            name: "Overhead Rope Cable Extension",
+            target: "Triceps Long Head",
+            sets: "4 Sets × 12-15 Reps",
+            tempo: "3-1-1 Hypertrophy",
+            cues: [
+              "Keep elbows stationary by temples, flare rope apart at full extension.",
+              "Feel full eccentric stretch behind head."
+            ]
+          }
+        ]
+      },
+      2: {
+        name: "Pull (Back & Biceps)",
+        exercises: [
+          {
+            name: "Conventional Deadlift",
+            target: "Posterior Chain, Erectors, Lats",
+            sets: "4 Sets × 5-6 Heavy Reps",
+            tempo: "2-1-X Power",
+            cues: [
+              "Brace intra-abdominal pressure into belt before pulling.",
+              "Drag barbell along shins and thighs, lock glutes at apex."
+            ]
+          },
+          {
+            name: "Chest-Supported T-Bar Row",
+            target: "Rhomboids, Latissimus Dorsi",
+            sets: "4 Sets × 8-10 Reps",
+            tempo: "2-1-1 Concentric",
+            cues: [
+              "Pull elbows straight back toward hip pockets.",
+              "Pinch scapulae together for 1 full second at top."
+            ]
+          },
+          {
+            name: "Lat Pulldown (Neutral Grip)",
+            target: "Latissimus Dorsi Width",
+            sets: "4 Sets × 10-12 Reps",
+            tempo: "3-0-1 Controlled",
+            cues: [
+              "Depress shoulder blades before bending elbows.",
+              "Pull bar to upper collarbone with slight back arch."
+            ]
+          },
+          {
+            name: "Incline Dumbbell Bicep Curls",
+            target: "Biceps Brachii (Long Head)",
+            sets: "4 Sets × 10-12 Reps",
+            tempo: "3-1-1 Strict",
+            cues: [
+              "Set bench to 60° incline for extreme passive stretch.",
+              "Supinate wrists hard at apex of each repetition."
+            ]
+          },
+          {
+            name: "Hammer Cable Rope Curls",
+            target: "Brachialis & Forearms",
+            sets: "3 Sets × 12-15 Reps",
+            tempo: "2-0-1 Pump",
+            cues: [
+              "Pin elbows tightly to ribs, squeeze thumbs upward."
+            ]
+          }
+        ]
+      },
+      3: {
+        name: "Legs (Quad & Hamstring Hypertrophy)",
+        exercises: [
+          {
+            name: "Barbell Back Squat",
+            target: "Quadriceps, Gluteus Maximus",
+            sets: "4 Sets × 6-8 Reps",
+            tempo: "3-1-X Explosive",
+            cues: [
+              "Break at hips and knees simultaneously with knees tracking toes.",
+              "Hit parallel or deeper with core tight."
+            ]
+          },
+          {
+            name: "45-Degree Leg Press",
+            target: "Quadriceps Vastus Lateralis",
+            sets: "4 Sets × 12-15 Reps",
+            tempo: "3-0-1 Deep Range",
+            cues: [
+              "Place feet mid-platform shoulder-width apart.",
+              "Do not lock out knees at top to maintain continuous quad tension."
+            ]
+          },
+          {
+            name: "Romanian Dumbbell Deadlift",
+            target: "Hamstrings & Glute-Ham Tie-in",
+            sets: "4 Sets × 8-10 Reps",
+            tempo: "3-1-1 Stretch",
+            cues: [
+              "Push hips back as far as possible with soft knees.",
+              "Feel tension peak in hamstrings before driving hips forward."
+            ]
+          },
+          {
+            name: "Seated Leg Extension",
+            target: "Rectus Femoris Isolation",
+            sets: "3 Sets × 15-20 Reps",
+            tempo: "2-2-1 Burnout",
+            cues: [
+              "Dorsiflex ankles (toes pointed up), pause for 2s at peak."
+            ]
+          },
+          {
+            name: "Standing Calf Raises",
+            target: "Gastrocnemius",
+            sets: "4 Sets × 15-20 Reps",
+            tempo: "3-2-1 Full ROM",
+            cues: [
+              "Full deep heel drop at bottom, 2-second isometric contraction on balls of feet."
+            ]
+          }
+        ]
+      },
+      4: {
+        name: "Shoulders & Traps Overload",
+        exercises: [
+          {
+            name: "Seated Barbell Overhead Press",
+            target: "Anterior & Lateral Deltoids",
+            sets: "4 Sets × 6-8 Reps",
+            tempo: "2-1-X Strength",
+            cues: [
+              "Press bar in a straight vertical bar path clearing face.",
+              "Lock shoulders over spine at full lockout."
+            ]
+          },
+          {
+            name: "Egyptian Lateral Cable Raises",
+            target: "Lateral Deltoid Hypertrophy",
+            sets: "4 Sets × 12-15 Reps",
+            tempo: "2-1-1 Controlled",
+            cues: [
+              "Lean outward holding tower pole, raise cable to parallel with floor.",
+              "Lead with elbows, not wrists."
+            ]
+          },
+          {
+            name: "Face Pulls with External Rotation",
+            target: "Posterior Deltoids & Rotator Cuff",
+            sets: "4 Sets × 15-18 Reps",
+            tempo: "2-2-1 Posture",
+            cues: [
+              "Pull rope to forehead height while actively rotating fists backwards."
+            ]
+          },
+          {
+            name: "Heavy Dumbbell Shrugs",
+            target: "Upper Trapezius",
+            sets: "4 Sets × 10-12 Reps",
+            tempo: "2-2-1 Squeeze",
+            cues: [
+              "Elevate shoulders straight toward ears; avoid rolling shoulders."
+            ]
+          }
+        ]
+      },
+      5: {
+        name: "Arms Hypertrophy (Bi & Tri Focus)",
+        exercises: [
+          {
+            name: "EZ-Bar Preacher Curls",
+            target: "Biceps Short Head",
+            sets: "4 Sets × 10-12 Reps",
+            tempo: "3-1-1 Strict",
+            cues: [
+              "Lock armpits flush against preacher pad.",
+              "Stop curl just short of vertical to keep constant tension."
+            ]
+          },
+          {
+            name: "Skull Crushers (Lying Triceps Extension)",
+            target: "Triceps Medial & Lateral Heads",
+            sets: "4 Sets × 8-10 Reps",
+            tempo: "3-1-1 Tension",
+            cues: [
+              "Lower bar toward crown of head or bench edge behind head.",
+              "Keep elbows stationary throughout rep."
+            ]
+          },
+          {
+            name: "Standing Dumbbell Hammer Curls",
+            target: "Brachialis & Forearm Thickness",
+            sets: "3 Sets × 10-12 Reps",
+            tempo: "2-1-1 Power",
+            cues: [
+              "Maintain neutral grip throughout the entire concentric movement."
+            ]
+          },
+          {
+            name: "Straight Bar Cable Pushdown",
+            target: "Triceps Lateral Head",
+            sets: "4 Sets × 12-15 Reps",
+            tempo: "2-1-1 Lockout",
+            cues: [
+              "Lean slightly forward, lock elbows against ribs and flare hands downward."
+            ]
+          }
+        ]
+      },
+      6: {
+        name: "Core, Conditioning & Functional HIIT",
+        exercises: [
+          {
+            name: "Hanging Leg Raises",
+            target: "Rectus Abdominis (Lower Core)",
+            sets: "4 Sets × 12-15 Reps",
+            tempo: "2-1-1 Controlled",
+            cues: [
+              "Curl pelvis upwards towards ribcage without swinging body."
+            ]
+          },
+          {
+            name: "Cable Woodchoppers",
+            target: "Obliques & Transverse Abdominis",
+            sets: "3 Sets × 15 Reps / side",
+            tempo: "2-1-1 Rotation",
+            cues: [
+              "Pivot back foot and initiate movement from hips and torso."
+            ]
+          },
+          {
+            name: "Kettlebell Swings",
+            target: "Glutes, Hamstrings, Cardiovascular Capacity",
+            sets: "4 Sets × 20 Reps",
+            tempo: "Explosive Hip Hinge",
+            cues: [
+              "Hinge at hips, drive aggressively through heels to propel kettlebell to chest height."
+            ]
+          },
+          {
+            name: "Plank with Shoulder Taps",
+            target: "Core Anti-Rotation & Stability",
+            sets: "3 Sets × 45 Seconds",
+            tempo: "Isometric Stability",
+            cues: [
+              "Keep hips completely level without swaying side-to-side."
+            ]
+          }
+        ]
+      }
+    };
+
+    // Vegetarian Recipes Database
+    const RECIPE_DATABASE = {
+      soya: {
+        name: "High-Protein Masala Soya Chunks",
+        protein: "52g",
+        carbs: "33g",
+        cals: "345 kcal",
+        prep: "Boil 100g raw soya chunks in salted water for 5 minutes. Squeeze out all excess moisture thoroughly. Sauté in a non-stick pan with 5ml olive oil, cumin seeds, turmeric, chili powder, and diced tomatoes. Roast until golden and crispy.",
+        bio: "Contains complete amino acid spectrum with high PDCAAS score of 1.0, equaling egg white and milk protein."
+      },
+      paneer: {
+        name: "Pan-Seared Low-Fat Paneer Steaks",
+        protein: "20g",
+        carbs: "4g",
+        cals: "220 kcal",
+        prep: "Cut 100g low-fat paneer into thick steaks. Coat with black pepper, pink salt, and roasted cumin. Dry roast on medium flame until both sides are lightly crisped and golden.",
+        bio: "Slow-digesting casein matrix provides sustained release of amino acids for up to 6 hours, perfect for recovery."
+      },
+      tofu: {
+        name: "Crispy Sautéed Organic Tofu Cubes",
+        protein: "17g",
+        carbs: "3g",
+        cals: "155 kcal",
+        prep: "Press extra-firm tofu with a paper towel for 10 minutes. Cut into 1-inch cubes. Toss with 1 tbsp soy sauce, garlic powder, and paprika. Air fry or pan sear with minimal oil until exterior is crunchy.",
+        bio: "Rich in isoflavones, calcium, and all 9 essential amino acids with low saturated fat."
+      },
+      moong: {
+        name: "Sprouted Moong & Roasted Peanut Chaat",
+        protein: "24g",
+        carbs: "45g",
+        cals: "310 kcal",
+        prep: "Combine 1.5 cups sprouted green gram, 20g roasted peanuts, chopped cucumber, onions, and fresh coriander. Dress with lemon juice and chaat masala.",
+        bio: "Sprouting increases protein bioavailability, enhances vitamin C content, and reduces phytic acid absorption blockers."
+      },
+      yogurt: {
+        name: "Greek Yogurt Honey-Walnut Power Bowl",
+        protein: "10g",
+        carbs: "12g",
+        cals: "140 kcal",
+        prep: "Whip 150g unflavored strained Greek yogurt. Top with 1 tsp raw organic honey, crushed walnuts, and a dash of cinnamon powder.",
+        bio: "Rich in active live probiotic cultures (Lactobacillus) for optimal nutrient absorption and gut microbiome health."
+      },
+      whey: {
+        name: "Classic Cold Whey / Plant Isolate Shake",
+        protein: "25g",
+        carbs: "2g",
+        cals: "120 kcal",
+        prep: "Add 1 level scoop (32g) of Whey / Pea-Brown Rice Isolate to 250ml chilled water or skim milk. Shake vigorously in Retro Gym bottle for 20 seconds. Drink within 30 minutes post-workout.",
+        bio: "Ultra-fast digestion rate with 2.7g pure L-Leucine per scoop, triggering immediate mTOR hypertrophy signaling."
+      }
+    };
+
+    // ========================================================
+    // SYNTHESIZED WEB AUDIO ENGINE
+    // ========================================================
+    let _audioCtx = null;
+    function getAudioContext() {
+      if (!_audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) _audioCtx = new AudioContextClass();
+      }
+      return _audioCtx;
+    }
+
+    function playPunchChime() {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      try {
+        if (ctx.state === 'suspended') ctx.resume();
+        const now = ctx.currentTime;
+        // Synthesized punch chime (587Hz D5 -> 880Hz A5)
+        [587.33, 739.99, 880.00].forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + i * 0.09);
+          gain.gain.setValueAtTime(0.35, now + i * 0.09);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.09 + 0.38);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + i * 0.09);
+          osc.stop(now + i * 0.09 + 0.38);
+        });
+      } catch (e) {}
+    }
+
+    function playTripleTimerBeep() {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      try {
+        if (ctx.state === 'suspended') ctx.resume();
+        const now = ctx.currentTime;
+        [0, 0.18, 0.36].forEach((offset) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(800, now + offset);
+          gain.gain.setValueAtTime(0.3, now + offset);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.14);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + offset);
+          osc.stop(now + offset + 0.14);
+        });
+      } catch (e) {}
+    }
+
+    function playBeep(freq = 880, duration = 0.2) {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      try {
+        if (ctx.state === 'suspended') ctx.resume();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.25, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    function showToast(title, msg = "") {
+      const c = document.getElementById('toast-container');
+      const t = document.createElement('div');
+      t.className = "bg-surface/95 border border-gold/40 text-white p-3.5 rounded-2xl shadow-glow-gold backdrop-blur-xl flex items-center gap-2.5 text-xs transition-all duration-300 opacity-0 -translate-y-2 pointer-events-auto";
+      t.innerHTML = `
+        <span class="text-lg text-goldLight">⚡</span>
+        <div>
+          <p class="font-bold text-goldLight font-display text-sm tracking-wide">${title}</p>
+          ${msg ? `<p class="text-[11px] text-zinc-300 font-sans">${msg}</p>` : ''}
+        </div>
+      `;
+      c.appendChild(t);
+      requestAnimationFrame(() => t.classList.remove('opacity-0', '-translate-y-2'));
+      setTimeout(() => {
+        t.classList.add('opacity-0', '-translate-y-2');
+        setTimeout(() => t.remove(), 300);
+      }, 3000);
+    }
+
+    // ========================================================
+    // PROGRESSIVE WEB APP (PWA) INSTALL ENGINE
+    // ========================================================
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      const installBtn = document.getElementById('drawer-install-btn');
+      if (installBtn) {
+        installBtn.classList.remove('hidden');
+        document.getElementById('drawer-install-text').innerText = "INSTALL RETRO GYM APP";
+      }
+    });
+
+    window.addEventListener('appinstalled', () => {
+      deferredInstallPrompt = null;
+      showToast("App Installed ⚡", "Retro Gym is now on your home screen!");
+      const installBtn = document.getElementById('drawer-install-btn');
+      if (installBtn) installBtn.classList.add('hidden');
+    });
+
+    function isIos() {
+      return /iphone|ipad|ipod/i.test(window.navigator.userAgent.toLowerCase());
+    }
+
+    function isInStandaloneMode() {
+      return ('standalone' in window.navigator) && (window.navigator.standalone) || (window.matchMedia('(display-mode: standalone)').matches);
+    }
+
+    async function handlePWAInstall() {
+      // If already installed or standalone
+      if (isInStandaloneMode()) {
+        showToast("Already Installed", "Retro Gym is currently running as a standalone app.");
+        return;
+      }
+
+      // Android / Chrome / Chromium Desktop
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        const { outcome } = await deferredInstallPrompt.userChoice;
+        if (outcome === 'accepted') {
+          showToast("Installing Retro Gym", "Adding app to your home screen...");
+        }
+        deferredInstallPrompt = null;
+        return;
+      }
+
+      // iOS Safari Detection
+      if (isIos()) {
+        openIosPwaModal();
+        return;
+      }
+
+      // Other Browsers / Fallback
+      showToast("Install Tip", "Tap your browser menu (⋮) and select 'Add to Home Screen' or 'Install App'.");
+    }
+
+    function openIosPwaModal() {
+      document.getElementById('ios-pwa-modal').classList.remove('hidden');
+    }
+
+    function closeIosPwaModal() {
+      document.getElementById('ios-pwa-modal').classList.add('hidden');
+    }
+
+    // ========================================================
+    // AUTHENTICATION LOGIC
+    // ========================================================
+    function initPinInputs() {
+      const boxes = document.querySelectorAll('.pin-box');
+      boxes.forEach((box, i) => {
+        box.addEventListener('input', (e) => {
+          if (e.target.value.length === 1 && i < 3) boxes[i + 1].focus();
+          if (i === 3 && e.target.value.length === 1) handlePinSubmit();
+        });
+        box.addEventListener('keydown', (e) => {
+          if (e.key === 'Backspace' && !e.target.value && i > 0) boxes[i - 1].focus();
+        });
+      });
+    }
+
+    async function handlePhoneVerify() {
+      const phoneInput = document.getElementById('auth-phone-input');
+      const phone = phoneInput.value.trim();
+      if (!phone || phone.length < 8) return showToast("Invalid Phone", "Please enter your registered number.");
+
+      const btn = document.getElementById('btn-phone-verify');
+      btn.innerText = "Checking Records...";
+
+      try {
+        const client = getSupabaseClient();
+        if (!client) throw new Error("Offline Mode");
+        const { data, error } = await client.from('members').select('*').eq('phone', phone).single();
+        if (error || !data) {
+          showToast("Member Not Found", "No active membership found with this phone number.");
+          btn.innerText = "Verify Member Profile →";
+          return;
+        }
+
+        currentMember = data;
+        document.getElementById('auth-name-preview').innerText = currentMember.full_name || currentMember.name || 'Member';
+        document.getElementById('auth-phone-preview').innerText = currentMember.phone;
+        document.getElementById('auth-avatar-preview').innerText = (currentMember.full_name || 'M').charAt(0).toUpperCase();
+
+        document.getElementById('auth-step-phone').classList.add('hidden');
+        document.getElementById('auth-step-pin').classList.remove('hidden');
+
+        document.getElementById('auth-pin-label').innerText = currentMember.password ? "Enter 4-Digit Passkey" : "Create New 4-Digit Passkey PIN";
+        document.querySelector('.pin-box[data-idx="0"]').focus();
+      } catch (err) {
+        showToast("Welcome Member", "Logging in with local member profile.");
+        currentMember = { phone, full_name: "Retro VIP Athlete", streak_count: 5, tier: "VIP GOLD" };
+        loginSuccess();
+      } finally {
+        btn.innerText = "Verify Member Profile →";
+      }
+    }
+
+    async function handlePinSubmit() {
+      const pin = Array.from(document.querySelectorAll('.pin-box')).map(b => b.value).join('');
+      if (pin.length < 4) return showToast("Incomplete PIN", "Please enter 4 digits.");
+
+      if (!currentMember.password) {
+        const client = getSupabaseClient();
+        if (client) {
+          try {
+            await client.from('members').update({ password: pin }).eq('phone', currentMember.phone);
+          } catch (e) {}
+        }
+        currentMember.password = pin;
+        showToast("Passkey Created!", "Welcome to Retro Gym.");
+      } else if (String(currentMember.password) !== pin) {
+        showToast("Invalid Passkey", "Incorrect 4-digit PIN.");
+        document.querySelectorAll('.pin-box').forEach(b => b.value = '');
+        document.querySelector('.pin-box[data-idx="0"]').focus();
+        return;
+      }
+
+      loginSuccess();
+    }
+
+    function resetAuthStep() {
+      document.getElementById('auth-step-pin').classList.add('hidden');
+      document.getElementById('auth-step-phone').classList.remove('hidden');
+      document.querySelectorAll('.pin-box').forEach(b => b.value = '');
+    }
+
+    function loginSuccess() {
+      localStorage.setItem('rg_member_session', JSON.stringify(currentMember));
+      document.getElementById('auth-modal').classList.add('hidden');
+      
+      const name = currentMember.full_name || currentMember.name || 'Member';
+      const initial = name.charAt(0).toUpperCase();
+      
+      document.getElementById('pass-name').innerText = name;
+      document.getElementById('pass-phone').innerText = `+91 ${currentMember.phone}`;
+      document.getElementById('header-avatar').innerText = initial;
+      document.getElementById('drawer-avatar').innerText = initial;
+      document.getElementById('drawer-name').innerText = name;
+      document.getElementById('drawer-phone').innerText = `+91 ${currentMember.phone}`;
+      document.getElementById('pass-barcode-text').innerText = `RT-${currentMember.phone}`;
+
+      updateStreakDisplay(currentMember.streak_count || 0);
+      fetchAttendanceLogs();
+      renderWorkoutDay(1);
+      updateNutrition(currentWeight);
+      calculateDaysRemaining();
+    }
+
+    function handleLogout() {
+      localStorage.removeItem('rg_member_session');
+      currentMember = null;
+      document.getElementById('auth-modal').classList.remove('hidden');
+      resetAuthStep();
+      toggleDrawer(false);
+    }
+
+    // ========================================================
+    // DAYS REMAINING RING CALCULATION
+    // ========================================================
+    function calculateDaysRemaining() {
+      let days = 28;
+      if (currentMember && currentMember.valid_until) {
+        const end = new Date(currentMember.valid_until);
+        const now = new Date();
+        const diff = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
+        days = diff > 0 ? diff : 0;
+        document.getElementById('pass-expiry-val').innerText = end.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      } else {
+        const nextMonth = new Date();
+        nextMonth.setDate(nextMonth.getDate() + 28);
+        document.getElementById('pass-expiry-val').innerText = nextMonth.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      }
+
+      document.getElementById('pass-days-val').innerText = days;
+      const ring = document.getElementById('pass-ring-circle');
+      const maxOffset = 163;
+      const percentage = Math.min(days / 30, 1);
+      const offset = maxOffset - (percentage * maxOffset);
+      ring.style.strokeDashoffset = offset;
+    }
+
+    // ========================================================
+    // ATTENDANCE LOGGING & SYNC
+    // ========================================================
+    async function fetchAttendanceLogs(showSyncToast = false) {
+      if (!currentMember) return;
+      const list = document.getElementById('activity-logs-list');
+      list.innerHTML = `<div class="text-center py-6 text-zinc-500 font-mono text-xs">Loading telemetry records...</div>`;
+
+      try {
+        const client = getSupabaseClient();
+        if (client) {
+          const { data, error } = await client
+            .from('attendance_logs')
+            .select('*')
+            .eq('phone', currentMember.phone)
+            .order('checkin_time', { ascending: false });
+
+          if (!error && data) {
+            attendanceLogs = data;
+          }
+        }
+        
+        const todayStr = new Date().toISOString().split('T')[0];
+        isPunchedToday = attendanceLogs.some(l => l.checkin_time && l.checkin_time.startsWith(todayStr));
+
+        updatePunchButtonUI();
+        renderAttendanceList();
+        
+        if (showSyncToast) showToast("Synced Telemetry", "Attendance stream updated from cloud.");
+      } catch (err) {
+        console.warn("Attendance fetch fallback:", err);
+        renderAttendanceList();
+      }
+    }
+
+    function renderAttendanceList() {
+      const list = document.getElementById('activity-logs-list');
+      const totalPunches = attendanceLogs.length;
+      document.getElementById('activity-total-val').innerText = totalPunches;
+      document.getElementById('pass-total-punches').innerText = totalPunches;
+
+      if (!attendanceLogs.length) {
+        list.innerHTML = `<div class="text-center py-8 text-zinc-500 font-mono text-xs">No workout check-ins found yet. Log today's attendance to begin!</div>`;
+        return;
+      }
+
+      list.innerHTML = attendanceLogs.map(log => {
+        const dateObj = new Date(log.checkin_time);
+        const timeFormatted = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+        const dateFormatted = dateObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        
+        return `
+          <div class="bg-surfaceCard p-3 rounded-2xl border border-white/10 flex items-center justify-between text-xs font-mono">
+            <div class="flex items-center gap-2.5">
+              <span class="w-8 h-8 rounded-xl bg-neon/15 border border-neon/30 text-neon flex items-center justify-center text-xs">✓</span>
+              <div>
+                <p class="font-bold text-white">${dateFormatted}</p>
+                <p class="text-[10px] text-zinc-400">Punched at ${timeFormatted}</p>
+              </div>
+            </div>
+            <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-gold/15 text-goldLight border border-gold/30">VERIFIED</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updatePunchButtonUI() {
+      const btn = document.getElementById('btn-main-punch');
+      const label = document.getElementById('btn-punch-label');
+      const status = document.getElementById('pass-punch-status');
+
+      if (isPunchedToday) {
+        btn.className = "w-full py-4 bg-neon/20 border border-neon/50 text-neon font-display text-lg tracking-wider rounded-2xl shadow-glow-neon flex items-center justify-center gap-2 uppercase cursor-default";
+        label.innerText = "ATTENDANCE VERIFIED TODAY ✓";
+        status.innerText = "Logged Today";
+        status.className = "text-neon font-bold";
+      } else {
+        btn.className = "w-full py-4 bg-gradient-to-r from-gold via-goldLight to-neon text-black font-display text-lg tracking-wider rounded-2xl shadow-glow-gold active:scale-95 transition-all flex items-center justify-center gap-2 uppercase cursor-pointer hover:brightness-110";
+        label.innerText = "LOG TODAY'S ATTENDANCE";
+        status.innerText = "Ready to Punch";
+        status.className = "text-goldLight font-bold";
+      }
+    }
+
+    async function logAttendancePunch() {
+      if (isPunchedToday) {
+        return showToast("Already Verified", "You have already logged attendance today!");
+      }
+
+      playPunchChime();
+      isPunchedToday = true;
+      updatePunchButtonUI();
+
+      currentMember.streak_count = (currentMember.streak_count || 0) + 1;
+      updateStreakDisplay(currentMember.streak_count);
+
+      const nowIso = new Date().toISOString();
+      const insertRecord = {
+        phone: currentMember.phone,
+        member_name: currentMember.full_name || currentMember.name || 'Member',
+        checkin_time: nowIso
+      };
+
+      attendanceLogs.unshift(insertRecord);
+      renderAttendanceList();
+
+      try {
+        const client = getSupabaseClient();
+        if (client) {
+          await client.from('attendance_logs').insert([insertRecord]);
+          await client.from('members').update({ streak_count: currentMember.streak_count }).eq('phone', currentMember.phone);
+        }
+      } catch (err) {
+        console.warn("Cloud sync note:", err);
+      }
+
+      showToast("Attendance Recorded! ⚡", "Streak counter incremented.");
+    }
+
+    function updateStreakDisplay(count) {
+      document.getElementById('pass-streak-val').innerText = count;
+    }
+
+    // ========================================================
+    // WORKOUT SPLITS & DEEP INTEL SUB-SHEET
+    // ========================================================
+    function renderWorkoutDay(dayNum) {
+      document.querySelectorAll('.wday-pill').forEach(b => {
+        b.className = "wday-pill px-3.5 py-2.5 rounded-2xl bg-surfaceCard text-zinc-300 font-bold shrink-0 border border-white/10 cursor-pointer font-display text-sm tracking-wider";
+      });
+      const activeBtn = document.getElementById(`wday-btn-${dayNum}`);
+      if (activeBtn) {
+        activeBtn.className = "wday-pill px-3.5 py-2.5 rounded-2xl bg-gold text-black font-bold shrink-0 shadow-glow-gold cursor-pointer font-display text-sm tracking-wider";
+      }
+
+      const container = document.getElementById('workout-cards-list');
+      const dayData = WORKOUT_DATABASE[dayNum];
+      if (!dayData) return;
+
+      container.innerHTML = dayData.exercises.map((ex, idx) => `
+        <div 
+          onclick="openExerciseSheet(${dayNum}, ${idx})" 
+          class="bg-surface hover:bg-surfaceCard p-4 rounded-3xl border border-white/10 hover:border-gold/50 cursor-pointer transition-all active:scale-98 space-y-2 shadow-sm"
+        >
+          <div class="flex items-start justify-between">
+            <div>
+              <span class="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-gold/15 text-goldLight border border-gold/30">${ex.target}</span>
+              <h4 class="font-display text-xl text-white tracking-wider mt-1">${ex.name}</h4>
+            </div>
+            <span class="text-xs text-goldLight font-mono">Intel ↗</span>
+          </div>
+          <div class="flex justify-between items-center text-xs font-mono pt-1 text-zinc-400 border-t border-white/5">
+            <span>${ex.sets}</span>
+            <span class="text-neon font-bold">${ex.tempo}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function openExerciseSheet(dayNum, exIdx) {
+      const ex = WORKOUT_DATABASE[dayNum].exercises[exIdx];
+      if (!ex) return;
+
+      document.getElementById('sheet-ex-target').innerText = ex.target;
+      document.getElementById('sheet-ex-title').innerText = ex.name;
+      document.getElementById('sheet-ex-sets').innerText = ex.sets;
+      document.getElementById('sheet-ex-tempo').innerText = ex.tempo;
+
+      const cuesContainer = document.getElementById('sheet-ex-cues');
+      cuesContainer.innerHTML = ex.cues.map((cue, i) => `
+        <div class="p-2.5 bg-surfaceCard rounded-2xl border border-white/10 flex items-start gap-2.5">
+          <span class="w-5 h-5 rounded-lg bg-gold/20 text-goldLight font-mono font-bold flex items-center justify-center text-[10px] shrink-0">${i + 1}</span>
+          <p class="text-xs text-zinc-200">${cue}</p>
+        </div>
+      `).join('');
+
+      const modal = document.getElementById('exercise-sheet-modal');
+      const card = document.getElementById('exercise-sheet-card');
+      modal.classList.remove('hidden');
+      setTimeout(() => card.classList.remove('translate-y-full'), 20);
+    }
+
+    function closeExerciseSheet() {
+      const modal = document.getElementById('exercise-sheet-modal');
+      const card = document.getElementById('exercise-sheet-card');
+      card.classList.add('translate-y-full');
+      setTimeout(() => modal.classList.add('hidden'), 250);
+    }
+
+    function startRestTimerFromSheet(sec) {
+      closeExerciseSheet();
+      setTimerPreset(sec);
+      if (!timerInterval) toggleRestTimer();
+      showToast("Timer Started", `${sec}s rest stopwatch active.`);
+    }
+
+    // ========================================================
+    // RECIPE INTEL SUB-SHEET MODAL
+    // ========================================================
+    function openRecipeSheet(key) {
+      const recipe = RECIPE_DATABASE[key];
+      if (!recipe) return;
+
+      document.getElementById('recipe-sheet-title').innerText = recipe.name;
+      document.getElementById('recipe-sheet-protein').innerText = recipe.protein;
+      document.getElementById('recipe-sheet-carbs').innerText = recipe.carbs;
+      document.getElementById('recipe-sheet-cals').innerText = recipe.cals;
+      document.getElementById('recipe-sheet-prep').innerText = recipe.prep;
+      document.getElementById('recipe-sheet-bio').innerText = recipe.bio;
+
+      const modal = document.getElementById('recipe-sheet-modal');
+      const card = document.getElementById('recipe-sheet-card');
+      modal.classList.remove('hidden');
+      setTimeout(() => card.classList.remove('translate-y-full'), 20);
+    }
+
+    function closeRecipeSheet() {
+      const modal = document.getElementById('recipe-sheet-modal');
+      const card = document.getElementById('recipe-sheet-card');
+      card.classList.add('translate-y-full');
+      setTimeout(() => modal.classList.add('hidden'), 250);
+    }
+
+    // ========================================================
+    // REST TIMER STOPWATCH ENGINE
+    // ========================================================
+    function setTimerPreset(sec) {
+      timerDuration = sec;
+      timerRemaining = sec;
+      document.getElementById('timer-display-val').innerText = timerRemaining;
+      
+      document.querySelectorAll('.timer-chip').forEach(b => {
+        b.className = "timer-chip flex-1 py-1.5 rounded-xl bg-surfaceCard text-zinc-300 text-xs font-mono border border-white/10 cursor-pointer";
+      });
+      if (window.event && window.event.currentTarget) {
+        window.event.currentTarget.className = "timer-chip flex-1 py-1.5 rounded-xl bg-gold text-black font-bold text-xs font-mono shadow-glow-gold cursor-pointer";
+      }
+    }
+
+    function toggleRestTimer() {
+      const btn = document.getElementById('timer-toggle-btn');
+      const badge = document.getElementById('timer-badge');
+
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        btn.innerText = "Resume ▶";
+        badge.innerText = "Paused";
+        badge.className = "px-2 py-0.5 rounded-full bg-surfaceCard text-zinc-400 font-bold";
+      } else {
+        badge.innerText = "Timing...";
+        badge.className = "px-2 py-0.5 rounded-full bg-neon/15 text-neon font-bold";
+        btn.innerText = "Pause ⏸";
+
+        timerInterval = setInterval(() => {
+          timerRemaining--;
+          document.getElementById('timer-display-val').innerText = timerRemaining;
+
+          if (timerRemaining <= 0) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            playTripleTimerBeep();
+            btn.innerText = "Start ▶";
+            badge.innerText = "Time's Up!";
+            badge.className = "px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold";
+            showToast("Rest Over ⚡", "Get back to the iron!");
+            timerRemaining = timerDuration;
+          }
+        }, 1000);
+      }
+    }
+
+    function resetRestTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = null;
+      timerRemaining = timerDuration;
+      document.getElementById('timer-display-val').innerText = timerRemaining;
+      document.getElementById('timer-toggle-btn').innerText = "Start ▶";
+      document.getElementById('timer-badge').innerText = "Ready";
+      document.getElementById('timer-badge').className = "px-2 py-0.5 rounded-full bg-gold/15 text-goldLight font-bold";
+    }
+
+    // ========================================================
+    // NUTRITION MACRO CALCULATOR
+    // ========================================================
+    function setNutritionGoal(g) {
+      currentNutritionGoal = g;
+      document.querySelectorAll('.goal-chip').forEach(b => {
+        b.className = "goal-chip py-2.5 px-1 rounded-2xl bg-surfaceCard text-zinc-300 font-display text-sm tracking-wider border border-white/10 cursor-pointer";
+      });
+      document.getElementById(`goal-btn-${g}`).className = "goal-chip py-2.5 px-1 rounded-2xl bg-gold text-black font-display text-sm tracking-wider shadow-glow-gold cursor-pointer";
+      updateNutrition(currentWeight);
+    }
+
+    function updateNutrition(val) {
+      currentWeight = Number(val);
+      document.getElementById('nutri-weight-display').innerText = currentWeight;
+      document.getElementById('nutri-weight-slider').value = currentWeight;
+      document.getElementById('pass-weight-metric').innerText = currentWeight;
+
+      let proteinMult = 2.0;
+      let calMult = 34;
+      let badge = "Surplus +300";
+
+      if (currentNutritionGoal === 'fatloss') {
+        proteinMult = 2.2;
+        calMult = 26;
+        badge = "Deficit -400";
+      } else if (currentNutritionGoal === 'strength') {
+        proteinMult = 2.4;
+        calMult = 36;
+        badge = "Power Surplus";
+      }
+
+      const protein = Math.round(currentWeight * proteinMult);
+      const cals = Math.round(currentWeight * calMult);
+      const water = (currentWeight * 0.05).toFixed(1);
+
+      document.getElementById('nutri-protein-val').innerText = `${protein}g`;
+      document.getElementById('nutri-calories-val').innerText = cals;
+      document.getElementById('nutri-cal-badge').innerText = badge;
+      document.getElementById('nutri-water-val').innerText = `${water}L`;
+    }
+
+    // ========================================================
+    // TAB SWITCHING & SIDEBAR CONTROLS
+    // ========================================================
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-view').forEach(v => v.classList.add('hidden'));
+      const active = document.getElementById(`tab-${tabId}`);
+      if (active) active.classList.remove('hidden');
+
+      document.querySelectorAll('.nav-btn').forEach(b => {
+        b.className = "nav-btn flex-1 py-2.5 rounded-2xl flex flex-col items-center gap-0.5 text-[11px] font-bold text-zinc-400 hover:text-white transition-all cursor-pointer";
+      });
+
+      const activeNav = document.getElementById(`nav-btn-${tabId}`);
+      if (activeNav) {
+        activeNav.className = "nav-btn flex-1 py-2.5 rounded-2xl flex flex-col items-center gap-0.5 text-[11px] font-bold text-goldLight bg-gold/15 border border-gold/30 transition-all cursor-pointer";
+      }
+    }
+
+    function toggleDrawer(open) {
+      const panel = document.getElementById('drawer-panel');
+      const backdrop = document.getElementById('drawer-backdrop');
+
+      if (open) {
+        panel.classList.remove('-translate-x-full');
+        backdrop.classList.remove('opacity-0', 'pointer-events-none');
+      } else {
+        panel.classList.add('-translate-x-full');
+        backdrop.classList.add('opacity-0', 'pointer-events-none');
+      }
+    }
+
+    // ========================================================
+    // BODY METRICS LOGGER
+    // ========================================================
+    function handleSaveBodyMetrics() {
+      const w = document.getElementById('drawer-weight-in').value;
+      const waist = document.getElementById('drawer-waist-in').value;
+
+      if (!w && !waist) return showToast("Empty Input", "Enter weight or waist measurement.");
+
+      const history = JSON.parse(localStorage.getItem('rg_body_history') || '[]');
+      const entry = {
+        date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+        weight: w || currentWeight,
+        waist: waist || '--'
+      };
+      history.unshift(entry);
+      localStorage.setItem('rg_body_history', JSON.stringify(history.slice(0, 15)));
+
+      if (w) updateNutrition(Number(w));
+      showToast("Metrics Saved", "Body progress record updated.");
+      document.getElementById('drawer-weight-in').value = '';
+      document.getElementById('drawer-waist-in').value = '';
+    }
+
+    function openBodyHistoryModal() {
+      const list = document.getElementById('body-history-list');
+      const history = JSON.parse(localStorage.getItem('rg_body_history') || '[]');
+
+      if (!history.length) {
+        list.innerHTML = `<div class="text-center py-6 text-zinc-500 font-mono text-xs">No metric entries logged yet.</div>`;
+      } else {
+        list.innerHTML = history.map(h => `
+          <div class="bg-surfaceCard p-3 rounded-2xl border border-white/10 flex justify-between items-center text-xs font-mono">
+            <div>
+              <span class="text-white font-bold">${h.weight} kg</span> • <span class="text-goldLight">${h.waist} in</span>
+            </div>
+            <span class="text-[10px] text-zinc-400">${h.date}</span>
+          </div>
+        `).join('');
+      }
+
+      document.getElementById('body-history-modal').classList.remove('hidden');
+    }
+
+    function closeBodyHistoryModal() {
+      document.getElementById('body-history-modal').classList.add('hidden');
+    }
+
+    // ========================================================
+    // PASSKEY MODAL CONTROLS
+    // ========================================================
+    function openChangePinModal() {
+      document.getElementById('change-pin-modal').classList.remove('hidden');
+      document.querySelectorAll('.new-pin-box').forEach(b => b.value = '');
+      const first = document.querySelector('.new-pin-box[data-nidx="0"]');
+      if (first) setTimeout(() => first.focus(), 100);
+    }
+
+    function closeChangePinModal() {
+      document.getElementById('change-pin-modal').classList.add('hidden');
+      document.querySelectorAll('.new-pin-box').forEach(b => b.value = '');
+    }
+
+    function initNewPinInputs() {
+      const boxes = document.querySelectorAll('.new-pin-box');
+      boxes.forEach((box, i) => {
+        box.addEventListener('input', (e) => {
+          if (e.target.value.length === 1 && i < 3) boxes[i + 1].focus();
+          if (i === 3 && e.target.value.length === 1) saveNewPasskeyPin();
+        });
+        box.addEventListener('keydown', (e) => {
+          if (e.key === 'Backspace' && !e.target.value && i > 0) boxes[i - 1].focus();
+        });
+      });
+    }
+
+    async function saveNewPasskeyPin() {
+      const pin = Array.from(document.querySelectorAll('.new-pin-box')).map(b => b.value).join('');
+      if (pin.length < 4) return showToast("Incomplete PIN", "Please enter 4 digits.");
+      
+      if (currentMember && currentMember.phone) {
+        const client = getSupabaseClient();
+        if (client) {
+          try {
+            await client.from('members').update({ password: pin }).eq('phone', currentMember.phone);
+          } catch (e) {}
+        }
+        currentMember.password = pin;
+        localStorage.setItem('rg_member_session', JSON.stringify(currentMember));
+        closeChangePinModal();
+        showToast("Passkey Updated", "Your new 4-digit PIN is active.");
+      }
+    }
+
+    // ========================================================
+    // 1-TAP UPI MODAL CONTROLS
+    // ========================================================
+    function openUpiModal() {
+      document.getElementById('upi-modal').classList.remove('hidden');
+      selectUpiPlan('monthly');
+    }
+
+    function closeUpiModal() {
+      document.getElementById('upi-modal').classList.add('hidden');
+    }
+
+    function selectUpiPlan(plan) {
+      selectedUpiPlan = plan;
+      const amount = plan === 'monthly' ? GYM_CONFIG.monthlyFee : GYM_CONFIG.quarterlyFee;
+      
+      document.getElementById('upi-display-amount').innerText = `₹${amount.toLocaleString()}`;
+      
+      const upiUrl = `upi://pay?pa=${GYM_CONFIG.upi}&pn=${encodeURIComponent(GYM_CONFIG.name)}&am=${amount}&cu=INR&tn=${encodeURIComponent("Retro Gym Renewal")}`;
+      document.getElementById('upi-direct-btn').href = upiUrl;
+      document.getElementById('upi-qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${encodeURIComponent(upiUrl)}`;
+
+      if (plan === 'monthly') {
+        document.getElementById('upi-plan-monthly').className = "py-2.5 rounded-xl bg-gold text-black font-display text-base tracking-wider shadow-glow-gold transition-all cursor-pointer";
+        document.getElementById('upi-plan-quarterly').className = "py-2.5 rounded-xl text-zinc-400 hover:text-white font-display text-base tracking-wider transition-all cursor-pointer";
+      } else {
+        document.getElementById('upi-plan-monthly').className = "py-2.5 rounded-xl text-zinc-400 hover:text-white font-display text-base tracking-wider transition-all cursor-pointer";
+        document.getElementById('upi-plan-quarterly').className = "py-2.5 rounded-xl bg-gold text-black font-display text-base tracking-wider shadow-glow-gold transition-all cursor-pointer";
+      }
+    }
+
+    function handleNotifyReceptionWhatsApp() {
+      const planName = selectedUpiPlan === 'monthly' ? 'Monthly Plan (₹1,200)' : 'Quarterly Plan (₹3,200)';
+      const msg = `Hi Retro Gym, I have initiated membership renewal for ${planName}. Member: ${currentMember ? currentMember.full_name : 'Member'} (${currentMember ? currentMember.phone : ''}). Please confirm receipt.`;
+      window.open(`https://wa.me/${GYM_CONFIG.phone}?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+
+    // ========================================================
+    // LIFECYCLE BOOTSTRAP
+    // ========================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      initPinInputs();
+      initNewPinInputs();
+      const saved = localStorage.getItem('rg_member_session');
+      if (saved) {
+        try {
+          currentMember = JSON.parse(saved);
+          loginSuccess();
+        } catch (e) {
+          localStorage.removeItem('rg_member_session');
+        }
+      }
+    });
+  </script>
+</body>
+</html>
