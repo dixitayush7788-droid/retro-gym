@@ -673,6 +673,32 @@
     <!-- ======================================================== -->
     <main id="tab-pass" class="tab-view space-y-4">
       
+      <!-- GYM EMERGENCY / OPERATIONS STATUS BANNER (CONDITIONAL) -->
+      <div id="gym-emergency-banner" class="hidden rounded-3xl p-4 transition-all duration-300 relative overflow-hidden shadow-2xl">
+        <div class="flex items-start gap-3 relative z-10">
+          <div id="gym-emergency-icon-bg" class="w-10 h-10 rounded-2xl flex items-center justify-center font-display text-xl shrink-0 shadow-lg">
+            <span id="gym-emergency-icon">⚠️</span>
+          </div>
+          <div class="space-y-1 min-w-0 flex-1">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1.5">
+                <span id="gym-emergency-tag" class="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-full">
+                  OPERATIONS NOTICE
+                </span>
+                <span class="w-1.5 h-1.5 rounded-full animate-ping" id="gym-emergency-ping"></span>
+              </div>
+              <span id="gym-emergency-time" class="text-[9px] font-mono text-zinc-400">Live</span>
+            </div>
+            <h3 id="gym-emergency-headline" class="font-display text-lg tracking-wider text-white leading-tight">
+              GYM STATUS NOTICE
+            </h3>
+            <p id="gym-emergency-message" class="text-xs font-sans text-zinc-200 leading-relaxed">
+              Checking operational telemetry...
+            </p>
+          </div>
+        </div>
+      </div>
+
       <!-- HOLOGRAPHIC VIP PASS CARD -->
       <div class="p-[1.5px] rounded-3xl holo-glow shadow-glow-card">
         <div class="bg-gradient-to-b from-[#181822] via-[#121218] to-[#08080c] rounded-[22px] p-5 relative overflow-hidden space-y-4">
@@ -2133,11 +2159,103 @@
     }
 
     // ========================================================
+    // LIVE GYM EMERGENCY STATUS ENGINE
+    // ========================================================
+    async function fetchLiveGymStatus() {
+      try {
+        // 1. Check local cache first for zero-latency UI
+        const cached = localStorage.getItem('retro_gym_status_config');
+        if (cached) {
+          try {
+            renderEmergencyBanner(JSON.parse(cached));
+          } catch (e) {}
+        }
+
+        // 2. Fetch live config from Supabase
+        const client = getSupabaseClient();
+        if (client) {
+          const { data, error } = await client.from('gym_config').select('*').limit(1);
+          if (!error && data && data.length > 0) {
+            const config = data[0];
+            localStorage.setItem('retro_gym_status_config', JSON.stringify(config));
+            renderEmergencyBanner(config);
+          }
+        }
+      } catch (err) {
+        console.warn("Live gym status warning:", err);
+      }
+    }
+
+    function renderEmergencyBanner(config) {
+      const banner = document.getElementById('gym-emergency-banner');
+      if (!banner) return;
+
+      const status = config?.status || 'OPEN';
+      const notice = config?.notice_text || '';
+      const delayedTime = config?.delayed_time || '5:00 PM';
+      const updatedAt = config?.updated_at ? new Date(config.updated_at) : new Date();
+
+      if (status === 'OPEN') {
+        // Hide banner when gym is operating normally
+        banner.classList.add('hidden');
+        return;
+      }
+
+      banner.classList.remove('hidden');
+
+      const iconBg = document.getElementById('gym-emergency-icon-bg');
+      const icon = document.getElementById('gym-emergency-icon');
+      const tag = document.getElementById('gym-emergency-tag');
+      const ping = document.getElementById('gym-emergency-ping');
+      const headline = document.getElementById('gym-emergency-headline');
+      const message = document.getElementById('gym-emergency-message');
+      const timeEl = document.getElementById('gym-emergency-time');
+
+      timeEl.innerText = `Updated ${updatedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
+      if (status === 'DELAYED') {
+        banner.className = "rounded-3xl p-4 transition-all duration-300 relative overflow-hidden shadow-2xl bg-gradient-to-r from-amber-950/80 via-amber-900/60 to-black border-2 border-amber-400/80";
+        iconBg.className = "w-10 h-10 rounded-2xl flex items-center justify-center font-display text-xl shrink-0 shadow-lg bg-amber-400/20 text-amber-300 border border-amber-400/40";
+        icon.innerText = "⏳";
+        tag.className = "text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40";
+        tag.innerText = "LATE OPENING";
+        ping.className = "w-1.5 h-1.5 rounded-full animate-ping bg-amber-400";
+        headline.innerText = `OPENING DELAYED — OPENS AT ${delayedTime}`;
+        headline.className = "font-display text-lg tracking-wider text-amber-300 leading-tight";
+        message.innerText = notice || `Gym opening delayed today. Doors open at ${delayedTime}.`;
+      } else if (status === 'CLOSED') {
+        banner.className = "rounded-3xl p-4 transition-all duration-300 relative overflow-hidden shadow-2xl bg-gradient-to-r from-rose-950/80 via-rose-900/60 to-black border-2 border-rose-500/80";
+        iconBg.className = "w-10 h-10 rounded-2xl flex items-center justify-center font-display text-xl shrink-0 shadow-lg bg-rose-500/20 text-rose-300 border border-rose-500/40";
+        icon.innerText = "🚫";
+        tag.className = "text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40";
+        tag.innerText = "CLOSED TODAY";
+        ping.className = "w-1.5 h-1.5 rounded-full animate-ping bg-rose-500";
+        headline.innerText = "GYM IS CLOSED TODAY";
+        headline.className = "font-display text-lg tracking-wider text-rose-300 leading-tight";
+        message.innerText = notice || "Gym is closed today for unscheduled facility maintenance. See you tomorrow!";
+      } else if (status === 'HOLIDAY') {
+        banner.className = "rounded-3xl p-4 transition-all duration-300 relative overflow-hidden shadow-2xl bg-gradient-to-r from-sky-950/80 via-cyan-900/60 to-black border-2 border-cyan-400/80";
+        iconBg.className = "w-10 h-10 rounded-2xl flex items-center justify-center font-display text-xl shrink-0 shadow-lg bg-cyan-400/20 text-cyan-300 border border-cyan-400/40";
+        icon.innerText = "🎉";
+        tag.className = "text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-300 border border-cyan-400/40";
+        tag.innerText = "FESTIVAL HOLIDAY";
+        ping.className = "w-1.5 h-1.5 rounded-full animate-ping bg-cyan-400";
+        headline.innerText = "HOLIDAY — GYM CLOSED";
+        headline.className = "font-display text-lg tracking-wider text-cyan-300 leading-tight";
+        message.innerText = notice || "Happy festival holidays to all Retro Gym athletes! Normal schedule resumes tomorrow.";
+      }
+    }
+
+    // ========================================================
     // LIFECYCLE BOOTSTRAP
     // ========================================================
     window.addEventListener('DOMContentLoaded', () => {
       initPinInputs();
       initNewPinInputs();
+      fetchLiveGymStatus();
+      // Poll gym status every 30 seconds
+      setInterval(fetchLiveGymStatus, 30000);
+
       const saved = localStorage.getItem('rg_member_session');
       if (saved) {
         try {
