@@ -1739,30 +1739,21 @@
 
       try {
         if (db) {
-          // Attempt upsert/update into gym_config table
-          // First check if a row exists
-          const { data: existing } = await db.from('gym_config').select('id').limit(1);
-          if (existing && existing.length > 0) {
-            await db.from('gym_config').update({
-              status: status,
-              notice_text: notice,
-              delayed_time: delayedTime,
-              updated_at: currentGymConfig.updated_at
-            }).eq('id', existing[0].id);
-          } else {
-            await db.from('gym_config').insert([{
-              status: status,
-              notice_text: notice,
-              delayed_time: delayedTime,
-              updated_at: currentGymConfig.updated_at
-            }]);
-          }
+          // Direct upsert with primary key id: 1
+          const { error } = await db.from('gym_config').upsert({
+            id: 1,
+            status: status,
+            delayed_time: delayedTime || '',
+            notice_text: notice || '',
+            updated_at: currentGymConfig.updated_at
+          });
+          if (error) throw error;
         }
         playAudioChirp(960, 0.18);
-        showToast(`Gym status updated to [${status}] & synced! ⚡`, "success");
+        showToast(`Gym status updated to [${status}] & synced to Cloud! ⚡`, "success");
       } catch (err) {
         // Fallback gracefully to local sync
-        showToast(`Gym status saved locally (${err.message || 'Cloud table pending'}) ⚡`, "info");
+        showToast(`Gym status saved locally (${err.message || 'Cloud sync error'}) ⚡`, "info");
       } finally {
         btn.innerText = "⚡ UPDATE STATUS & SYNC";
         btn.disabled = false;
