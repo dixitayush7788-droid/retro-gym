@@ -81,7 +81,7 @@
   <div id="admin-lock-modal" class="fixed inset-0 z-50 bg-black/95 backdrop-blur-2xl flex items-center justify-center p-4">
     <div class="w-full max-w-sm bg-surface rounded-3xl border border-gold/30 p-6 shadow-glow-card relative overflow-hidden space-y-5 text-center">
       
-      <!-- Top Ambient Cyber Glow -->
+      <!-- Ambient Cyber Glows -->
       <div class="absolute -top-12 -right-12 w-40 h-40 bg-gold/20 rounded-full blur-3xl pointer-events-none"></div>
       <div class="absolute -bottom-10 -left-10 w-36 h-36 bg-cyanCustom/20 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -124,7 +124,7 @@
 
       <button 
         onclick="verifyAdminPin()"
-        class="w-full py-3.5 bg-gradient-to-r from-gold via-goldLight to-cyanCustom text-black font-display text-lg tracking-wider rounded-2xl shadow-glow-gold hover:brightness-110 active:scale-95 transition-all uppercase cursor-pointer"
+        class="w-full py-3.5 bg-gradient-to-r from-gold via-goldLight to-cyanCustom text-black font-display text-lg tracking-wider rounded-2xl shadow-glow-gold hover:brightness-110 active:scale-95 transition-all uppercase cursor-pointer font-bold"
       >
         Unlock Control Console ⚡
       </button>
@@ -158,7 +158,7 @@
               <span class="w-1.5 h-1.5 rounded-full bg-emeraldCustom animate-pulse"></span> CYBER COMMAND DESK
             </span>
           </div>
-          <p class="text-xs font-mono text-zinc-400">Old School Iron • Master Roster & Real-Time Telemetry</p>
+          <p class="text-xs font-mono text-zinc-400">Old School Iron • 360° Athlete Dossiers & Lifecycle Hub</p>
         </div>
       </div>
 
@@ -173,7 +173,7 @@
 
         <button 
           onclick="fetchAllData(true)"
-          class="px-3.5 py-2.5 bg-surfaceCard hover:bg-surfaceMuted text-zinc-300 hover:text-white font-mono text-xs rounded-2xl border border-white/10 flex items-center gap-1.5 transition-all cursor-pointer"
+          class="px-3.5 py-2.5 bg-surfaceCard hover:bg-surfaceMuted text-zinc-300 hover:text-white font-mono text-xs rounded-2xl border border-white/10 flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
           title="Cloud Sync Database"
         >
           <span>🔄 Sync Cloud</span>
@@ -181,7 +181,7 @@
 
         <button 
           onclick="exportMembersCSV()"
-          class="px-3.5 py-2.5 bg-surfaceCard hover:bg-surfaceMuted text-emeraldCustom font-mono text-xs rounded-2xl border border-emeraldCustom/30 flex items-center gap-1.5 transition-all cursor-pointer"
+          class="px-3.5 py-2.5 bg-surfaceCard hover:bg-surfaceMuted text-emeraldCustom font-mono text-xs rounded-2xl border border-emeraldCustom/30 flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
         >
           <span>📥 Export CSV</span>
         </button>
@@ -189,14 +189,14 @@
         <a 
           href="./index.html" 
           target="_blank"
-          class="px-3.5 py-2.5 bg-surfaceCard hover:bg-surfaceMuted text-goldLight font-mono text-xs rounded-2xl border border-gold/30 flex items-center gap-1.5 transition-all cursor-pointer"
+          class="px-3.5 py-2.5 bg-surfaceCard hover:bg-surfaceMuted text-goldLight font-mono text-xs rounded-2xl border border-gold/30 flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
         >
           <span>🏠 Member App</span>
         </a>
 
         <button 
           onclick="lockAdminConsole()"
-          class="px-3.5 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-mono text-xs rounded-2xl border border-rose-500/30 transition-all cursor-pointer"
+          class="px-3.5 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-mono text-xs rounded-2xl border border-rose-500/30 transition-all cursor-pointer active:scale-95"
         >
           🔒 Lock
         </button>
@@ -217,7 +217,7 @@
         </div>
         <p id="kpi-total-members" class="font-display text-4xl md:text-5xl text-goldLight tracking-wider">--</p>
         <p class="text-[11px] font-mono text-zinc-400 flex items-center gap-1">
-          <span class="text-emeraldCustom font-bold">● Live Database</span> Roster
+          <span class="text-emeraldCustom font-bold">● Active Roster</span> Database
         </p>
       </div>
 
@@ -230,7 +230,7 @@
           </span>
         </div>
         <p id="kpi-today-footfall" class="font-display text-4xl md:text-5xl text-cyanCustom tracking-wider">--</p>
-        <p class="text-[11px] font-mono text-zinc-400">Verified biometric check-ins</p>
+        <p class="text-[11px] font-mono text-zinc-400">Verified punches today</p>
       </div>
 
       <!-- Expiry Radar (<= 7 Days) -->
@@ -240,7 +240,7 @@
           <span class="p-1.5 rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/30">⏳</span>
         </div>
         <p id="kpi-expiring-soon" class="font-display text-4xl md:text-5xl text-amber-400 tracking-wider">--</p>
-        <p class="text-[11px] font-mono text-amber-200/70">Requires renewal follow-up</p>
+        <p class="text-[11px] font-mono text-amber-200/70">Due for renewal outreach</p>
       </div>
 
       <!-- Estimated Monthly MRR -->
@@ -260,14 +260,14 @@
     <!-- ======================================================== -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-      <!-- LEFT 2 COLUMNS: ATHLETE DIRECTORY (TACTICAL CARDS) -->
+      <!-- LEFT 2 COLUMNS: ATHLETE DIRECTORY (TACTICAL 360° CARDS) -->
       <section class="lg:col-span-2 bg-surface/90 backdrop-blur-xl rounded-3xl border border-white/10 p-5 shadow-glow-card space-y-4">
         
         <!-- Search & Filters Header -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
           <div>
-            <h2 class="font-display text-2xl text-white tracking-wider">ATHLETE ROSTER & RENEWALS</h2>
-            <p class="text-xs font-mono text-zinc-400">Tactical mobile cards with 1-tap extension & passkey reset</p>
+            <h2 class="font-display text-2xl text-white tracking-wider">ATHLETE ROSTER & LIFECYCLE</h2>
+            <p class="text-xs font-mono text-zinc-400">1-Tap Dial, Smart WhatsApp, 360° Dossiers & Quick Extensions</p>
           </div>
 
           <!-- Instant Search Input -->
@@ -465,7 +465,144 @@
   </div>
 
   <!-- ======================================================== -->
-  <!-- 6. APPLICATION SCRIPT LOGIC ENGINE -->
+  <!-- 6. 360° ATHLETE DOSSIER & LIFECYCLE MANAGEMENT MODAL -->
+  <!-- ======================================================== -->
+  <div id="athlete-dossier-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div id="athlete-dossier-card" class="w-full max-w-2xl bg-surface border-t sm:border border-gold/40 rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-glow-card space-y-5 max-h-[92vh] overflow-y-auto sheet-drawer translate-y-full">
+      
+      <!-- Dossier Header -->
+      <div class="flex items-start justify-between pb-3 border-b border-white/10">
+        <div class="flex items-center gap-3">
+          <div id="dossier-avatar" class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-gold/30 via-goldLight/20 to-cyanCustom/20 text-goldLight font-bold flex items-center justify-center border border-gold/50 text-2xl shadow-glow-gold">
+            A
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 id="dossier-name" class="font-display text-2xl sm:text-3xl text-white tracking-wider leading-none">Athlete Name</h2>
+              <span id="dossier-vip-tag" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-gold/20 text-goldLight border border-gold/40">VIP PASS</span>
+            </div>
+            <p id="dossier-phone" class="text-xs font-mono text-zinc-400 mt-1">+91 0000000000</p>
+          </div>
+        </div>
+        <button onclick="closeAthleteDossier()" class="w-8 h-8 rounded-xl bg-surfaceCard hover:bg-surfaceMuted text-zinc-400 hover:text-white flex items-center justify-center cursor-pointer">✕</button>
+      </div>
+
+      <!-- Live Quick Action Header Hub (Direct Call, WhatsApp, PIN Reset) -->
+      <div class="grid grid-cols-3 gap-2">
+        <a id="dossier-call-btn" href="tel:" class="py-2.5 rounded-2xl bg-cyanCustom/15 hover:bg-cyanCustom/25 text-cyanCustom border border-cyanCustom/30 text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95">
+          <span>📞 Direct Call</span>
+        </a>
+        <a id="dossier-wa-btn" href="#" target="_blank" class="py-2.5 rounded-2xl bg-[#075e54]/40 hover:bg-[#075e54]/70 text-[#25d366] border border-[#25d366]/40 text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95">
+          <span>💬 WhatsApp</span>
+        </a>
+        <button id="dossier-pin-reset-btn" onclick="executeDossierPinReset()" class="py-2.5 rounded-2xl bg-surfaceMuted hover:bg-rose-500/20 text-zinc-300 hover:text-rose-300 border border-white/10 text-xs font-mono font-bold flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer">
+          <span>🔑 Reset PIN</span>
+        </button>
+      </div>
+
+      <!-- Ledger Matrix Grid -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs font-mono">
+        <div class="bg-surfaceCard p-3 rounded-2xl border border-white/5 space-y-1">
+          <span class="text-[10px] text-zinc-400 uppercase block">Pass Status</span>
+          <div id="dossier-status-pill" class="text-emeraldCustom font-bold text-xs">ACTIVE</div>
+        </div>
+        <div class="bg-surfaceCard p-3 rounded-2xl border border-white/5 space-y-1">
+          <span class="text-[10px] text-zinc-400 uppercase block">Valid Until</span>
+          <span id="dossier-valid-until" class="text-goldLight font-bold text-xs">--</span>
+        </div>
+        <div class="bg-surfaceCard p-3 rounded-2xl border border-white/5 space-y-1">
+          <span class="text-[10px] text-zinc-400 uppercase block">Fees Collected</span>
+          <span id="dossier-fees-paid" class="text-emeraldCustom font-bold text-xs">₹--</span>
+        </div>
+        <div class="bg-surfaceCard p-3 rounded-2xl border border-white/5 space-y-1">
+          <span class="text-[10px] text-zinc-400 uppercase block">Active Streak</span>
+          <span id="dossier-streak" class="text-amber-400 font-bold text-xs">🔥 0 Days</span>
+        </div>
+      </div>
+
+      <!-- Attendance & Punching Intelligence -->
+      <div class="bg-surfaceCard rounded-2xl border border-white/10 p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-cyanCustom">📊</span>
+            <h4 class="font-display text-lg text-white tracking-wider">ATTENDANCE INTELLIGENCE</h4>
+          </div>
+          <span id="dossier-pref-shift" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-cyanCustom/20 text-cyanCustom border border-cyanCustom/30">
+            ☀️ Morning Shift (08:00 AM)
+          </span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+          <div class="p-2.5 bg-black/40 rounded-xl border border-white/5">
+            <span class="text-[10px] text-zinc-400 block">PUNCHES THIS MONTH</span>
+            <span id="dossier-month-punches" class="text-base font-bold text-cyanCustom">0 check-ins</span>
+          </div>
+          <div class="p-2.5 bg-black/40 rounded-xl border border-white/5">
+            <span class="text-[10px] text-zinc-400 block">LAST MONTH ACTIVITY</span>
+            <span id="dossier-last-month-punches" class="text-base font-bold text-zinc-300">0 check-ins</span>
+          </div>
+        </div>
+
+        <!-- Recent 15 Check-ins Scrollable Table -->
+        <div class="space-y-1.5">
+          <span class="text-[10px] font-mono uppercase text-zinc-400 block">Recent Check-In Logs (Latest 15)</span>
+          <div id="dossier-checkin-history" class="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+            <div class="text-center py-4 text-xs font-mono text-zinc-500">Loading check-in telemetry...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MEMBERSHIP LIFECYCLE ACTIONS HUB -->
+      <div class="bg-surfaceCard rounded-2xl border border-gold/25 p-4 space-y-3 font-mono text-xs">
+        <div class="flex items-center gap-2">
+          <span class="text-gold">⚡</span>
+          <h4 class="font-display text-lg text-white tracking-wider">MEMBERSHIP LIFECYCLE CONTROLS</h4>
+        </div>
+
+        <!-- 1-Tap Quick Extend & Freeze Controls -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <!-- +1 Month Extension -->
+          <button 
+            onclick="executeDossierExtend(1)" 
+            class="p-2.5 rounded-xl bg-gold/15 hover:bg-gold hover:text-black text-goldLight border border-gold/30 font-bold transition-all text-center cursor-pointer active:scale-95"
+          >
+            +1 Month Pass
+          </button>
+
+          <!-- +3 Month Extension -->
+          <button 
+            onclick="executeDossierExtend(3)" 
+            class="p-2.5 rounded-xl bg-gold/15 hover:bg-gold hover:text-black text-goldLight border border-gold/30 font-bold transition-all text-center cursor-pointer active:scale-95"
+          >
+            +3 Months Pass
+          </button>
+
+          <!-- Freeze 15 Days -->
+          <button 
+            onclick="executeDossierFreeze(15)" 
+            class="p-2.5 rounded-xl bg-cyanCustom/15 hover:bg-cyanCustom/30 text-cyanCustom border border-cyanCustom/30 font-bold transition-all text-center cursor-pointer active:scale-95"
+            title="Freeze membership for 15 days"
+          >
+            ❄️ Freeze 15d
+          </button>
+
+          <!-- Close / Discontinue -->
+          <button 
+            onclick="executeDossierDiscontinue()" 
+            class="p-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500 text-rose-300 hover:text-black border border-rose-500/30 font-bold transition-all text-center cursor-pointer active:scale-95"
+            title="Revoke access immediately"
+          >
+            🚫 Discontinue
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- 7. APPLICATION SCRIPT LOGIC ENGINE -->
   <!-- ======================================================== -->
   <script>
     // ----------------------------------------------------
@@ -482,6 +619,7 @@
     let currentFilter = 'all';
     let selectedMonths = 1;
     let selectedFee = 1200;
+    let activeDossierMember = null;
 
     // ----------------------------------------------------
     // AUDIO SYNTHESIZER CHIRP
@@ -606,7 +744,7 @@
     // ----------------------------------------------------
     function normalizeMember(m) {
       const fullName = m.full_name || m.name || 'Retro Athlete';
-      const phone = m.phone || 'N/A';
+      const phone = m.phone ? String(m.phone).replace(/\D/g, '').slice(-10) : 'N/A';
       
       // Fallback for valid_until / expiry_date
       let validUntil = m.valid_until || m.expiry_date;
@@ -618,6 +756,8 @@
 
       const streak = m.streak_count !== undefined ? m.streak_count : (m.streak || 0);
       const hasPin = Boolean(m.password);
+      const feesPaid = m.fees_paid !== undefined ? m.fees_paid : 1200;
+      const planDuration = m.plan_duration_months || 1;
 
       return {
         raw: m,
@@ -627,6 +767,8 @@
         validUntil,
         streak,
         hasPin,
+        feesPaid,
+        planDuration,
         password: m.password
       };
     }
@@ -674,6 +816,12 @@
         // 4. Render Tactical Cards & Feed
         renderMembersCards();
         renderAttendanceFeed();
+
+        // 5. Update open dossier if active
+        if (activeDossierMember) {
+          const updated = allMembers.find(m => m.phone === activeDossierMember.phone);
+          if (updated) openAthleteDossier(updated.phone, false);
+        }
 
         if (showFeedback) showToast("Database synced successfully! 🔄", "success");
 
@@ -789,30 +937,36 @@
           ? `<span class="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-emeraldCustom/15 text-emeraldCustom border border-emeraldCustom/30">PIN ACTIVE ✓</span>` 
           : `<span class="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30">NO PIN</span>`;
 
-        const encodedWaText = encodeURIComponent(`Hi ${m.fullName}! Your Retro Gym membership is currently valid until ${expFormatted}. Contact reception if you'd like to renew or upgrade your protocol.`);
+        const smartWaText = encodeURIComponent(`Hi ${m.fullName}! 🏋️‍♂️ Your Retro Gym membership is active until ${expFormatted}. Reach out to reception to renew, upgrade your plan, or manage your pass.`);
 
         html += `
-          <div class="bg-surfaceCard hover:bg-surfaceCardHover rounded-3xl p-4 md:p-5 border ${borderAccent} shadow-glow-card transition-all space-y-3.5 flex flex-col justify-between">
+          <div class="bg-surfaceCard hover:bg-surfaceCardHover rounded-3xl p-4 md:p-5 border ${borderAccent} shadow-glow-card transition-all space-y-3 flex flex-col justify-between">
             
-            <!-- Top Row: Athlete Identity & VIP Badge -->
+            <!-- Top Row: Athlete Identity, VIP Badge & 360 Dossier Trigger -->
             <div>
               <div class="flex items-start justify-between gap-2">
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3 cursor-pointer" onclick="openAthleteDossier('${m.phone}')">
                   <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-gold/25 via-goldLight/20 to-cyanCustom/20 text-goldLight font-bold flex items-center justify-center border border-gold/40 text-base shrink-0 shadow-glow-gold">
                     ${m.fullName.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <h3 class="font-bold text-white text-sm leading-tight">${m.fullName}</h3>
+                    <h3 class="font-bold text-white text-sm leading-tight flex items-center gap-1.5">
+                      <span>${m.fullName}</span>
+                      <span class="text-[10px] text-cyanCustom">👁️</span>
+                    </h3>
                     <p class="text-xs font-mono text-zinc-400 mt-0.5">+91 ${m.phone}</p>
                   </div>
                 </div>
-                <span class="text-[8px] font-mono font-bold px-2 py-0.5 rounded bg-gold/20 text-goldLight border border-gold/40 shrink-0">
-                  RETRO VIP
-                </span>
+                <button 
+                  onclick="openAthleteDossier('${m.phone}')"
+                  class="text-[9px] font-mono font-bold px-2.5 py-1 rounded-xl bg-gold/20 hover:bg-gold hover:text-black text-goldLight border border-gold/40 shrink-0 transition-all cursor-pointer"
+                >
+                  360° Profile ↗
+                </button>
               </div>
 
               <!-- Middle Stats Matrix -->
-              <div class="grid grid-cols-2 gap-2 mt-3.5 bg-black/50 p-2.5 rounded-2xl border border-white/5 text-xs font-mono">
+              <div class="grid grid-cols-2 gap-2 mt-3 bg-black/50 p-2.5 rounded-2xl border border-white/5 text-xs font-mono">
                 <div>
                   <span class="text-[9px] text-zinc-400 uppercase block">VALID UNTIL</span>
                   <span class="font-bold text-zinc-200 text-[11px]">${expFormatted}</span>
@@ -828,10 +982,29 @@
               </div>
             </div>
 
-            <!-- Bottom 1-Tap Action Dock -->
+            <!-- Bottom Action Hub: 1-Tap Calling, WhatsApp, +1 Mo, +3 Mo -->
             <div class="pt-2 border-t border-white/10 grid grid-cols-4 gap-1.5 font-mono text-xs">
               
-              <!-- 1. +1 Mo -->
+              <!-- 1. Direct Call -->
+              <a 
+                href="tel:${m.phone}"
+                class="py-2 rounded-xl bg-cyanCustom/15 hover:bg-cyanCustom/30 text-cyanCustom border border-cyanCustom/30 text-[11px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95"
+                title="Dial Athlete"
+              >
+                📞 Call
+              </a>
+
+              <!-- 2. Smart WhatsApp -->
+              <a 
+                href="https://wa.me/91${m.phone}?text=${smartWaText}"
+                target="_blank"
+                class="py-2 rounded-xl bg-[#075e54]/30 hover:bg-[#075e54]/60 text-[#25d366] border border-[#25d366]/30 text-[11px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95"
+                title="Smart WhatsApp Reminder"
+              >
+                💬 WA
+              </a>
+
+              <!-- 3. +1 Mo Extender -->
               <button 
                 onclick="directExtend('${m.phone}', 1)"
                 class="py-2 rounded-xl bg-gold/15 hover:bg-gold hover:text-black text-goldLight border border-gold/30 text-[11px] font-bold text-center transition-all cursor-pointer active:scale-95"
@@ -840,7 +1013,7 @@
                 +1 Mo
               </button>
 
-              <!-- 2. +3 Mo -->
+              <!-- 4. +3 Mo Extender -->
               <button 
                 onclick="directExtend('${m.phone}', 3)"
                 class="py-2 rounded-xl bg-gold/15 hover:bg-gold hover:text-black text-goldLight border border-gold/30 text-[11px] font-bold text-center transition-all cursor-pointer active:scale-95"
@@ -849,25 +1022,6 @@
                 +3 Mo
               </button>
 
-              <!-- 3. Reset PIN -->
-              <button 
-                onclick="resetMemberPin('${m.phone}')"
-                class="py-2 rounded-xl bg-surfaceMuted hover:bg-rose-500/20 text-zinc-300 hover:text-rose-300 border border-white/10 text-[10px] text-center transition-all cursor-pointer active:scale-95"
-                title="Reset Passkey PIN to NULL"
-              >
-                🔑 Reset
-              </button>
-
-              <!-- 4. WhatsApp -->
-              <a 
-                href="https://wa.me/91${m.phone}?text=${encodedWaText}"
-                target="_blank"
-                class="py-2 rounded-xl bg-[#075e54]/30 hover:bg-[#075e54]/60 text-[#25d366] border border-[#25d366]/30 text-[11px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95"
-                title="Chat on WhatsApp"
-              >
-                💬 WA
-              </a>
-
             </div>
 
           </div>
@@ -875,6 +1029,221 @@
       });
 
       container.innerHTML = html;
+    }
+
+    // ----------------------------------------------------
+    // 360° ATHLETE DOSSIER MODAL LOGIC
+    // ----------------------------------------------------
+    async function openAthleteDossier(phone, animate = true) {
+      const member = allMembers.find(m => m.phone === phone);
+      if (!member) return;
+
+      activeDossierMember = member;
+      playAudioChirp(720, 0.08);
+
+      const exp = new Date(member.validUntil);
+      const now = new Date();
+      const diffDays = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      const expFormatted = exp.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+
+      // Populate UI Fields
+      document.getElementById('dossier-avatar').innerText = member.fullName.charAt(0).toUpperCase();
+      document.getElementById('dossier-name').innerText = member.fullName;
+      document.getElementById('dossier-phone').innerText = `+91 ${member.phone}`;
+      document.getElementById('dossier-valid-until').innerText = expFormatted;
+      document.getElementById('dossier-fees-paid').innerText = `₹${Number(member.feesPaid || 1200).toLocaleString()}`;
+      document.getElementById('dossier-streak').innerText = `🔥 ${member.streak} Days`;
+
+      // Status pill
+      const statusEl = document.getElementById('dossier-status-pill');
+      if (diffDays < 0) {
+        statusEl.className = 'text-rose-400 font-bold text-xs';
+        statusEl.innerText = 'EXPIRED / DISCONTINUED';
+      } else if (diffDays <= 7) {
+        statusEl.className = 'text-amber-400 font-bold text-xs';
+        statusEl.innerText = `EXPIRING (${diffDays}d left)`;
+      } else {
+        statusEl.className = 'text-emeraldCustom font-bold text-xs';
+        statusEl.innerText = `ACTIVE (${diffDays}d left)`;
+      }
+
+      // Quick Actions
+      document.getElementById('dossier-call-btn').href = `tel:${member.phone}`;
+      const smartWa = encodeURIComponent(`Hi ${member.fullName}! 🏋️‍♂️ Your Retro Gym membership is valid until ${expFormatted}. Let us know if you want to extend or freeze your pass.`);
+      document.getElementById('dossier-wa-btn').href = `https://wa.me/91${member.phone}?text=${smartWa}`;
+
+      // Open Modal
+      const modal = document.getElementById('athlete-dossier-modal');
+      const card = document.getElementById('athlete-dossier-card');
+      modal.classList.remove('hidden');
+      if (animate) {
+        setTimeout(() => card.classList.remove('translate-y-full'), 20);
+      } else {
+        card.classList.remove('translate-y-full');
+      }
+
+      // Fetch Individual Attendance Intelligence for this athlete
+      fetchAthleteAttendanceIntelligence(member.phone);
+    }
+
+    function closeAthleteDossier() {
+      const card = document.getElementById('athlete-dossier-card');
+      card.classList.add('translate-y-full');
+      setTimeout(() => {
+        document.getElementById('athlete-dossier-modal').classList.add('hidden');
+        activeDossierMember = null;
+      }, 250);
+    }
+
+    async function fetchAthleteAttendanceIntelligence(phone) {
+      const historyContainer = document.getElementById('dossier-checkin-history');
+      historyContainer.innerHTML = `<div class="text-center py-4 text-xs font-mono text-zinc-500">Querying attendance intelligence...</div>`;
+
+      try {
+        if (!db) return;
+        const { data: logs, error } = await db
+          .from('attendance_logs')
+          .select('*')
+          .eq('phone', phone)
+          .order('checkin_time', { ascending: false })
+          .limit(15);
+
+        if (error) throw error;
+
+        const punches = logs || [];
+        const now = new Date();
+        const curMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        
+        const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastMonthStr = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, '0')}`;
+
+        let thisMonthCount = 0;
+        let lastMonthCount = 0;
+        let morningPunches = 0;
+        let eveningPunches = 0;
+
+        punches.forEach(l => {
+          if (l.checkin_time) {
+            if (l.checkin_time.startsWith(curMonthStr)) thisMonthCount++;
+            if (l.checkin_time.startsWith(lastMonthStr)) lastMonthCount++;
+
+            const hr = new Date(l.checkin_time).getHours();
+            if (hr < 14) morningPunches++;
+            else eveningPunches++;
+          }
+        });
+
+        document.getElementById('dossier-month-punches').innerText = `${thisMonthCount} check-ins`;
+        document.getElementById('dossier-last-month-punches').innerText = `${lastMonthCount} check-ins`;
+
+        const prefShiftEl = document.getElementById('dossier-pref-shift');
+        if (morningPunches >= eveningPunches) {
+          prefShiftEl.innerText = '☀️ Morning Shift (06:00 - 11:00 AM)';
+        } else {
+          prefShiftEl.innerText = '🌙 Evening Shift (05:00 - 10:00 PM)';
+        }
+
+        if (punches.length === 0) {
+          historyContainer.innerHTML = `<div class="text-center py-4 text-xs font-mono text-zinc-500">No attendance punches recorded for this athlete yet.</div>`;
+          return;
+        }
+
+        let logsHtml = '';
+        punches.forEach(l => {
+          const d = new Date(l.checkin_time);
+          const dateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+          const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          logsHtml += `
+            <div class="p-2 bg-black/30 rounded-xl border border-white/5 flex items-center justify-between text-[11px] font-mono">
+              <span class="text-zinc-300 flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-cyanCustom"></span> ${dateStr}
+              </span>
+              <span class="text-cyanCustom font-bold">${timeStr}</span>
+            </div>
+          `;
+        });
+        historyContainer.innerHTML = logsHtml;
+
+      } catch (err) {
+        historyContainer.innerHTML = `<div class="text-center py-3 text-xs font-mono text-rose-400">Failed to load logs: ${err.message || err}</div>`;
+      }
+    }
+
+    // ----------------------------------------------------
+    // LIFECYCLE CONTROLS: EXTEND, FREEZE, DISCONTINUE, RESET PIN
+    // ----------------------------------------------------
+    async function executeDossierExtend(months) {
+      if (!activeDossierMember) return;
+      await directExtend(activeDossierMember.phone, months);
+    }
+
+    async function executeDossierFreeze(days) {
+      if (!activeDossierMember || !db) return;
+      const member = activeDossierMember;
+
+      try {
+        let baseDate = new Date();
+        if (member.validUntil) {
+          const currentExp = new Date(member.validUntil);
+          if (currentExp > baseDate) baseDate = currentExp;
+        }
+
+        baseDate.setDate(baseDate.getDate() + days);
+        const newExpiryIso = baseDate.toISOString();
+
+        const { error } = await db
+          .from('members')
+          .update({ 
+            valid_until: newExpiryIso,
+            expiry_date: newExpiryIso 
+          })
+          .eq('phone', member.phone);
+
+        if (error) throw error;
+
+        playAudioChirp(780, 0.12);
+        showToast(`Pass for ${member.fullName} frozen/extended by +${days} Days! ❄️`, "success");
+        fetchAllData();
+
+      } catch (err) {
+        showToast("Freeze operation failed: " + (err.message || err), "error");
+      }
+    }
+
+    async function executeDossierDiscontinue() {
+      if (!activeDossierMember || !db) return;
+      const member = activeDossierMember;
+
+      if (!confirm(`Are you sure you want to DISCONTINUE / CLOSE pass for ${member.fullName}? Pass access will be revoked immediately.`)) return;
+
+      try {
+        // Set expiry date to yesterday to revoke access immediately
+        const pastDate = new Date();
+        pastDate.setDate(pastDate.getDate() - 1);
+        const pastIso = pastDate.toISOString();
+
+        const { error } = await db
+          .from('members')
+          .update({ 
+            valid_until: pastIso,
+            expiry_date: pastIso 
+          })
+          .eq('phone', member.phone);
+
+        if (error) throw error;
+
+        playAudioChirp(400, 0.15);
+        showToast(`Membership for ${member.fullName} closed & revoked. 🚫`, "info");
+        fetchAllData();
+
+      } catch (err) {
+        showToast("Failed to discontinue: " + (err.message || err), "error");
+      }
+    }
+
+    async function executeDossierPinReset() {
+      if (!activeDossierMember) return;
+      await resetMemberPin(activeDossierMember.phone);
     }
 
     // ----------------------------------------------------
@@ -900,7 +1269,7 @@
           .from('members')
           .update({ 
             valid_until: newExpiryIso,
-            expiry_date: newExpiryIso
+            expiry_date: newExpiryIso 
           })
           .eq('phone', phone);
 
@@ -928,6 +1297,7 @@
 
         if (error) throw error;
 
+        playAudioChirp(600, 0.1);
         showToast(`Passkey PIN for ${name} reset to NULL 🔑`, "success");
         fetchAllData();
 
@@ -1015,7 +1385,8 @@
       const drawer = document.getElementById('add-member-drawer');
       const card = document.getElementById('add-member-card');
       drawer.classList.remove('hidden');
-      setTimeout(() => card.classList.remove('translate-y-full'), 10);
+      setTimeout(() => card.classList.remove('translate-y-full'), 20);
+      playAudioChirp(700, 0.08);
     }
 
     function closeAddMemberDrawer() {
@@ -1102,9 +1473,9 @@
         return;
       }
 
-      let csv = "Full Name,Phone,Valid Until,Streak Count,PIN Status\n";
+      let csv = "Full Name,Phone,Valid Until,Plan Duration (Months),Fees Paid,Streak Count,PIN Status\n";
       allMembers.forEach(m => {
-        csv += `"${m.fullName}","${m.phone}","${m.validUntil}",${m.streak},"${m.hasPin ? 'PIN ACTIVE' : 'NO PIN'}"\n`;
+        csv += `"${m.fullName}","${m.phone}","${m.validUntil}",${m.planDuration},${m.feesPaid},${m.streak},"${m.hasPin ? 'PIN ACTIVE' : 'NO PIN'}"\n`;
       });
 
       const blob = new Blob([csv], { type: 'text/csv' });
@@ -1113,7 +1484,7 @@
       a.href = url;
       a.download = `retro_gym_roster_${new Date().toISOString().split('T')[0]}.csv`;
       a.click();
-      showToast("Member roster exported to CSV 📥", "success");
+      showToast("Athlete roster exported to CSV 📥", "success");
     }
 
     // ----------------------------------------------------
@@ -1122,7 +1493,7 @@
     window.addEventListener('DOMContentLoaded', () => {
       checkAdminSession();
       // Auto-refresh attendance feed every 30 seconds
-      setInterval(fetchAttendanceFeed, 30000);
+      setInterval(() => fetchAttendanceFeed(false), 30000);
     });
   </script>
 </body>
