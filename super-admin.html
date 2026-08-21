@@ -173,7 +173,7 @@
       
       <!-- Icon & Title -->
       <div class="space-y-1.5">
-        <div class="w-13 h-13 w-12 h-12 rounded-2xl bg-skySoft text-skyPrimary flex items-center justify-center text-xl mx-auto shadow-ios-sm border border-skyLight">
+        <div class="w-12 h-12 rounded-2xl bg-skySoft text-skyPrimary flex items-center justify-center text-xl mx-auto shadow-ios-sm border border-skyLight">
           <svg class="w-6 h-6 text-skyPrimary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
           </svg>
@@ -244,7 +244,7 @@
         <div class="flex items-center gap-2">
           <div class="px-2.5 py-1 rounded-full bg-emeraldSoft text-emeraldMint border border-emerald-200/60 font-mono text-[11px] font-bold flex items-center gap-1">
             <span class="w-1.5 h-1.5 rounded-full bg-emeraldMint"></span>
-            <span id="header-active-count">4</span> Active
+            <span id="header-active-count">0</span> Active
           </div>
 
           <button 
@@ -252,7 +252,7 @@
             class="px-3 py-1.5 rounded-xl bg-skyPrimary hover:bg-skyHover text-white text-xs font-bold shadow-ios-sm active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
           >
             <span>+</span>
-            <span>Add Gym</span>
+            <span>Onboard Gym</span>
           </button>
         </div>
 
@@ -271,8 +271,8 @@
             <span>Gyms</span>
             <span class="text-xs">🏢</span>
           </div>
-          <div id="kpi-gyms-ratio" class="font-mono text-base font-extrabold text-charcoal">4/4</div>
-          <div class="text-[10px] text-emeraldMint font-semibold">100% Online</div>
+          <div id="kpi-gyms-ratio" class="font-mono text-base font-extrabold text-charcoal">0/0</div>
+          <div id="kpi-gyms-status-text" class="text-[10px] text-charcoalSubtle font-semibold">0% Online</div>
         </div>
 
         <!-- Tile 2: Managed Athletes -->
@@ -281,7 +281,7 @@
             <span>Athletes</span>
             <span class="text-xs">👥</span>
           </div>
-          <div id="kpi-total-athletes" class="font-mono text-base font-extrabold text-charcoal">1,248</div>
+          <div id="kpi-total-athletes" class="font-mono text-base font-extrabold text-charcoal">0</div>
           <div class="text-[10px] text-skyPrimary font-semibold">Live synced</div>
         </div>
 
@@ -291,7 +291,7 @@
             <span>MRR</span>
             <span class="text-xs">💰</span>
           </div>
-          <div id="kpi-total-mrr" class="font-mono text-base font-extrabold text-emeraldMint">₹9,996</div>
+          <div id="kpi-total-mrr" class="font-mono text-base font-extrabold text-emeraldMint">₹0</div>
           <div class="text-[10px] text-charcoalSubtle font-medium">Monthly fees</div>
         </div>
 
@@ -317,10 +317,10 @@
         <!-- Filter Pills -->
         <div class="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
           <button onclick="setFilter('ALL')" id="filter-pill-ALL" class="filter-pill px-3 py-1 rounded-xl bg-charcoal text-white text-xs font-semibold shadow-ios-sm transition-all cursor-pointer whitespace-nowrap">
-            All (<span id="filter-count-all">4</span>)
+            All (<span id="filter-count-all">0</span>)
           </button>
           <button onclick="setFilter('ACTIVE')" id="filter-pill-ACTIVE" class="filter-pill px-3 py-1 rounded-xl bg-white hover:bg-surfaceMuted text-charcoalMuted border border-borderLight text-xs font-semibold shadow-ios-sm transition-all cursor-pointer whitespace-nowrap">
-            Active (<span id="filter-count-active">4</span>)
+            Active (<span id="filter-count-active">0</span>)
           </button>
           <button onclick="setFilter('EXPIRED')" id="filter-pill-EXPIRED" class="filter-pill px-3 py-1 rounded-xl bg-white hover:bg-surfaceMuted text-charcoalMuted border border-borderLight text-xs font-semibold shadow-ios-sm transition-all cursor-pointer whitespace-nowrap">
             Expired (<span id="filter-count-expired">0</span>)
@@ -344,12 +344,18 @@
           <!-- Dynamically Rendered Clean Cards -->
         </div>
 
-        <!-- Empty State -->
-        <div id="gym-empty-state" class="hidden bg-white rounded-3xl p-8 text-center border border-dashed border-borderSubtle space-y-2 shadow-ios-sm">
-          <div class="text-3xl">🏢</div>
-          <h3 class="text-sm font-bold text-charcoal">No Gym Tenants Found</h3>
-          <p class="text-xs text-charcoalSubtle">No gym matched your search filter criteria.</p>
-          <button onclick="openOnboardModal()" class="px-4 py-2 bg-skyPrimary text-white text-xs font-bold rounded-xl cursor-pointer">Add New Gym</button>
+        <!-- Clean High-Contrast Empty State -->
+        <div id="gym-empty-state" class="hidden bg-white rounded-3xl p-8 text-center border border-dashed border-borderSubtle space-y-3 shadow-ios-sm">
+          <div class="w-14 h-14 rounded-2xl bg-skySoft text-skyPrimary flex items-center justify-center text-2xl mx-auto border border-skyLight">
+            🏢
+          </div>
+          <div class="space-y-1">
+            <h3 class="text-sm font-bold text-charcoal">No Gym Clients Registered Yet</h3>
+            <p class="text-xs text-charcoalSubtle max-w-xs mx-auto">Tap '+ Onboard New Gym' above to add your first client.</p>
+          </div>
+          <button onclick="openOnboardModal()" class="px-5 py-2.5 bg-skyPrimary hover:bg-skyHover text-white text-xs font-bold rounded-xl shadow-ios-sm active:scale-95 transition-all cursor-pointer">
+            + Onboard New Gym
+          </button>
         </div>
 
       </section>
@@ -385,10 +391,10 @@
             </div>
             <div>
               <div class="flex items-center gap-2">
-                <h3 id="drawer-gym-name" class="text-base font-extrabold text-charcoal leading-snug">Retro Gym</h3>
+                <h3 id="drawer-gym-name" class="text-base font-extrabold text-charcoal leading-snug">Gym Client</h3>
                 <span id="drawer-gym-status-badge" class="px-2 py-0.5 rounded-full bg-emeraldSoft text-emeraldMint text-[10px] font-bold border border-emerald-200">ACTIVE</span>
               </div>
-              <p id="drawer-gym-slug" class="text-xs font-mono text-charcoalSubtle">@retro-gym • Phone: 8467895365</p>
+              <p id="drawer-gym-slug" class="text-xs font-mono text-charcoalSubtle">@slug • Phone: -</p>
             </div>
           </div>
 
@@ -584,7 +590,7 @@
           <input 
             type="text" 
             id="form-name" 
-            placeholder="e.g. Iron Paradise Club" 
+            placeholder="e.g. Retro Gym" 
             oninput="handleSlugAutoGenerate(this.value)"
             class="w-full bg-surfaceMuted border border-borderLight focus:border-skyPrimary rounded-xl p-2.5 text-charcoal outline-none font-semibold text-xs"
             required
@@ -599,7 +605,7 @@
             <input 
               type="text" 
               id="form-slug" 
-              placeholder="iron-paradise" 
+              placeholder="retro-gym" 
               class="w-full bg-surfaceMuted border border-borderLight focus:border-skyPrimary rounded-xl pl-7 pr-3 py-2.5 text-skyPrimary font-mono font-bold outline-none text-xs"
               required
             />
@@ -803,90 +809,7 @@
       console.warn("Supabase initialization error:", e);
     }
 
-    // Default Seed Gym Fleet
-    const DEFAULT_FLEET = [
-      {
-        id: "gym_001",
-        name: "Retro Gym",
-        slug: "retro-gym",
-        owner_phone: "8467895365",
-        owner_upi: "gymowner@okhdfcbank",
-        status: "ACTIVE", // ACTIVE, EXPIRED, INACTIVE
-        op_status: "OPEN", // OPEN, DELAYED, CLOSED
-        monthly_fee: 2499,
-        validity_days: 365,
-        created_at: new Date(Date.now() - 30 * 86400000).toISOString(),
-        expires_at: new Date(Date.now() + 335 * 86400000).toISOString(),
-        pricing: { p1: 1200, p3: 3200, p6: 5800, p12: 10500 },
-        features: {
-          workouts: true,
-          nutrition: true,
-          qr_attendance: true,
-          notices: true
-        }
-      },
-      {
-        id: "gym_002",
-        name: "Iron Paradise Club",
-        slug: "iron-paradise",
-        owner_phone: "9876543210",
-        owner_upi: "ironparadise@okaxis",
-        status: "ACTIVE",
-        op_status: "OPEN",
-        monthly_fee: 2999,
-        validity_days: 180,
-        created_at: new Date(Date.now() - 20 * 86400000).toISOString(),
-        expires_at: new Date(Date.now() + 160 * 86400000).toISOString(),
-        pricing: { p1: 1500, p3: 4000, p6: 7200, p12: 13000 },
-        features: {
-          workouts: true,
-          nutrition: true,
-          qr_attendance: true,
-          notices: true
-        }
-      },
-      {
-        id: "gym_003",
-        name: "Spartan Fitness Arena",
-        slug: "spartan-arena",
-        owner_phone: "9123456780",
-        owner_upi: "spartanfitness@paytm",
-        status: "ACTIVE",
-        op_status: "OPEN",
-        monthly_fee: 1999,
-        validity_days: 90,
-        created_at: new Date(Date.now() - 10 * 86400000).toISOString(),
-        expires_at: new Date(Date.now() + 80 * 86400000).toISOString(),
-        pricing: { p1: 1000, p3: 2700, p6: 5000, p12: 9000 },
-        features: {
-          workouts: true,
-          nutrition: false,
-          qr_attendance: true,
-          notices: true
-        }
-      },
-      {
-        id: "gym_004",
-        name: "Olympus Gym & Spa",
-        slug: "olympus-spa",
-        owner_phone: "9988776655",
-        owner_upi: "olympusgym@ybl",
-        status: "ACTIVE",
-        op_status: "DELAYED",
-        monthly_fee: 2499,
-        validity_days: 30,
-        created_at: new Date(Date.now() - 5 * 86400000).toISOString(),
-        expires_at: new Date(Date.now() + 25 * 86400000).toISOString(),
-        pricing: { p1: 1400, p3: 3800, p6: 6800, p12: 12000 },
-        features: {
-          workouts: true,
-          nutrition: true,
-          qr_attendance: true,
-          notices: false
-        }
-      }
-    ];
-
+    // STRICT: ZERO DUMMY/FALLBACK RECORDS
     let gymFleet = [];
     let allMembersList = [];
     let currentFilter = 'ALL';
@@ -1004,28 +927,16 @@
     });
 
     // ----------------------------------------------------
-    // INITIALIZATION & SUPABASE SYNC
+    // INITIALIZATION & DIRECT SUPABASE SYNC ONLY
     // ----------------------------------------------------
     async function loadInitialData() {
-      // 1. Local Cache Hydration
-      const cached = localStorage.getItem('nexus_fleet_cache');
-      if (cached) {
-        try {
-          gymFleet = JSON.parse(cached);
-        } catch (e) {
-          gymFleet = [...DEFAULT_FLEET];
-        }
-      } else {
-        gymFleet = [...DEFAULT_FLEET];
-        localStorage.setItem('nexus_fleet_cache', JSON.stringify(gymFleet));
-      }
-
-      // 2. Fetch from Supabase
       await refreshSupabaseData();
     }
 
     async function refreshSupabaseData() {
       if (!db) {
+        gymFleet = [];
+        allMembersList = [];
         updateKpis();
         renderGymList();
         return;
@@ -1033,33 +944,38 @@
 
       try {
         // Fetch all members across gyms
-        const { data: members, error: mErr } = await db.from('members').select('*');
-        if (!mErr && members) {
-          allMembersList = members;
-        }
+        const { data: members } = await db.from('members').select('*');
+        allMembersList = members || [];
 
-        // Fetch gym_tenants if table exists
-        const { data: tenants, error: tErr } = await db.from('gym_tenants').select('*');
-        if (!tErr && tenants && tenants.length > 0) {
-          gymFleet = tenants.map(t => ({
+        // STRICT: Fetch ONLY and DIRECTLY from Supabase table 'gyms'
+        const { data: gymsList, error: gErr } = await db
+          .from('gyms')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!gErr && gymsList) {
+          gymFleet = gymsList.map(t => ({
             id: t.id || `gym_${t.slug}`,
             name: t.name || t.slug,
             slug: t.slug,
-            owner_phone: t.owner_phone || "8467895365",
-            owner_upi: t.owner_upi || "gymowner@okhdfcbank",
+            owner_phone: t.owner_phone || "",
+            owner_upi: t.owner_upi || "",
             status: t.status || "ACTIVE",
             op_status: t.op_status || "OPEN",
-            monthly_fee: Number(t.monthly_fee) || 2499,
+            monthly_fee: Number(t.monthly_fee) || 0,
             validity_days: t.validity_days || 365,
             created_at: t.created_at || new Date().toISOString(),
-            expires_at: t.expires_at || new Date(Date.now() + 300 * 86400000).toISOString(),
+            expires_at: t.expires_at || new Date().toISOString(),
             pricing: t.pricing || { p1: 1200, p3: 3200, p6: 5800, p12: 10500 },
             features: t.features || { workouts: true, nutrition: true, qr_attendance: true, notices: true }
           }));
-          localStorage.setItem('nexus_fleet_cache', JSON.stringify(gymFleet));
+        } else {
+          // If error or table empty, strict empty array
+          gymFleet = [];
         }
       } catch (err) {
         console.warn("Supabase fetch note:", err);
+        gymFleet = [];
       }
 
       updateKpis();
@@ -1067,162 +983,177 @@
       showToast("Cloud fleet state synced 🔄", "info");
     }
 
-    function saveFleetState() {
-      localStorage.setItem('nexus_fleet_cache', JSON.stringify(gymFleet));
-      updateKpis();
-      renderGymList();
-
-      if (db) {
-        try {
-          db.from('gym_tenants').upsert(gymFleet).then(({ error }) => {
-            if (error) console.warn("Supabase sync note:", error.message);
-          });
-        } catch (e) {}
-      }
-    }
-
     // ----------------------------------------------------
-    // KPI UPDATER & METRICS
+    // KPI TILES CALCULATION
     // ----------------------------------------------------
     function updateKpis() {
-      const total = gymFleet.length;
-      const active = gymFleet.filter(g => g.status === 'ACTIVE').length;
-      const expired = gymFleet.filter(g => g.status === 'EXPIRED').length;
-      const inactive = gymFleet.filter(g => g.status === 'INACTIVE').length;
+      const totalGyms = gymFleet.length;
+      const activeGyms = gymFleet.filter(g => g.status === 'ACTIVE').length;
+      const expiredGyms = gymFleet.filter(g => g.status === 'EXPIRED').length;
+      const inactiveGyms = gymFleet.filter(g => g.status === 'INACTIVE').length;
 
-      // MRR Calculation
-      const totalMRR = gymFleet
-        .filter(g => g.status === 'ACTIVE')
-        .reduce((sum, g) => sum + (Number(g.monthly_fee) || 2499), 0);
+      // Header Active Count
+      const headerActiveEl = document.getElementById('header-active-count');
+      if (headerActiveEl) headerActiveEl.innerText = activeGyms;
 
-      // Total athletes count
-      const totalAthletes = allMembersList.length > 0 ? allMembersList.length : 1248;
+      // Tile 1: Active Gyms
+      const ratioEl = document.getElementById('kpi-gyms-ratio');
+      const statusTextEl = document.getElementById('kpi-gyms-status-text');
+      if (ratioEl) ratioEl.innerText = `${activeGyms}/${totalGyms}`;
+      if (statusTextEl) {
+        const pct = totalGyms > 0 ? Math.round((activeGyms / totalGyms) * 100) : 0;
+        statusTextEl.innerText = `${pct}% Online`;
+        statusTextEl.className = totalGyms > 0 ? "text-[10px] text-emeraldMint font-semibold" : "text-[10px] text-charcoalSubtle font-semibold";
+      }
 
-      // Update KPI widgets
-      const kpiGyms = document.getElementById('kpi-gyms-ratio');
-      const kpiAthletes = document.getElementById('kpi-total-athletes');
-      const kpiMrr = document.getElementById('kpi-total-mrr');
-      const headerActive = document.getElementById('header-active-count');
+      // Tile 2: Total Managed Athletes
+      const athletesEl = document.getElementById('kpi-total-athletes');
+      if (athletesEl) athletesEl.innerText = (allMembersList.length).toLocaleString();
 
-      if (kpiGyms) kpiGyms.innerText = `${active}/${total}`;
-      if (kpiAthletes) kpiAthletes.innerText = totalAthletes.toLocaleString('en-IN');
-      if (kpiMrr) kpiMrr.innerText = `₹${totalMRR.toLocaleString('en-IN')}`;
-      if (headerActive) headerActive.innerText = active;
+      // Tile 3: Total Platform MRR
+      const totalMrr = gymFleet.reduce((sum, g) => {
+        return g.status === 'ACTIVE' ? sum + (Number(g.monthly_fee) || 0) : sum;
+      }, 0);
+      const mrrEl = document.getElementById('kpi-total-mrr');
+      if (mrrEl) mrrEl.innerText = `₹${totalMrr.toLocaleString()}`;
 
-      // Update filter counts
-      document.getElementById('filter-count-all').innerText = total;
-      document.getElementById('filter-count-active').innerText = active;
-      document.getElementById('filter-count-expired').innerText = expired;
-      document.getElementById('filter-count-inactive').innerText = inactive;
+      // Filter Counts
+      document.getElementById('filter-count-all').innerText = totalGyms;
+      document.getElementById('filter-count-active').innerText = activeGyms;
+      document.getElementById('filter-count-expired').innerText = expiredGyms;
+      document.getElementById('filter-count-inactive').innerText = inactiveGyms;
     }
 
     // ----------------------------------------------------
-    // FILTER & SEARCH LOGIC
+    // GYM LIST RENDERING & SEARCH/FILTERS
     // ----------------------------------------------------
-    function setFilter(filter) {
+    function setFilter(filterType) {
+      currentFilter = filterType;
       playAudioChirp(750, 0.04);
-      currentFilter = filter;
-      document.querySelectorAll('.filter-pill').forEach(p => {
+      
+      const pills = document.querySelectorAll('.filter-pill');
+      pills.forEach(p => {
         p.className = "filter-pill px-3 py-1 rounded-xl bg-white hover:bg-surfaceMuted text-charcoalMuted border border-borderLight text-xs font-semibold shadow-ios-sm transition-all cursor-pointer whitespace-nowrap";
       });
-      const activePill = document.getElementById(`filter-pill-${filter}`);
-      if (activePill) {
-        activePill.className = "filter-pill px-3 py-1 rounded-xl bg-charcoal text-white text-xs font-semibold shadow-ios-sm transition-all cursor-pointer whitespace-nowrap";
+
+      const activeBtn = document.getElementById(`filter-pill-${filterType}`);
+      if (activeBtn) {
+        activeBtn.className = "filter-pill px-3 py-1 rounded-xl bg-charcoal text-white text-xs font-semibold shadow-ios-sm transition-all cursor-pointer whitespace-nowrap";
       }
+
       renderGymList();
     }
 
-    function getFilteredList() {
-      const q = (document.getElementById('search-gym-input')?.value || '').toLowerCase().trim();
-      return gymFleet.filter(g => {
-        if (currentFilter !== 'ALL' && g.status !== currentFilter) return false;
-        if (q) {
-          const matchName = g.name.toLowerCase().includes(q);
-          const matchSlug = g.slug.toLowerCase().includes(q);
-          const matchPhone = (g.owner_phone || '').includes(q);
+    function renderGymList() {
+      const container = document.getElementById('gym-list-container');
+      const emptyState = document.getElementById('gym-empty-state');
+      const query = (document.getElementById('search-gym-input')?.value || '').toLowerCase().trim();
+
+      if (!container || !emptyState) return;
+
+      const filtered = gymFleet.filter(g => {
+        // Status filter
+        if (currentFilter === 'ACTIVE' && g.status !== 'ACTIVE') return false;
+        if (currentFilter === 'EXPIRED' && g.status !== 'EXPIRED') return false;
+        if (currentFilter === 'INACTIVE' && g.status !== 'INACTIVE') return false;
+
+        // Search query
+        if (query) {
+          const matchName = (g.name || '').toLowerCase().includes(query);
+          const matchSlug = (g.slug || '').toLowerCase().includes(query);
+          const matchPhone = (g.owner_phone || '').toLowerCase().includes(query);
           return matchName || matchSlug || matchPhone;
         }
         return true;
       });
-    }
 
-    // ----------------------------------------------------
-    // GYM LIST RENDERER (LIGHT LUXE CARDS)
-    // ----------------------------------------------------
-    function renderGymList() {
-      const container = document.getElementById('gym-list-container');
-      const empty = document.getElementById('gym-empty-state');
-      const list = getFilteredList();
-
-      if (!container) return;
-      container.innerHTML = '';
-
-      if (list.length === 0) {
-        empty.classList.remove('hidden');
+      if (filtered.length === 0) {
+        container.innerHTML = '';
+        emptyState.classList.remove('hidden');
         return;
       }
-      empty.classList.add('hidden');
 
-      list.forEach(g => {
-        const initials = g.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'RG';
+      emptyState.classList.add('hidden');
+
+      container.innerHTML = filtered.map(g => {
+        const initials = (g.name || 'RG').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'RG';
         
-        let statusBadge = '';
+        let statusBadgeHtml = '';
         if (g.status === 'ACTIVE') {
-          statusBadge = `<span class="px-2 py-0.5 rounded-full bg-emeraldSoft text-emeraldMint border border-emerald-200 text-[10px] font-bold flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emeraldMint"></span> Active</span>`;
+          statusBadgeHtml = `<span class="px-2 py-0.5 rounded-full bg-emeraldSoft text-emeraldMint text-[10px] font-bold border border-emerald-200/80 flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emeraldMint"></span> ACTIVE
+          </span>`;
         } else if (g.status === 'EXPIRED') {
-          statusBadge = `<span class="px-2 py-0.5 rounded-full bg-amberSoft text-amberSunrise border border-amber-200 text-[10px] font-bold">Expired</span>`;
+          statusBadgeHtml = `<span class="px-2 py-0.5 rounded-full bg-amberSoft text-amberSunrise text-[10px] font-bold border border-amber-200/80 flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-amberSunrise"></span> EXPIRED
+          </span>`;
         } else {
-          statusBadge = `<span class="px-2 py-0.5 rounded-full bg-roseSoft text-roseRed border border-rose-200 text-[10px] font-bold">Killed</span>`;
+          statusBadgeHtml = `<span class="px-2 py-0.5 rounded-full bg-roseSoft text-roseRed text-[10px] font-bold border border-rose-200/80 flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-roseRed"></span> INACTIVE
+          </span>`;
         }
 
-        let opStatusDot = '<span class="text-emeraldMint text-[10px]">🟢 Open</span>';
-        if (g.op_status === 'DELAYED') opStatusDot = '<span class="text-amberSunrise text-[10px]">🟡 Delayed</span>';
-        if (g.op_status === 'CLOSED') opStatusDot = '<span class="text-roseRed text-[10px]">🔴 Closed</span>';
+        // Count members under this gym
+        const tenantMembers = allMembersList.filter(m => (m.gym_id === g.slug || m.gym_slug === g.slug || (!m.gym_id && g.slug === 'retro-gym')));
 
-        const card = document.createElement('div');
-        card.className = "bg-white rounded-2xl p-3.5 border border-borderLight hover:border-skyPrimary/60 hover:shadow-ios-card shadow-ios-sm transition-all duration-200 cursor-pointer active:scale-[0.99] flex items-center justify-between gap-3";
-        card.onclick = () => openTelemetryDrawer(g.id);
-
-        card.innerHTML = `
-          <div class="flex items-center gap-3 min-w-0">
-            <div class="w-11 h-11 rounded-2xl bg-skySoft text-skyPrimary flex items-center justify-center font-bold text-sm shadow-ios-sm border border-sky-100 shrink-0">
-              ${initials}
-            </div>
-            <div class="min-w-0">
-              <div class="flex items-center gap-1.5">
-                <h3 class="text-xs font-bold text-charcoal truncate">${g.name}</h3>
-                ${opStatusDot}
+        return `
+          <div 
+            onclick="openTelemetryDrawer('${g.slug}')" 
+            class="bg-white hover:border-skyPrimary/60 transition-all duration-200 rounded-2xl p-4 border border-borderLight shadow-ios-card cursor-pointer active:scale-[0.99] space-y-3"
+          >
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-2xl bg-skySoft text-skyPrimary flex items-center justify-center font-bold text-sm shadow-ios-sm border border-skyLight shrink-0">
+                  ${initials}
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h3 class="text-sm font-extrabold text-charcoal leading-tight">${g.name}</h3>
+                  </div>
+                  <p class="text-xs font-mono text-skyPrimary font-semibold">@${g.slug}</p>
+                </div>
               </div>
-              <p class="text-[11px] font-mono text-charcoalSubtle truncate">@${g.slug} • 📞 ${g.owner_phone}</p>
+              <div>${statusBadgeHtml}</div>
             </div>
-          </div>
 
-          <div class="flex items-center gap-2 shrink-0">
-            ${statusBadge}
-            <div class="w-6 h-6 rounded-full bg-surfaceMuted flex items-center justify-center text-charcoalSubtle text-xs">
-              ›
+            <div class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 text-center font-mono">
+              <div class="bg-surfaceMuted/80 p-2 rounded-xl">
+                <div class="text-xs font-bold text-charcoal">${tenantMembers.length}</div>
+                <div class="text-[9px] font-sans text-charcoalSubtle">Athletes</div>
+              </div>
+              <div class="bg-surfaceMuted/80 p-2 rounded-xl">
+                <div class="text-xs font-bold text-emeraldMint">₹${(g.monthly_fee || 0).toLocaleString()}</div>
+                <div class="text-[9px] font-sans text-charcoalSubtle">MRR Fee</div>
+              </div>
+              <div class="bg-surfaceMuted/80 p-2 rounded-xl">
+                <div class="text-xs font-bold ${g.op_status === 'OPEN' ? 'text-emeraldMint' : g.op_status === 'DELAYED' ? 'text-amberSunrise' : 'text-roseRed'}">${g.op_status || 'OPEN'}</div>
+                <div class="text-[9px] font-sans text-charcoalSubtle">Door State</div>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between text-[11px] text-charcoalSubtle pt-1">
+              <span>📞 ${g.owner_phone || 'No phone'}</span>
+              <span class="text-skyPrimary font-bold flex items-center gap-0.5">Telemetry ➔</span>
             </div>
           </div>
         `;
-
-        container.appendChild(card);
-      });
+      }).join('');
     }
 
     // ----------------------------------------------------
-    // DEEP GYM TELEMETRY DRAWER LOGIC
+    // DEEP TELEMETRY DRAWER LOGIC
     // ----------------------------------------------------
-    function openTelemetryDrawer(gymId) {
-      const g = gymFleet.find(item => item.id === gymId);
+    function openTelemetryDrawer(slug) {
+      const g = gymFleet.find(item => item.slug === slug);
       if (!g) return;
 
       selectedGymForTelemetry = g;
-      playAudioChirp(700, 0.08);
+      playAudioChirp(850, 0.05);
 
-      const initials = g.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'RG';
+      const initials = (g.name || 'RG').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'RG';
       document.getElementById('drawer-gym-avatar').innerText = initials;
       document.getElementById('drawer-gym-name').innerText = g.name;
-      document.getElementById('drawer-gym-slug').innerText = `@${g.slug} • 📞 ${g.owner_phone} • UPI: ${g.owner_upi}`;
+      document.getElementById('drawer-gym-slug').innerText = `@${g.slug} • Phone: ${g.owner_phone || 'N/A'}`;
 
       // Status Badge
       const statusBadge = document.getElementById('drawer-gym-status-badge');
@@ -1235,46 +1166,47 @@
           statusBadge.innerText = "EXPIRED";
         } else {
           statusBadge.className = "px-2 py-0.5 rounded-full bg-roseSoft text-roseRed text-[10px] font-bold border border-rose-200";
-          statusBadge.innerText = "KILLED";
+          statusBadge.innerText = "INACTIVE";
         }
       }
 
-      // Operational Status Buttons (OPEN, DELAYED, CLOSED)
-      updateOpStatusButtonUI(g.op_status || 'OPEN');
+      // Operational Status
+      setOperationalStatusUI(g.op_status || 'OPEN');
 
-      // Member & Revenue Telemetry computed from allMembersList
-      const tenantMembers = allMembersList.filter(m => m.gym_id === g.slug || m.gym_slug === g.slug || (g.slug === 'retro-gym' && !m.gym_id));
-      const totalCount = tenantMembers.length > 0 ? tenantMembers.length : (g.slug === 'retro-gym' ? 34 : 12);
-      
-      const now = new Date();
-      const expiredCount = tenantMembers.filter(m => new Date(m.valid_until || m.expiry_date || 0) < now).length;
-      const totalFees = tenantMembers.reduce((sum, m) => sum + (Number(m.fees_paid) || 1200), 0) || (totalCount * 1200);
+      // Member Telemetry
+      const tenantMembers = allMembersList.filter(m => (m.gym_id === g.slug || m.gym_slug === g.slug || (!m.gym_id && g.slug === 'retro-gym')));
+      const expiredCount = tenantMembers.filter(m => {
+        if (!m.membership_end_date) return false;
+        return new Date(m.membership_end_date) < new Date();
+      }).length;
 
-      document.getElementById('telemetry-members-count').innerText = totalCount;
+      document.getElementById('telemetry-members-count').innerText = tenantMembers.length;
       document.getElementById('telemetry-expired-count').innerText = expiredCount;
-      document.getElementById('telemetry-fees-collected').innerText = `₹${totalFees.toLocaleString('en-IN')}`;
+      document.getElementById('telemetry-fees-collected').innerText = `₹${(tenantMembers.length * 1500).toLocaleString()}`;
 
-      // Feature Switches
+      // Feature Toggles
       const feats = g.features || { workouts: true, nutrition: true, qr_attendance: true, notices: true };
-      document.getElementById('drawer-toggle-workouts').checked = Boolean(feats.workouts);
-      document.getElementById('drawer-toggle-nutrition').checked = Boolean(feats.nutrition);
-      document.getElementById('drawer-toggle-qr').checked = Boolean(feats.qr_attendance);
-      document.getElementById('drawer-toggle-notices').checked = Boolean(feats.notices);
+      document.getElementById('drawer-toggle-workouts').checked = feats.workouts !== false;
+      document.getElementById('drawer-toggle-nutrition').checked = feats.nutrition !== false;
+      document.getElementById('drawer-toggle-qr').checked = feats.qr_attendance !== false;
+      document.getElementById('drawer-toggle-notices').checked = feats.notices !== false;
 
-      // Kill Switch Button Styling
+      // Kill Switch Button State
       const killBtn = document.getElementById('btn-drawer-kill-switch');
       const killText = document.getElementById('kill-switch-btn-text');
-      if (g.status === 'INACTIVE') {
-        killBtn.className = "w-full py-2.5 px-4 rounded-xl bg-emeraldSoft hover:bg-emerald-100 text-emeraldMint text-xs font-bold border border-emerald-200 shadow-ios-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95";
-        killText.innerText = "✓ Reactivate SaaS Subscription";
-      } else {
-        killBtn.className = "w-full py-2.5 px-4 rounded-xl bg-roseSoft hover:bg-rose-100 text-roseRed text-xs font-bold border border-rose-200 shadow-ios-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95";
-        killText.innerText = "🚫 Deactivate SaaS Subscription (Kill-Switch)";
+      if (killBtn && killText) {
+        if (g.status === 'ACTIVE') {
+          killBtn.className = "w-full py-2.5 px-4 rounded-xl bg-roseSoft hover:bg-rose-100 text-roseRed text-xs font-bold border border-rose-200 shadow-ios-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95";
+          killText.innerText = "Deactivate SaaS Subscription (Kill-Switch)";
+        } else {
+          killBtn.className = "w-full py-2.5 px-4 rounded-xl bg-emeraldSoft hover:bg-emerald-100 text-emeraldMint text-xs font-bold border border-emerald-200 shadow-ios-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95";
+          killText.innerText = "Re-Activate SaaS Subscription";
+        }
       }
 
       // Show Drawer
       const overlay = document.getElementById('telemetry-drawer-overlay');
-      if (overlay) overlay.classList.remove('hidden');
+      overlay.classList.remove('hidden');
     }
 
     function closeTelemetryDrawer() {
@@ -1283,26 +1215,36 @@
       selectedGymForTelemetry = null;
     }
 
-    function updateOpStatusButtonUI(status) {
-      ['OPEN', 'DELAYED', 'CLOSED'].forEach(s => {
-        const btn = document.getElementById(`op-status-btn-${s}`);
-        if (!btn) return;
-        if (s === status) {
-          if (s === 'OPEN') btn.className = "op-status-btn py-2 rounded-xl bg-white text-emeraldMint border border-emeraldMint font-bold text-xs shadow-ios-sm flex items-center justify-center gap-1 cursor-pointer ring-2 ring-emeraldSoft";
-          if (s === 'DELAYED') btn.className = "op-status-btn py-2 rounded-xl bg-white text-amberSunrise border border-amberSunrise font-bold text-xs shadow-ios-sm flex items-center justify-center gap-1 cursor-pointer ring-2 ring-amberSoft";
-          if (s === 'CLOSED') btn.className = "op-status-btn py-2 rounded-xl bg-white text-roseRed border border-roseRed font-bold text-xs shadow-ios-sm flex items-center justify-center gap-1 cursor-pointer ring-2 ring-roseSoft";
-        } else {
-          btn.className = "op-status-btn py-2 rounded-xl bg-white text-charcoalMuted border border-borderLight font-semibold text-xs shadow-ios-sm flex items-center justify-center gap-1 cursor-pointer hover:bg-surfaceMuted";
+    function setOperationalStatusUI(status) {
+      const btns = ['OPEN', 'DELAYED', 'CLOSED'];
+      btns.forEach(b => {
+        const el = document.getElementById(`op-status-btn-${b}`);
+        if (el) {
+          if (b === status) {
+            el.className = `op-status-btn py-2 rounded-xl bg-charcoal text-white font-bold text-xs shadow-ios-sm flex items-center justify-center gap-1 cursor-pointer`;
+          } else {
+            el.className = `op-status-btn py-2 rounded-xl bg-white text-charcoalMuted border border-borderLight font-semibold text-xs shadow-ios-sm flex items-center justify-center gap-1 cursor-pointer hover:bg-surfaceMuted`;
+          }
         }
       });
     }
 
-    function setGymOperationalStatus(status) {
+    async function setGymOperationalStatus(status) {
       if (!selectedGymForTelemetry) return;
-      playAudioChirp(800, 0.06);
+      playAudioChirp(700, 0.05);
       selectedGymForTelemetry.op_status = status;
-      updateOpStatusButtonUI(status);
-      saveFleetState();
+      setOperationalStatusUI(status);
+
+      const targetSlug = selectedGymForTelemetry.slug;
+
+      if (db) {
+        try {
+          await db.from('gyms').update({ op_status: status }).eq('slug', targetSlug);
+        } catch (e) {}
+      }
+
+      updateKpis();
+      renderGymList();
       showToast(`Operational status set to [${status}] for ${selectedGymForTelemetry.name}`, "success");
     }
 
@@ -1311,66 +1253,72 @@
       playAudioChirp(isChecked ? 900 : 450, 0.05);
       if (!selectedGymForTelemetry.features) selectedGymForTelemetry.features = {};
       selectedGymForTelemetry.features[featureKey] = isChecked;
+
       const targetSlug = selectedGymForTelemetry.slug;
       const updatedFeatures = { ...selectedGymForTelemetry.features };
-
-      saveFleetState();
 
       if (db) {
         try {
           await db.from('gyms').update({ features: updatedFeatures }).eq('slug', targetSlug);
-        } catch (e) {}
-        try {
-          await db.from('gym_tenants').update({ features: updatedFeatures }).eq('slug', targetSlug);
         } catch (e) {}
       }
 
       showToast(`Feature [${featureKey}] ${isChecked ? 'Enabled' : 'Disabled'} for ${targetSlug}`, "info");
     }
 
-    function toggleActiveGymKillSwitch() {
+    async function toggleActiveGymKillSwitch() {
       if (!selectedGymForTelemetry) return;
-      playAudioChirp(300, 0.2);
+      playAudioChirp(350, 0.1);
+      
+      const newStatus = selectedGymForTelemetry.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+      selectedGymForTelemetry.status = newStatus;
 
-      if (selectedGymForTelemetry.status === 'INACTIVE') {
-        selectedGymForTelemetry.status = 'ACTIVE';
-        showToast(`✓ SaaS Subscription reactivated for ${selectedGymForTelemetry.name}`, "success");
-      } else {
-        selectedGymForTelemetry.status = 'INACTIVE';
-        showToast(`🚫 SaaS Subscription suspended for ${selectedGymForTelemetry.name}`, "error");
+      const targetSlug = selectedGymForTelemetry.slug;
+
+      if (db) {
+        try {
+          await db.from('gyms').update({ status: newStatus }).eq('slug', targetSlug);
+        } catch (e) {}
       }
 
-      saveFleetState();
-      openTelemetryDrawer(selectedGymForTelemetry.id);
+      openTelemetryDrawer(selectedGymForTelemetry.slug);
+      updateKpis();
+      renderGymList();
+      showToast(`SaaS access for ${selectedGymForTelemetry.name} is now [${newStatus}]`, newStatus === 'ACTIVE' ? 'success' : 'error');
     }
 
     // ----------------------------------------------------
-    // QUICK ACTIONS: COPY LINKS & STANDEE
+    // 1-TAP URL COPIERS & STANDEE PREVIEW
     // ----------------------------------------------------
     function copyActiveMemberLink() {
       if (!selectedGymForTelemetry) return;
       const link = `${GITHUB_REPO_BASE}/?gym=${encodeURIComponent(selectedGymForTelemetry.slug)}`;
-      navigator.clipboard.writeText(link);
-      playAudioChirp(950, 0.1);
-      showToast("📋 Member Pass Link copied to clipboard!", "success");
+      navigator.clipboard.writeText(link).then(() => {
+        playAudioChirp(1000, 0.08);
+        showToast("📱 Copied Athlete Pass Link to Clipboard!", "success");
+      });
     }
 
     function copyActiveAdminLink() {
       if (!selectedGymForTelemetry) return;
       const link = `${GITHUB_REPO_BASE}/admin.html?gym=${encodeURIComponent(selectedGymForTelemetry.slug)}`;
-      navigator.clipboard.writeText(link);
-      playAudioChirp(950, 0.1);
-      showToast("📋 Owner Admin Link copied to clipboard!", "success");
+      navigator.clipboard.writeText(link).then(() => {
+        playAudioChirp(1000, 0.08);
+        showToast("🏢 Copied Owner Admin Link to Clipboard!", "success");
+      });
     }
 
     function openActiveStandeeModal() {
       if (!selectedGymForTelemetry) return;
       const g = selectedGymForTelemetry;
-      
-      const initials = g.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'RG';
-      document.getElementById('standee-logo-badge').innerText = initials;
-      document.getElementById('standee-gym-title').innerText = g.name.toUpperCase();
-      document.getElementById('standee-gym-subtitle').innerText = `@${g.slug.toUpperCase()} • RECEPTION PUNCH DESK`;
+
+      const titleEl = document.getElementById('standee-gym-title');
+      const subtitleEl = document.getElementById('standee-gym-subtitle');
+      const badgeEl = document.getElementById('standee-logo-badge');
+
+      if (titleEl) titleEl.innerText = g.name.toUpperCase();
+      if (subtitleEl) subtitleEl.innerText = `@${g.slug} • RECEPTION DESK ATTENDANCE`;
+      if (badgeEl) badgeEl.innerText = g.name.slice(0, 2).toUpperCase();
 
       const target = document.getElementById('standee-qrcode-target');
       target.innerHTML = '';
@@ -1386,43 +1334,37 @@
           colorLight: "#FFFFFF",
           correctLevel: QRCode.CorrectLevel.H
         });
-      } else {
-        target.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrToken)}" alt="QR Standee" class="w-full h-full object-contain" />`;
       }
 
-      document.getElementById('standee-modal')?.classList.remove('hidden');
+      document.getElementById('standee-modal').classList.remove('hidden');
     }
 
     function closeStandeeModal() {
-      document.getElementById('standee-modal')?.classList.add('hidden');
+      document.getElementById('standee-modal').classList.add('hidden');
     }
 
     // ----------------------------------------------------
-    // ONBOARD NEW GYM FORM
+    // ONBOARD NEW GYM FORM LOGIC
     // ----------------------------------------------------
     function openOnboardModal() {
-      playAudioChirp(720, 0.06);
-      document.getElementById('onboard-form')?.reset();
-      document.getElementById('onboard-modal')?.classList.remove('hidden');
+      playAudioChirp(700, 0.05);
+      document.getElementById('onboard-modal').classList.remove('hidden');
     }
 
     function closeOnboardModal() {
-      document.getElementById('onboard-modal')?.classList.add('hidden');
+      document.getElementById('onboard-modal').classList.add('hidden');
     }
 
-    function handleSlugAutoGenerate(nameVal) {
+    function handleSlugAutoGenerate(name) {
       const slugInput = document.getElementById('form-slug');
       if (slugInput) {
-        slugInput.value = (nameVal || '')
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/^-|-$/g, '');
+        slugInput.value = name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
       }
     }
 
-    function handleOnboardSubmit() {
+    async function handleOnboardSubmit() {
       const name = document.getElementById('form-name').value.trim();
-      const slug = document.getElementById('form-slug').value.trim() || handleSlugAutoGenerate(name);
+      const slug = document.getElementById('form-slug').value.trim();
       const phone = document.getElementById('form-phone').value.trim();
       const upi = document.getElementById('form-upi').value.trim();
       const fee = Number(document.getElementById('form-fee').value) || 2499;
@@ -1438,11 +1380,12 @@
       const featQr = document.getElementById('form-feat-qr').checked;
       const featNotices = document.getElementById('form-feat-notices').checked;
 
-      const now = new Date();
-      const expiresAt = new Date(now.getTime() + validityDays * 86400000).toISOString();
+      if (!name || !slug || !phone || !upi) {
+        showToast("Please fill all required fields", "error");
+        return;
+      }
 
-      const newTenant = {
-        id: `gym_${Date.now()}`,
+      const newGym = {
         name,
         slug,
         owner_phone: phone,
@@ -1451,8 +1394,8 @@
         op_status: "OPEN",
         monthly_fee: fee,
         validity_days: validityDays,
-        created_at: now.toISOString(),
-        expires_at: expiresAt,
+        created_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + validityDays * 86400000).toISOString(),
         pricing: { p1, p3, p6, p12 },
         features: {
           workouts: featWorkouts,
@@ -1462,49 +1405,60 @@
         }
       };
 
-      gymFleet.unshift(newTenant);
-      saveFleetState();
+      if (db) {
+        try {
+          const { error } = await db.from('gyms').insert([newGym]);
+          if (error) {
+            console.error("Error inserting into gyms table:", error);
+          }
+        } catch (e) {
+          console.warn("Supabase insert note:", e);
+        }
+      }
 
-      playAudioChirp(1100, 0.25);
-      showToast(`🎉 Deployed [${name}] to Nexus Platform!`, "success");
+      await refreshSupabaseData();
+
       closeOnboardModal();
+      playAudioChirp(1200, 0.2);
+      showToast(`🏢 Successfully Deployed Node for "${name}"!`, "success");
     }
 
     // ----------------------------------------------------
-    // TOAST NOTIFICATIONS ENGINE
+    // TOAST NOTIFICATION ENGINE
     // ----------------------------------------------------
-    function showToast(message, type = 'info') {
+    function showToast(message, type = "info") {
       const container = document.getElementById('toast-container');
       if (!container) return;
 
       const toast = document.createElement('div');
-      let colorClass = 'bg-charcoal text-white';
-      if (type === 'success') colorClass = 'bg-emeraldMint text-white shadow-ios-glow';
-      if (type === 'error') colorClass = 'bg-roseRed text-white';
-      if (type === 'info') colorClass = 'bg-skyPrimary text-white';
+      
+      let bgStyle = "bg-white text-charcoal border-borderLight shadow-ios-card";
+      if (type === "success") bgStyle = "bg-emeraldSoft text-emeraldMint border-emerald-200 shadow-ios-sm";
+      if (type === "error") bgStyle = "bg-roseSoft text-roseRed border-rose-200 shadow-ios-sm";
+      if (type === "info") bgStyle = "bg-skySoft text-skyPrimary border-skyLight shadow-ios-sm";
 
-      toast.className = `${colorClass} px-4 py-2.5 rounded-2xl text-xs font-semibold shadow-ios-float transition-all duration-300 transform translate-y-3 opacity-0 text-center pointer-events-auto border border-white/10`;
-      toast.innerText = message;
+      toast.className = `p-3 rounded-2xl border text-xs font-bold transition-all duration-300 transform translate-y-3 opacity-0 flex items-center justify-between gap-2 pointer-events-auto ${bgStyle}`;
+      toast.innerHTML = `
+        <span>${message}</span>
+        <button onclick="this.parentElement.remove()" class="text-xs opacity-70 hover:opacity-100 font-extrabold">✕</button>
+      `;
 
       container.appendChild(toast);
+
       setTimeout(() => {
         toast.classList.remove('translate-y-3', 'opacity-0');
       }, 20);
 
       setTimeout(() => {
-        toast.classList.add('opacity-0', 'translate-y-3');
+        toast.classList.add('opacity-0', 'translate-y-2');
         setTimeout(() => toast.remove(), 300);
-      }, 3000);
+      }, 3500);
     }
 
-    // ----------------------------------------------------
-    // SESSION AUTO-AUTH ON LOAD (IF ALREADY UNLOCKED)
-    // ----------------------------------------------------
-    window.addEventListener('DOMContentLoaded', () => {
-      if (sessionStorage.getItem('nexus_master_auth') === 'true') {
-        unlockConsole();
-      }
-    });
+    // Check existing session
+    if (sessionStorage.getItem('nexus_master_auth') === 'true') {
+      unlockConsole();
+    }
   </script>
 </body>
 </html>
