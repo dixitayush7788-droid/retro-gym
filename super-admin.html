@@ -1306,13 +1306,26 @@
       showToast(`Operational status set to [${status}] for ${selectedGymForTelemetry.name}`, "success");
     }
 
-    function handleFeatureToggleChange(featureKey, isChecked) {
+    async function handleFeatureToggleChange(featureKey, isChecked) {
       if (!selectedGymForTelemetry) return;
       playAudioChirp(isChecked ? 900 : 450, 0.05);
       if (!selectedGymForTelemetry.features) selectedGymForTelemetry.features = {};
       selectedGymForTelemetry.features[featureKey] = isChecked;
+      const targetSlug = selectedGymForTelemetry.slug;
+      const updatedFeatures = { ...selectedGymForTelemetry.features };
+
       saveFleetState();
-      showToast(`Feature [${featureKey}] ${isChecked ? 'Enabled' : 'Disabled'} for ${selectedGymForTelemetry.slug}`, "info");
+
+      if (db) {
+        try {
+          await db.from('gyms').update({ features: updatedFeatures }).eq('slug', targetSlug);
+        } catch (e) {}
+        try {
+          await db.from('gym_tenants').update({ features: updatedFeatures }).eq('slug', targetSlug);
+        } catch (e) {}
+      }
+
+      showToast(`Feature [${featureKey}] ${isChecked ? 'Enabled' : 'Disabled'} for ${targetSlug}`, "info");
     }
 
     function toggleActiveGymKillSwitch() {
@@ -1362,7 +1375,7 @@
       const target = document.getElementById('standee-qrcode-target');
       target.innerHTML = '';
 
-      const qrToken = `PUNCH_${g.slug.toUpperCase().replace(/[^A-Z0-9]/g, '_')}_TOKEN_2026`;
+      const qrToken = `AUTH_DESK_QR_${g.slug}_2026`;
 
       if (window.QRCode) {
         new QRCode(target, {

@@ -1110,10 +1110,7 @@
     const currentGymSlug = urlParams.get('gym') || 'retro-gym';
 
     function getDeskQrToken() {
-      if (currentGymSlug === 'retro-gym') {
-        return "RETRO_GYM_PUNCH_SECURE_TOKEN_2026";
-      }
-      return `GYM_DESK_TOKEN_${currentGymSlug.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`;
+      return `AUTH_DESK_QR_${currentGymSlug}_2026`;
     }
 
     let currentAthlete = null;
@@ -1586,6 +1583,21 @@
       // Stream scanning frame parse fallback
     }
 
+    function triggerErrorAlert(message) {
+      playCyberChime('alert');
+      showToast(`⚠️ ${message}`, "error");
+      const statusEl = document.getElementById('scanner-status-text');
+      if (statusEl) {
+        statusEl.innerText = message.toUpperCase();
+      }
+      setTimeout(() => {
+        if (document.getElementById('qr-scanner-modal') && !document.getElementById('qr-scanner-modal').classList.contains('hidden')) {
+          if (statusEl) statusEl.innerText = "ALIGN WITH RECEPTION DESK QR STANDEE";
+          isScannerRunning = true;
+        }
+      }, 2500);
+    }
+
     async function onDeskQRScanSuccess(decodedText) {
       if (!isScannerRunning) return;
       isScannerRunning = false;
@@ -1593,28 +1605,19 @@
       const scannedToken = (decodedText || '').trim();
       console.log("Scanned QR Text:", scannedToken);
 
-      const expectedToken = getDeskQrToken();
-      if (scannedToken === expectedToken || scannedToken === "RETRO_GYM_PUNCH_SECURE_TOKEN_2026") {
-        // Valid token! Stop scanner and execute punch
-        try {
-          await stopScannerSafely();
-        } catch (e) {}
-
-        document.getElementById('qr-scanner-modal').classList.add('hidden');
-        await executeVerifiedAttendancePunch();
-      } else {
-        // Invalid QR code scanned
-        playCyberChime('alert');
-        showToast("⚠️ Invalid QR Code • Scan the Official Desk Standee", "error");
-        document.getElementById('scanner-status-text').innerText = "INVALID QR CODE — SCAN STANDEE";
-        
-        setTimeout(() => {
-          if (document.getElementById('qr-scanner-modal') && !document.getElementById('qr-scanner-modal').classList.contains('hidden')) {
-            document.getElementById('scanner-status-text').innerText = "ALIGN WITH RECEPTION DESK QR STANDEE";
-            isScannerRunning = true;
-          }
-        }, 2200);
+      const expectedToken = `AUTH_DESK_QR_${currentGymSlug}_2026`;
+      if (scannedToken !== expectedToken) {
+        triggerErrorAlert("Invalid Desk QR: This QR belongs to another gym station!");
+        return;
       }
+
+      // Valid token! Stop scanner and execute punch
+      try {
+        await stopScannerSafely();
+      } catch (e) {}
+
+      document.getElementById('qr-scanner-modal').classList.add('hidden');
+      await executeVerifiedAttendancePunch();
     }
 
     async function stopScannerSafely() {
@@ -1790,7 +1793,29 @@
 
         // 2. Live Supabase sync
         if (db) {
-          // Check gym_tenants first for onboarded SaaS gyms
+          // Check gyms table first
+          try {
+            const { data: gymData } = await db
+              .from('gyms')
+              .select('*')
+              .eq('slug', currentGymSlug)
+              .limit(1);
+
+            if (gymData && gymData.length > 0) {
+              const t = gymData[0];
+              currentGymConfig = {
+                ...currentGymConfig,
+                gym_name: t.name || currentGymConfig.gym_name,
+                gym_tagline: `${t.name} • DIGITAL MEMBER HUD`,
+                upi_id: t.owner_upi || currentGymConfig.upi_id,
+                support_phone: t.owner_phone || currentGymConfig.support_phone,
+                features: t.features || currentGymConfig.features,
+                slug: currentGymSlug
+              };
+            }
+          } catch (e) {}
+
+          // Check gym_tenants for onboarded SaaS gyms
           try {
             const { data: tenantData } = await db
               .from('gym_tenants')
@@ -1806,6 +1831,7 @@
                 gym_tagline: `${t.name} • DIGITAL MEMBER HUD`,
                 upi_id: t.owner_upi || currentGymConfig.upi_id,
                 support_phone: t.owner_phone || currentGymConfig.support_phone,
+                features: t.features || currentGymConfig.features,
                 slug: currentGymSlug
               };
             }
@@ -1925,6 +1951,29 @@
       if (upiDisplay) upiDisplay.innerText = c.upi_id || 'gymowner@okhdfcbank';
 
       updateRenewalModalPayButtons();
+
+      // 7. Dynamic Feature Flags Visibility
+      const feats = c.features || { workouts: true, nutrition: true, qr_attendance: true, notices: true };
+      
+      const navWorkouts = document.getElementById('nav-tab-workouts');
+      if (navWorkouts) {
+        navWorkouts.style.display = feats.workouts !== false ? 'flex' : 'none';
+      }
+
+      const navNutrition = document.getElementById('nav-tab-nutrition');
+      if (navNutrition) {
+        navNutrition.style.display = feats.nutrition !== false ? 'flex' : 'none';
+      }
+
+      const punchSection = document.getElementById('btn-punch-attendance')?.closest('section');
+      if (punchSection) {
+        punchSection.style.display = feats.qr_attendance !== false ? 'block' : 'none';
+      }
+
+      if (feats.notices === false) {
+        const banner = document.getElementById('gym-emergency-banner');
+        if (banner) banner.classList.add('hidden');
+      }
     }
 
     // --------------------------------------------------------
