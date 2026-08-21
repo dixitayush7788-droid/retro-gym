@@ -143,6 +143,20 @@
     #qr-reader__scan_region {
       border-radius: 1rem;
     }
+
+    @keyframes installPulse {
+      0%, 100% {
+        box-shadow: 0 0 15px rgba(204, 255, 0, 0.35), inset 0 0 10px rgba(204, 255, 0, 0.15);
+        border-color: rgba(204, 255, 0, 0.6);
+      }
+      50% {
+        box-shadow: 0 0 25px rgba(0, 240, 255, 0.5), inset 0 0 15px rgba(0, 240, 255, 0.25);
+        border-color: rgba(0, 240, 255, 0.8);
+      }
+    }
+    .install-glow-btn {
+      animation: installPulse 3s ease-in-out infinite;
+    }
   </style>
 </head>
 <body class="h-full bg-void text-zinc-100 font-sans antialiased selection:bg-cyberVolt selection:text-black overflow-x-hidden relative">
@@ -293,6 +307,19 @@
 
     <!-- Drawer Footer -->
     <div class="space-y-3 pt-4 border-t border-white/10 font-mono text-xs">
+      <!-- High-Converting 1-TAP Install Gym App Button -->
+      <button 
+        id="btn-install-app" 
+        onclick="triggerPwaInstall()" 
+        class="w-full flex items-center justify-between px-3.5 py-3 rounded-xl bg-gradient-to-r from-cyberVolt/20 via-cyanCyber/15 to-cyberVolt/20 hover:brightness-125 border border-cyberVolt/50 text-cyberVolt font-bold transition-all install-glow-btn active:scale-95 cursor-pointer relative overflow-hidden group shadow-lg"
+      >
+        <div class="flex items-center gap-2.5">
+          <span class="text-base animate-bounce">📲</span>
+          <span class="text-xs tracking-wide text-white group-hover:text-cyberVolt transition-colors">Install Gym App</span>
+        </div>
+        <span class="px-2 py-0.5 rounded-full bg-cyberVolt text-black font-mono font-extrabold text-[10px] tracking-wider uppercase shadow-sm">1-TAP</span>
+      </button>
+
       <a id="drawer-whatsapp-btn" href="https://wa.me/918467895365" target="_blank" class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-matrixGreen/15 hover:bg-matrixGreen/25 text-matrixGreen border border-matrixGreen/30 font-bold transition-all text-center">
         <span>💬</span>
         <span>WhatsApp Concierge</span>
@@ -306,6 +333,77 @@
       </button>
     </div>
   </aside>
+
+  <!-- ======================================================== -->
+  <!-- 2.7 PWA INSTALLATION HUD GUIDANCE MODAL -->
+  <!-- ======================================================== -->
+  <div id="pwa-install-guide-modal" class="fixed inset-0 z-50 bg-black/95 backdrop-blur-2xl hidden flex flex-col items-center justify-center p-4">
+    <div class="w-full max-w-sm bg-surfaceCard rounded-3xl border border-cyberVolt/40 shadow-glow-volt p-5 relative overflow-hidden space-y-4 text-center">
+      
+      <!-- Top Cyber HUD Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-white/10">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-cyberVolt/20 border border-cyberVolt/40 text-cyberVolt flex items-center justify-center font-bold text-sm">
+            📲
+          </div>
+          <div class="text-left">
+            <h3 id="pwa-guide-gym-title" class="font-brand text-base font-bold text-white leading-none">INSTALL GYM APP</h3>
+            <span class="text-[9px] font-mono text-cyberVolt uppercase">Zero-Lag VIP Pass Access</span>
+          </div>
+        </div>
+        <button 
+          onclick="closePwaInstallGuideModal()" 
+          class="w-8 h-8 rounded-full bg-surfaceMuted hover:bg-white/10 text-zinc-400 hover:text-white flex items-center justify-center font-mono cursor-pointer transition-all"
+        >
+          ✕
+        </button>
+      </div>
+
+      <!-- iOS Safari Instructions Guide -->
+      <div id="pwa-guide-ios" class="space-y-3 text-left">
+        <div class="p-3 bg-white/5 rounded-2xl border border-white/10 space-y-2.5">
+          <div class="flex items-start gap-2.5">
+            <div class="w-6 h-6 rounded-lg bg-cyberVolt text-black font-mono font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">1</div>
+            <p class="text-xs text-zinc-200">Tap the <strong class="text-cyberVolt">Share icon ⎋</strong> at the bottom bar of Safari.</p>
+          </div>
+          <div class="flex items-start gap-2.5">
+            <div class="w-6 h-6 rounded-lg bg-cyberVolt text-black font-mono font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">2</div>
+            <p class="text-xs text-zinc-200">Scroll down and select <strong class="text-white">"Add to Home Screen" ➕</strong>.</p>
+          </div>
+          <div class="flex items-start gap-2.5">
+            <div class="w-6 h-6 rounded-lg bg-cyberVolt text-black font-mono font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">3</div>
+            <p class="text-xs text-zinc-200">Tap <strong class="text-cyberVolt">Add</strong> in top right. Launch instant pass with 0 latency!</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Android / Desktop Chrome Instructions Guide -->
+      <div id="pwa-guide-android" class="space-y-3 text-left hidden">
+        <div class="p-3 bg-white/5 rounded-2xl border border-white/10 space-y-2.5">
+          <div class="flex items-start gap-2.5">
+            <div class="w-6 h-6 rounded-lg bg-cyberVolt text-black font-mono font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">1</div>
+            <p class="text-xs text-zinc-200">Tap the <strong class="text-cyberVolt">Three Dots (⋮)</strong> menu in your browser.</p>
+          </div>
+          <div class="flex items-start gap-2.5">
+            <div class="w-6 h-6 rounded-lg bg-cyberVolt text-black font-mono font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">2</div>
+            <p class="text-xs text-zinc-200">Tap <strong class="text-white">"Install app"</strong> or <strong class="text-white">"Add to Home screen"</strong>.</p>
+          </div>
+          <div class="flex items-start gap-2.5">
+            <div class="w-6 h-6 rounded-lg bg-cyberVolt text-black font-mono font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">3</div>
+            <p class="text-xs text-zinc-200">Enjoy offline-first attendance check-ins & quick wallet access.</p>
+          </div>
+        </div>
+      </div>
+
+      <button 
+        onclick="closePwaInstallGuideModal()" 
+        class="w-full py-3 bg-gradient-to-r from-cyberVolt to-cyanCyber text-black font-brand font-bold text-xs rounded-2xl shadow-glow-volt hover:brightness-110 active:scale-95 transition-all uppercase cursor-pointer"
+      >
+        Got It, Let's Train! ⚡
+      </button>
+
+    </div>
+  </div>
 
   <!-- ======================================================== -->
   <!-- 2.8 SECURE DESK QR CAMERA SCANNER MODAL -->
@@ -2045,6 +2143,10 @@
         const banner = document.getElementById('gym-emergency-banner');
         if (banner) banner.classList.add('hidden');
       }
+
+      // 8. PWA Install Modal Branding
+      const pwaGuideTitle = document.getElementById('pwa-guide-gym-title');
+      if (pwaGuideTitle) pwaGuideTitle.innerText = `INSTALL ${gymName.toUpperCase()}`;
     }
 
     // --------------------------------------------------------
@@ -2283,6 +2385,77 @@
         drawer.classList.add('-translate-x-full');
         backdrop.classList.add('hidden');
       }
+    }
+
+    // --------------------------------------------------------
+    // PWA ZERO-LAG 1-TAP INSTALLATION ENGINE
+    // --------------------------------------------------------
+    let deferredPwaInstallPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // Prevent browser default mini-infobar
+      e.preventDefault();
+      deferredPwaInstallPrompt = e;
+      console.log('⚡ PWA beforeinstallprompt captured and ready for 1-tap installation');
+    });
+
+    window.addEventListener('appinstalled', () => {
+      deferredPwaInstallPrompt = null;
+      showToast("✓ Gym VIP Pass App Installed to Home Screen! ⚡", "success");
+      playCyberChime('success');
+    });
+
+    async function triggerPwaInstall() {
+      playCyberChime('tap');
+      toggleDrawer(false);
+
+      // Check if already running in standalone / installed PWA mode
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+      if (isStandalone) {
+        showToast("✓ Gym VIP Pass is already installed on your device! ⚡", "info");
+        return;
+      }
+
+      if (deferredPwaInstallPrompt) {
+        try {
+          deferredPwaInstallPrompt.prompt();
+          const { outcome } = await deferredPwaInstallPrompt.userChoice;
+          if (outcome === 'accepted') {
+            showToast("Installing Gym VIP Pass App... ⚡", "success");
+            playCyberChime('success');
+          }
+          deferredPwaInstallPrompt = null;
+        } catch (err) {
+          console.error("Install prompt error:", err);
+          openPwaInstallGuideModal();
+        }
+      } else {
+        // Show seamless step-by-step HUD guide for iOS Safari, standalone setup, or desktop
+        openPwaInstallGuideModal();
+      }
+    }
+
+    function openPwaInstallGuideModal() {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      const guideModal = document.getElementById('pwa-install-guide-modal');
+      const iosGuide = document.getElementById('pwa-guide-ios');
+      const androidGuide = document.getElementById('pwa-guide-android');
+      
+      if (isIOS) {
+        if (iosGuide) iosGuide.classList.remove('hidden');
+        if (androidGuide) androidGuide.classList.add('hidden');
+      } else {
+        if (iosGuide) iosGuide.classList.add('hidden');
+        if (androidGuide) androidGuide.classList.remove('hidden');
+      }
+
+      if (guideModal) guideModal.classList.remove('hidden');
+    }
+
+    function closePwaInstallGuideModal() {
+      playCyberChime('tap');
+      const guideModal = document.getElementById('pwa-install-guide-modal');
+      if (guideModal) guideModal.classList.add('hidden');
     }
 
     // --------------------------------------------------------
