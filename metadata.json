@@ -1,6 +1,10 @@
 {
   "name": "Retro Gym Member Portal",
-  "description": "Ultra-premium fitness app and member portal for Retro Gym with Cyber Command Desk, 360° Athlete Dossiers, Gym Emergency Status & 1-Tap WhatsApp Broadcast Engine, live biometric attendance, and nutrition macro engine.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "description": "Ultra-premium fitness app and member portal for Retro Gym with Cyber Command Desk, 360° Athlete Dossiers, Desk QR Attendance Punch System, live biometric attendance, and nutrition macro engine.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

@@ -16,6 +16,9 @@
   <!-- Supabase JS v2 Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+  <!-- QRCode.js for Reception Standee Generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
   <!-- Tailwind Configuration -->
   <script>
     tailwind.config = {
@@ -67,6 +70,51 @@
     }
     .sheet-drawer {
       transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    }
+
+    @media print {
+      body * {
+        visibility: hidden !important;
+      }
+      #desk-qr-modal, #desk-qr-modal * {
+        visibility: visible !important;
+      }
+      #desk-qr-modal {
+        position: fixed !important;
+        inset: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        background: #ffffff !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        z-index: 999999 !important;
+      }
+      .printable-standee-card {
+        background: #ffffff !important;
+        color: #000000 !important;
+        border: 4px solid #000000 !important;
+        box-shadow: none !important;
+        width: 100% !important;
+        max-width: 550px !important;
+        padding: 2.5rem !important;
+      }
+      .standee-title {
+        color: #000000 !important;
+      }
+      .standee-sub {
+        color: #b45309 !important;
+      }
+      .standee-box {
+        background: #f8fafc !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #1e293b !important;
+      }
+      .no-print {
+        display: none !important;
+      }
     }
   </style>
 </head>
@@ -169,6 +217,14 @@
           class="px-4 py-2.5 bg-gradient-to-r from-gold via-goldLight to-cyanCustom text-black font-display text-base tracking-wider rounded-2xl shadow-glow-gold hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer uppercase font-bold"
         >
           <span>➕ REGISTER ATHLETE</span>
+        </button>
+
+        <button 
+          onclick="openDeskQRModal()"
+          class="px-3.5 py-2.5 bg-gradient-to-r from-amber-500/20 to-gold/20 hover:from-amber-500/30 hover:to-gold/30 text-goldLight font-mono text-xs rounded-2xl border border-gold/40 flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-glow-gold"
+          title="Print Reception Standee QR"
+        >
+          <span>🖨️ Desk QR Standee</span>
         </button>
 
         <button 
@@ -708,6 +764,75 @@
   </div>
 
   <!-- ======================================================== -->
+  <!-- 6.5 PRINTABLE RECEPTION DESK QR STANDEE MODAL -->
+  <!-- ======================================================== -->
+  <div id="desk-qr-modal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl hidden flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-surfaceCard rounded-3xl border border-gold/40 shadow-2xl p-6 sm:p-8 space-y-6 relative overflow-hidden text-center printable-standee-card">
+      
+      <!-- Top Badges & Close -->
+      <div class="flex items-center justify-between no-print">
+        <span class="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-gold/15 text-goldLight border border-gold/30 uppercase">
+          HARDWARE-FREE ATTENDANCE TERMINAL
+        </span>
+        <button onclick="closeDeskQRModal()" class="w-8 h-8 rounded-full bg-surfaceMuted hover:bg-white/10 text-zinc-400 hover:text-white flex items-center justify-center font-mono cursor-pointer transition-all">
+          ✕
+        </button>
+      </div>
+
+      <!-- Printable Standee Header -->
+      <div class="space-y-2">
+        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gold/20 border-2 border-gold/40 text-gold text-2xl font-display shadow-glow-gold mx-auto">
+          RG
+        </div>
+        <h2 class="font-display text-3xl sm:text-4xl text-white tracking-widest leading-none standee-title">
+          RETRO GYM
+        </h2>
+        <p class="font-mono text-xs font-bold uppercase tracking-widest text-goldLight standee-sub">
+          VIP ATHLETE CHECK-IN STATION
+        </p>
+        <p class="text-[11px] text-zinc-400 font-sans">
+          Official Reception Desk QR Authentication Terminal
+        </p>
+      </div>
+
+      <!-- High-Resolution QR Container -->
+      <div class="p-4 bg-white rounded-3xl inline-block mx-auto shadow-2xl border-4 border-gold/50 relative">
+        <div id="desk-qrcode-container" class="w-[240px] h-[240px] flex items-center justify-center bg-white"></div>
+        <div class="text-[9px] font-mono font-bold text-zinc-800 tracking-wider mt-2 uppercase border-t border-zinc-200 pt-1">
+          TOKEN: RETRO_GYM_PUNCH_SECURE_TOKEN_2026
+        </div>
+      </div>
+
+      <!-- Instructions List for Athletes -->
+      <div class="standee-box bg-black/50 p-4 rounded-2xl border border-white/10 text-left space-y-2 font-mono text-xs text-zinc-300">
+        <div class="text-[10px] text-goldLight font-bold uppercase tracking-wider">How to punch attendance:</div>
+        <ol class="space-y-1.5 text-[11px] text-zinc-300 list-decimal list-inside">
+          <li>Open Retro Gym App (<strong class="text-white">Member Portal</strong>)</li>
+          <li>Tap <strong class="text-emeraldCustom">"📷 SCAN DESK QR TO PUNCH"</strong></li>
+          <li>Align camera with this QR Code to log attendance</li>
+        </ol>
+      </div>
+
+      <!-- Action Buttons (Hidden when printing) -->
+      <div class="flex gap-3 pt-1 no-print">
+        <button 
+          onclick="printDeskStandee()" 
+          class="flex-1 py-3.5 bg-gradient-to-r from-gold via-goldLight to-amber-500 text-black font-display text-lg tracking-wider rounded-2xl shadow-glow-gold hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 font-bold cursor-pointer"
+        >
+          <span>🖨️ PRINT / SAVE PDF</span>
+        </button>
+        <button 
+          onclick="closeDeskQRModal()" 
+          class="px-5 py-3.5 bg-surfaceMuted hover:bg-white/10 text-zinc-300 font-mono text-xs rounded-2xl border border-white/10 active:scale-95 transition-all cursor-pointer"
+        >
+          Close
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
   <!-- 7. APPLICATION SCRIPT LOGIC ENGINE -->
   <!-- ======================================================== -->
   <script>
@@ -840,6 +965,43 @@
       clearPinKey();
       document.getElementById('admin-lock-modal').classList.remove('hidden');
       showToast("Admin Console Locked", "info");
+    }
+
+    // ----------------------------------------------------
+    // DESK QR STANDEE ENGINE
+    // ----------------------------------------------------
+    const SECURE_DESK_QR_TOKEN = "RETRO_GYM_PUNCH_SECURE_TOKEN_2026";
+
+    function openDeskQRModal() {
+      playAudioChirp(720, 0.1);
+      const modal = document.getElementById('desk-qr-modal');
+      modal.classList.remove('hidden');
+      
+      const container = document.getElementById('desk-qrcode-container');
+      container.innerHTML = '';
+      
+      if (window.QRCode) {
+        new QRCode(container, {
+          text: SECURE_DESK_QR_TOKEN,
+          width: 240,
+          height: 240,
+          colorDark: "#000000",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.H
+        });
+      } else {
+        container.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(SECURE_DESK_QR_TOKEN)}" alt="QR Code" class="w-full h-full object-contain" />`;
+      }
+    }
+
+    function closeDeskQRModal() {
+      playAudioChirp(440, 0.08);
+      document.getElementById('desk-qr-modal').classList.add('hidden');
+    }
+
+    function printDeskStandee() {
+      playAudioChirp(880, 0.15);
+      window.print();
     }
 
     function checkAdminSession() {

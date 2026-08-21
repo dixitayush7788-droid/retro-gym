@@ -16,6 +16,9 @@
   <!-- Supabase JS v2 Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+  <!-- HTML5 QR Code Scanner Engine -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
   <!-- Tailwind Configuration -->
   <script>
     tailwind.config = {
@@ -110,6 +113,35 @@
 
     .border-glow-gradient {
       border-image: linear-gradient(135deg, #CCFF00 0%, #00F0FF 50%, #FFB800 100%) 1;
+    }
+
+    @keyframes laserScan {
+      0% { top: 6%; opacity: 0.8; }
+      50% { top: 92%; opacity: 1; }
+      100% { top: 6%; opacity: 0.8; }
+    }
+    .laser-scan-beam {
+      position: absolute;
+      left: 6%;
+      right: 6%;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #00FF66, #CCFF00, #00FF66, transparent);
+      box-shadow: 0 0 15px #00FF66, 0 0 8px #CCFF00;
+      animation: laserScan 2.2s ease-in-out infinite;
+      z-index: 25;
+      pointer-events: none;
+    }
+    #qr-reader {
+      border: none !important;
+    }
+    #qr-reader video {
+      object-fit: cover !important;
+      border-radius: 1rem !important;
+      width: 100% !important;
+      height: 100% !important;
+    }
+    #qr-reader__scan_region {
+      border-radius: 1rem;
     }
   </style>
 </head>
@@ -277,6 +309,101 @@
       </button>
     </div>
   </aside>
+
+  <!-- ======================================================== -->
+  <!-- 2.8 SECURE DESK QR CAMERA SCANNER MODAL -->
+  <!-- ======================================================== -->
+  <div id="qr-scanner-modal" class="fixed inset-0 z-50 bg-black/95 backdrop-blur-2xl hidden flex flex-col items-center justify-center p-4">
+    <div class="w-full max-w-sm bg-surfaceCard rounded-3xl border border-matrixGreen/40 shadow-2xl p-5 relative overflow-hidden space-y-4 text-center">
+      
+      <!-- Top Cyber HUD Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-white/10">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-matrixGreen/20 border border-matrixGreen/40 text-matrixGreen flex items-center justify-center font-bold text-sm">
+            📷
+          </div>
+          <div class="text-left">
+            <h3 class="font-brand text-base font-bold text-white leading-none">RECEPTION SCANNER</h3>
+            <span class="text-[9px] font-mono text-matrixGreen uppercase">Anti-Proxy Check-In HUD</span>
+          </div>
+        </div>
+        <button 
+          onclick="closeDeskQRScanner()" 
+          class="w-8 h-8 rounded-full bg-surfaceMuted hover:bg-white/10 text-zinc-400 hover:text-white flex items-center justify-center font-mono cursor-pointer transition-all"
+        >
+          ✕
+        </button>
+      </div>
+
+      <!-- Viewfinder Container with Neon Reticle -->
+      <div class="relative w-full aspect-square bg-black rounded-2xl overflow-hidden border-2 border-matrixGreen/50 shadow-glow-green flex items-center justify-center">
+        
+        <!-- Live Video Element Container -->
+        <div id="qr-reader" class="w-full h-full"></div>
+
+        <!-- Animated Laser Line -->
+        <div id="qr-laser-beam" class="laser-scan-beam"></div>
+
+        <!-- Neon Cyber Viewfinder Reticle Corners -->
+        <div class="absolute top-3 left-3 w-7 h-7 border-t-4 border-l-4 border-matrixGreen pointer-events-none rounded-tl-lg z-20"></div>
+        <div class="absolute top-3 right-3 w-7 h-7 border-t-4 border-r-4 border-matrixGreen pointer-events-none rounded-tr-lg z-20"></div>
+        <div class="absolute bottom-3 left-3 w-7 h-7 border-b-4 border-l-4 border-matrixGreen pointer-events-none rounded-bl-lg z-20"></div>
+        <div class="absolute bottom-3 right-3 w-7 h-7 border-b-4 border-r-4 border-matrixGreen pointer-events-none rounded-br-lg z-20"></div>
+
+        <!-- Central Target Reticle Indicator -->
+        <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-10 opacity-30">
+          <div class="w-32 h-32 border border-dashed border-matrixGreen rounded-2xl"></div>
+        </div>
+
+        <!-- Camera Loading / Permission Fallback Layer -->
+        <div id="scanner-loading-state" class="absolute inset-0 bg-surfaceCard/90 flex flex-col items-center justify-center p-4 space-y-2 z-30">
+          <div class="w-10 h-10 border-2 border-matrixGreen border-t-transparent rounded-full animate-spin"></div>
+          <p class="font-mono text-xs text-matrixGreen font-bold tracking-wider">INITIALIZING CAMERA SENSOR...</p>
+          <p class="text-[10px] font-sans text-zinc-400 text-center">Allow camera permission when prompted by browser</p>
+        </div>
+
+        <!-- Camera Permission Denied Helper -->
+        <div id="scanner-permission-denied" class="absolute inset-0 bg-black/95 hidden flex flex-col items-center justify-center p-5 space-y-3 z-30 text-center">
+          <div class="w-12 h-12 rounded-2xl bg-crimsonAlert/20 border border-crimsonAlert/40 text-crimsonAlert flex items-center justify-center text-2xl mx-auto">
+            🚫
+          </div>
+          <h4 class="font-brand text-base text-white">CAMERA PERMISSION REQUIRED</h4>
+          <p class="text-xs text-zinc-300 font-sans leading-relaxed">
+            Please enable camera access in your browser settings to scan the Desk QR Standee.
+          </p>
+          <button 
+            onclick="retryDeskQRScanner()" 
+            class="px-4 py-2 bg-matrixGreen text-black font-brand font-bold text-xs rounded-xl hover:brightness-110 active:scale-95 transition-all uppercase cursor-pointer"
+          >
+            🔄 RETRY CAMERA
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Scanning Telemetry Status -->
+      <div class="space-y-1.5 font-mono text-xs">
+        <div id="scanner-telemetry-badge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-matrixGreen/15 border border-matrixGreen/30 text-matrixGreen font-bold text-[10px]">
+          <span class="w-1.5 h-1.5 rounded-full bg-matrixGreen animate-pulse"></span>
+          <span id="scanner-status-text">ALIGN WITH RECEPTION DESK QR STANDEE</span>
+        </div>
+        <p class="text-[11px] text-zinc-400 font-sans">
+          Point phone camera at the physical Standee placed at the Retro Gym Reception counter.
+        </p>
+      </div>
+
+      <!-- Bottom Cancel Controls -->
+      <div class="pt-1">
+        <button 
+          onclick="closeDeskQRScanner()" 
+          class="w-full py-3 bg-surfaceMuted hover:bg-white/10 text-zinc-300 font-mono text-xs rounded-2xl border border-white/10 active:scale-95 transition-all cursor-pointer"
+        >
+          Cancel Scanner
+        </button>
+      </div>
+
+    </div>
+  </div>
 
   <!-- ======================================================== -->
   <!-- 3. MAIN MOBILE-FIRST CONTAINER (MAX 460px) -->
@@ -449,23 +576,26 @@
             <h3 class="font-brand text-lg font-bold text-white tracking-wide">ATTENDANCE TELEMETRY</h3>
           </div>
           <span id="attendance-live-badge" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-matrixGreen/15 text-matrixGreen border border-matrixGreen/30">
-            RADAR ACTIVE
+            DESK QR SECURED
           </span>
         </div>
 
-        <!-- 1-Tap Punch Button with Tactile Green Border Beam -->
+        <!-- Desk QR Attendance Scanner Trigger -->
         <button 
           id="btn-punch-attendance"
-          onclick="handlePunchAttendance()" 
+          onclick="openDeskQRScanner()" 
           class="w-full py-4 px-4 bg-gradient-to-r from-matrixGreen via-[#33ff88] to-cyberVolt text-black font-brand font-extrabold text-base tracking-wider rounded-2xl shadow-glow-green hover:brightness-110 active:scale-95 transition-all uppercase flex items-center justify-center gap-2 cursor-pointer relative overflow-hidden"
         >
-          <span id="punch-btn-icon">⚡</span>
-          <span id="punch-btn-text">ATTENDANCE VERIFIED TODAY ✓</span>
+          <span id="punch-btn-icon" class="text-xl">📷</span>
+          <span id="punch-btn-text">SCAN DESK QR TO PUNCH ATTENDANCE</span>
         </button>
 
         <div class="flex items-center justify-between text-[11px] font-mono text-zinc-400 px-1">
           <span id="punch-last-sync">Today's Check-in: Not Logged</span>
-          <span class="text-cyberVolt font-bold">Old School Iron</span>
+          <span class="text-cyberVolt font-bold flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-matrixGreen animate-pulse"></span>
+            <span>Desk QR Ready</span>
+          </span>
         </div>
       </section>
 
@@ -1177,8 +1307,12 @@
     }
 
     // --------------------------------------------------------
-    // 1-TAP ATTENDANCE PUNCH ENGINE
+    // SECURE DESK QR ATTENDANCE PUNCH ENGINE
     // --------------------------------------------------------
+    const DESK_QR_SECRET_TOKEN = "RETRO_GYM_PUNCH_SECURE_TOKEN_2026";
+    let html5QrCodeScanner = null;
+    let isScannerRunning = false;
+
     async function checkTodayAttendancePunchState() {
       if (!currentAthlete || !db) return;
 
@@ -1207,7 +1341,8 @@
 
       btn.className = "w-full py-4 px-4 bg-matrixGreen/20 border border-matrixGreen text-matrixGreen font-brand font-extrabold text-base tracking-wider rounded-2xl shadow-glow-green uppercase flex items-center justify-center gap-2 cursor-default";
       icon.innerText = "✓";
-      text.innerText = "VERIFIED ENTRY LOGGED TODAY";
+      text.innerText = "ATTENDANCE VERIFIED TODAY ✓";
+      btn.onclick = null;
       btn.disabled = true;
 
       if (timeIso) {
@@ -1216,37 +1351,156 @@
       }
     }
 
-    async function handlePunchAttendance() {
-      if (!currentAthlete || !db) {
-        showToast("Please authenticate first", "error");
+    async function openDeskQRScanner() {
+      if (!currentAthlete) {
+        playCyberChime('alert');
+        showToast("Please authenticate pass first", "error");
+        document.getElementById('auth-modal').classList.remove('hidden');
         return;
       }
 
-      const btn = document.getElementById('btn-punch-attendance');
-      const originalText = document.getElementById('punch-btn-text').innerText;
-      document.getElementById('punch-btn-text').innerText = "VERIFYING BIOMETRICS...";
-      btn.disabled = true;
+      // Check if pass is expired
+      const expDate = new Date(currentAthlete.valid_until);
+      const now = new Date();
+      if (expDate < now) {
+        playCyberChime('alert');
+        showToast("❌ Pass Expired! Please renew membership at the desk.", "error");
+        return;
+      }
 
+      // Check if already checked in today
+      const todayStr = now.toISOString().split('T')[0];
       try {
-        const nowIso = new Date().toISOString();
-        const todayStr = nowIso.split('T')[0];
-
-        // 1. Double check if already punched today
         const { data: existing } = await db
           .from('attendance_logs')
-          .select('id')
+          .select('id, checkin_time')
           .eq('phone', currentAthlete.phone)
           .gte('checkin_time', `${todayStr}T00:00:00.000Z`)
           .limit(1);
 
         if (existing && existing.length > 0) {
-          markPunchButtonVerified(nowIso);
-          showToast("Attendance already logged for today! ✓", "info");
+          markPunchButtonVerified(existing[0].checkin_time);
           playCyberChime('success');
+          showToast("Attendance already logged for today! ✓", "info");
           return;
         }
+      } catch (e) {}
 
-        // 2. Insert new record into attendance_logs
+      playCyberChime('tap');
+      const modal = document.getElementById('qr-scanner-modal');
+      modal.classList.remove('hidden');
+
+      document.getElementById('scanner-loading-state').classList.remove('hidden');
+      document.getElementById('scanner-permission-denied').classList.add('hidden');
+      document.getElementById('scanner-status-text').innerText = "ALIGN WITH RECEPTION DESK QR STANDEE";
+
+      startDeskQRScannerEngine();
+    }
+
+    async function startDeskQRScannerEngine() {
+      try {
+        if (!window.Html5Qrcode) {
+          throw new Error("QR scanner engine initializing...");
+        }
+
+        if (html5QrCodeScanner) {
+          try {
+            await html5QrCodeScanner.stop();
+            await html5QrCodeScanner.clear();
+          } catch (e) {}
+          html5QrCodeScanner = null;
+        }
+
+        html5QrCodeScanner = new Html5Qrcode("qr-reader");
+
+        const config = {
+          fps: 15,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0
+        };
+
+        await html5QrCodeScanner.start(
+          { facingMode: "environment" },
+          config,
+          onDeskQRScanSuccess,
+          onDeskQRScanFailure
+        );
+
+        isScannerRunning = true;
+        document.getElementById('scanner-loading-state').classList.add('hidden');
+      } catch (err) {
+        console.warn("Camera start failure:", err);
+        document.getElementById('scanner-loading-state').classList.add('hidden');
+        document.getElementById('scanner-permission-denied').classList.remove('hidden');
+        playCyberChime('alert');
+      }
+    }
+
+    function onDeskQRScanFailure(error) {
+      // Stream scanning frame parse fallback
+    }
+
+    async function onDeskQRScanSuccess(decodedText) {
+      if (!isScannerRunning) return;
+      isScannerRunning = false;
+
+      const scannedToken = (decodedText || '').trim();
+      console.log("Scanned QR Text:", scannedToken);
+
+      if (scannedToken === DESK_QR_SECRET_TOKEN) {
+        // Valid token! Stop scanner and execute punch
+        try {
+          await stopScannerSafely();
+        } catch (e) {}
+
+        document.getElementById('qr-scanner-modal').classList.add('hidden');
+        await executeVerifiedAttendancePunch();
+      } else {
+        // Invalid QR code scanned
+        playCyberChime('alert');
+        showToast("⚠️ Invalid QR Code • Scan the Official Desk Standee", "error");
+        document.getElementById('scanner-status-text').innerText = "INVALID QR CODE — SCAN STANDEE";
+        
+        setTimeout(() => {
+          if (document.getElementById('qr-scanner-modal') && !document.getElementById('qr-scanner-modal').classList.contains('hidden')) {
+            document.getElementById('scanner-status-text').innerText = "ALIGN WITH RECEPTION DESK QR STANDEE";
+            isScannerRunning = true;
+          }
+        }, 2200);
+      }
+    }
+
+    async function stopScannerSafely() {
+      if (html5QrCodeScanner) {
+        try {
+          await html5QrCodeScanner.stop();
+          await html5QrCodeScanner.clear();
+        } catch (e) {}
+        html5QrCodeScanner = null;
+        isScannerRunning = false;
+      }
+    }
+
+    async function closeDeskQRScanner() {
+      playCyberChime('tap');
+      await stopScannerSafely();
+      document.getElementById('qr-scanner-modal').classList.add('hidden');
+    }
+
+    async function retryDeskQRScanner() {
+      document.getElementById('scanner-permission-denied').classList.add('hidden');
+      document.getElementById('scanner-loading-state').classList.remove('hidden');
+      await startDeskQRScannerEngine();
+    }
+
+    async function executeVerifiedAttendancePunch() {
+      if (!currentAthlete || !db) return;
+
+      const nowIso = new Date().toISOString();
+      const todayStr = nowIso.split('T')[0];
+
+      try {
+        // 1. Insert record into attendance_logs in Supabase
         const { error: insErr } = await db
           .from('attendance_logs')
           .insert([{
@@ -1257,7 +1511,7 @@
 
         if (insErr) throw insErr;
 
-        // 3. Increment streak_count in members table
+        // 2. Increment streak_count in members table & local session
         const newStreak = (currentAthlete.streak_count || 0) + 1;
         currentAthlete.streak_count = newStreak;
         localStorage.setItem('rg_member_session', JSON.stringify(currentAthlete));
@@ -1267,17 +1521,16 @@
           .update({ streak_count: newStreak })
           .eq('phone', currentAthlete.phone);
 
-        // 4. Update UI & Audio
+        // 3. Trigger UI & Audio celebration
         markPunchButtonVerified(nowIso);
         renderAthletePassHUD();
         fetchAthleteAttendanceHistory();
         playCyberChime('success');
-        showToast(`Attendance verified! 🔥 Streak increased to ${newStreak} Days!`, "success");
+        showToast(`✓ Desk QR Attendance Verified! 🔥 Streak: ${newStreak} Days!`, "success");
 
       } catch (err) {
-        showToast("Punch log failed: " + (err.message || err), "error");
-        document.getElementById('punch-btn-text').innerText = originalText;
-        btn.disabled = false;
+        playCyberChime('alert');
+        showToast("Attendance sync error: " + (err.message || err), "error");
       }
     }
 
