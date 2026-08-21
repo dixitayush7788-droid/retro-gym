@@ -1,6 +1,6 @@
 {
   "name": "Retro Gym Member Portal",
-  "description": "Ultra-premium fitness app and member portal for Retro Gym with Cyber Command Desk, 360° Athlete Dossiers, Desk QR Attendance Punch System, live biometric attendance, and nutrition macro engine.",
+  "description": "Ultra-premium multi-tenant fitness SaaS platform and member portal with Nexus Hypervisor Master Console, Cyber Command Desk, 360° Athlete Dossiers, Desk QR Attendance Punch System, live biometric attendance, and nutrition macro engine.",
   "requestFramePermissions": [
     "camera"
   ],

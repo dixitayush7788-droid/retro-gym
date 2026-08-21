@@ -1,0 +1,1497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>NEXUS PLATFORM — Master Fleet Control</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            alabaster: '#F8FAFC',
+            surface: '#FFFFFF',
+            surfaceMuted: '#F1F5F9',
+            borderLight: '#E2E8F0',
+            borderSubtle: '#CBD5E1',
+            charcoal: '#0F172A',
+            charcoalMuted: '#475569',
+            charcoalSubtle: '#64748B',
+            skyPrimary: '#0284C7',
+            skyHover: '#0369A1',
+            skyLight: '#E0F2FE',
+            skySoft: '#F0F9FF',
+            emeraldMint: '#10B981',
+            emeraldSoft: '#ECFDF5',
+            amberSunrise: '#F59E0B',
+            amberSoft: '#FFFBEB',
+            roseRed: '#EF4444',
+            roseSoft: '#FEF2F2'
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          },
+          boxShadow: {
+            'ios-sm': '0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02)',
+            'ios-card': '0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.02)',
+            'ios-float': '0 20px 35px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.04)',
+            'ios-glow': '0 0 20px rgba(2, 132, 199, 0.18)'
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Supabase JS Client & QRCode.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <style>
+    body {
+      background-color: #F8FAFC;
+      color: #0F172A;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Soft ambient mesh gradients */
+    .light-mesh-bg {
+      background-color: #F8FAFC;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(224, 242, 254, 0.7) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(254, 226, 226, 0.45) 0px, transparent 50%),
+        radial-gradient(at 50% 50%, rgba(240, 249, 255, 0.5) 0px, transparent 50%);
+    }
+
+    /* iOS smooth toggle switch styles */
+    .ios-switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+    .ios-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .ios-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #E2E8F0;
+      transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 24px;
+    }
+    .ios-slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    }
+    input:checked + .ios-slider {
+      background-color: #0284C7;
+    }
+    input:checked + .ios-slider.slider-emerald {
+      background-color: #10B981;
+    }
+    input:checked + .ios-slider.slider-rose {
+      background-color: #EF4444;
+    }
+    input:checked + .ios-slider:before {
+      transform: translateX(20px);
+    }
+
+    /* Bottom drawer transitions */
+    .drawer-backdrop {
+      transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .drawer-content {
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Shake animation for invalid PIN */
+    @keyframes pin-shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px); }
+      40%, 80% { transform: translateX(8px); }
+    }
+    .pin-shake-anim {
+      animation: pin-shake 0.35s ease-in-out;
+    }
+
+    /* Print styles for Standee */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #standee-print-zone, #standee-print-zone * {
+        visibility: visible;
+      }
+      #standee-print-zone {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 24px;
+        background: #ffffff !important;
+        color: #000000 !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="light-mesh-bg min-h-screen flex flex-col items-center justify-start antialiased selection:bg-skyLight selection:text-skyPrimary">
+
+  <!-- ======================================================== -->
+  <!-- 1. LIGHT LUXURY MASTER PIN SECURITY OVERLAY (PIN: 9900)  -->
+  <!-- ======================================================== -->
+  <div id="pin-lock-overlay" class="fixed inset-0 z-50 bg-slate-900/20 backdrop-blur-md flex items-center justify-center p-4">
+    <div id="pin-card-box" class="w-full max-w-[360px] bg-white rounded-3xl p-7 shadow-ios-float border border-slate-200/80 text-center space-y-6">
+      
+      <!-- Icon & Title -->
+      <div class="space-y-1.5">
+        <div class="w-13 h-13 w-12 h-12 rounded-2xl bg-skySoft text-skyPrimary flex items-center justify-center text-xl mx-auto shadow-ios-sm border border-skyLight">
+          <svg class="w-6 h-6 text-skyPrimary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+          </svg>
+        </div>
+        <h2 class="text-xl font-bold text-charcoal tracking-tight">Nexus Master Control</h2>
+        <p class="text-xs text-charcoalSubtle font-medium">Enter 4-digit master security PIN</p>
+      </div>
+
+      <!-- PIN Indicator Dots -->
+      <div class="flex justify-center items-center gap-3.5 py-1">
+        <div id="pin-dot-1" class="w-3.5 h-3.5 rounded-full border-2 border-slate-300 bg-transparent transition-all"></div>
+        <div id="pin-dot-2" class="w-3.5 h-3.5 rounded-full border-2 border-slate-300 bg-transparent transition-all"></div>
+        <div id="pin-dot-3" class="w-3.5 h-3.5 rounded-full border-2 border-slate-300 bg-transparent transition-all"></div>
+        <div id="pin-dot-4" class="w-3.5 h-3.5 rounded-full border-2 border-slate-300 bg-transparent transition-all"></div>
+      </div>
+
+      <p id="pin-error-msg" class="text-xs font-semibold text-roseRed hidden">Invalid Security PIN. Try again.</p>
+
+      <!-- Clean Numeric Keypad -->
+      <div class="grid grid-cols-3 gap-2.5 max-w-[260px] mx-auto font-mono text-lg font-semibold text-charcoal">
+        <button onclick="pressPinDigit('1')" class="h-12 rounded-2xl bg-surfaceMuted hover:bg-slate-200/80 active:scale-95 transition-all cursor-pointer">1</button>
+        <button onclick="pressPinDigit('2')" class="h-12 rounded-2xl bg-surfaceMuted hover:bg-slate-200/80 active:scale-95 transition-all cursor-pointer">2</button>
+        <button onclick="pressPinDigit('3')" class="h-12 rounded-2xl bg-surfaceMuted hover:bg-slate-200/80 active:scale-95 transition-all cursor-pointer">3</button>
+        <button onclick="pressPinDigit('4')" class="h-12 rounded-2xl bg-surfaceMuted hover:bg-slate-200/80 active:scale-95 transition-all cursor-pointer">4</button>
+        <button onclick="pressPinDigit('5')" class="h-12 rounded-2xl bg-surfaceMuted hover:bg-slate-200/80 active:scale-95 transition-all cursor-pointer">5</button>
+        <button onclick="pressPinDigit('6')" class="h-12 rounded-2xl bg-surfaceMuted hover:bg-slate-200/80 active:scale-95 transition-all cursor-pointer">6</button>
+        <button onclick="pressPinDigit('7')" class="h-12 rounded-2xl bg-surfaceMuted hover:bg-slate-200/80 active:scale-95 transition-all cursor-pointer">7</button>
+        <button onclick="pressPinDigit('8')" class="h-12 rounded-2xl bg-surfaceMuted hover:bg-slate-200/80 active:scale-95 transition-all cursor-pointer">8</button>
+        <button onclick="pressPinDigit('9')" class="h-12 rounded-2xl bg-surfaceMuted hover:bg-slate-200/80 active:scale-95 transition-all cursor-pointer">9</button>
+        <button onclick="clearPinInput()" class="h-12 rounded-2xl bg-roseSoft text-roseRed hover:bg-rose-100 font-sans text-xs font-bold active:scale-95 transition-all cursor-pointer">CLR</button>
+        <button onclick="pressPinDigit('0')" class="h-12 rounded-2xl bg-surfaceMuted hover:bg-slate-200/80 active:scale-95 transition-all cursor-pointer">0</button>
+        <button onclick="deletePinDigit()" class="h-12 rounded-2xl bg-surfaceMuted hover:bg-slate-200/80 active:scale-95 transition-all cursor-pointer">⌫</button>
+      </div>
+
+      <!-- Quick 1-Tap Master Helper -->
+      <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-charcoalSubtle">
+        <span>Security Tier: 1</span>
+        <button onclick="autoFillMasterPin()" class="text-skyPrimary font-semibold hover:underline cursor-pointer">Quick PIN: 9900</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- 2. MOBILE-FIRST 480px LUXE MASTER CONTAINER               -->
+  <!-- ======================================================== -->
+  <div id="main-console" class="w-full max-w-[480px] min-h-screen bg-transparent flex flex-col justify-between hidden pb-10">
+
+    <!-- FIXED TOP HEADER -->
+    <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-borderLight px-4 py-3.5 shadow-ios-sm">
+      <div class="flex items-center justify-between gap-2">
+        
+        <!-- Platform Title & Dot -->
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-skyLight flex items-center justify-center text-skyPrimary font-bold text-sm shadow-ios-sm">
+            N
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <h1 class="text-sm font-extrabold text-charcoal tracking-tight">NEXUS PLATFORM</h1>
+              <span class="w-2 h-2 rounded-full bg-skyPrimary animate-pulse"></span>
+            </div>
+            <p class="text-[11px] text-charcoalSubtle font-medium leading-none">Master Fleet Control</p>
+          </div>
+        </div>
+
+        <!-- Right Controls: Active Badge & Add Gym Button -->
+        <div class="flex items-center gap-2">
+          <div class="px-2.5 py-1 rounded-full bg-emeraldSoft text-emeraldMint border border-emerald-200/60 font-mono text-[11px] font-bold flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emeraldMint"></span>
+            <span id="header-active-count">4</span> Active
+          </div>
+
+          <button 
+            onclick="openOnboardModal()" 
+            class="px-3 py-1.5 rounded-xl bg-skyPrimary hover:bg-skyHover text-white text-xs font-bold shadow-ios-sm active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+          >
+            <span>+</span>
+            <span>Add Gym</span>
+          </button>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- MAIN SCROLLABLE DASHBOARD -->
+    <main class="p-4 space-y-4 flex-1">
+      
+      <!-- 3 COMPACT KPI TILES -->
+      <section class="grid grid-cols-3 gap-2.5">
+        
+        <!-- Tile 1: Active Gyms -->
+        <div class="bg-white rounded-2xl p-3 border border-borderLight shadow-ios-card space-y-0.5">
+          <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-charcoalSubtle">
+            <span>Gyms</span>
+            <span class="text-xs">🏢</span>
+          </div>
+          <div id="kpi-gyms-ratio" class="font-mono text-base font-extrabold text-charcoal">4/4</div>
+          <div class="text-[10px] text-emeraldMint font-semibold">100% Online</div>
+        </div>
+
+        <!-- Tile 2: Managed Athletes -->
+        <div class="bg-white rounded-2xl p-3 border border-borderLight shadow-ios-card space-y-0.5">
+          <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-charcoalSubtle">
+            <span>Athletes</span>
+            <span class="text-xs">👥</span>
+          </div>
+          <div id="kpi-total-athletes" class="font-mono text-base font-extrabold text-charcoal">1,248</div>
+          <div class="text-[10px] text-skyPrimary font-semibold">Live synced</div>
+        </div>
+
+        <!-- Tile 3: Total MRR -->
+        <div class="bg-white rounded-2xl p-3 border border-borderLight shadow-ios-card space-y-0.5">
+          <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-charcoalSubtle">
+            <span>MRR</span>
+            <span class="text-xs">💰</span>
+          </div>
+          <div id="kpi-total-mrr" class="font-mono text-base font-extrabold text-emeraldMint">₹9,996</div>
+          <div class="text-[10px] text-charcoalSubtle font-medium">Monthly fees</div>
+        </div>
+
+      </section>
+
+      <!-- SEARCH & FILTER PILLS BAR -->
+      <section class="space-y-2.5">
+        
+        <!-- Search Input -->
+        <div class="relative">
+          <svg class="w-4 h-4 text-charcoalSubtle absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+          <input 
+            type="text" 
+            id="search-gym-input" 
+            placeholder="Search gym by name, slug, or phone..." 
+            oninput="renderGymList()"
+            class="w-full bg-white border border-borderLight focus:border-skyPrimary focus:ring-2 focus:ring-skyLight/80 rounded-2xl pl-9.5 pr-4 py-2.5 text-xs text-charcoal placeholder:text-charcoalSubtle outline-none transition-all shadow-ios-sm font-medium"
+          />
+        </div>
+
+        <!-- Filter Pills -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+          <button onclick="setFilter('ALL')" id="filter-pill-ALL" class="filter-pill px-3 py-1 rounded-xl bg-charcoal text-white text-xs font-semibold shadow-ios-sm transition-all cursor-pointer whitespace-nowrap">
+            All (<span id="filter-count-all">4</span>)
+          </button>
+          <button onclick="setFilter('ACTIVE')" id="filter-pill-ACTIVE" class="filter-pill px-3 py-1 rounded-xl bg-white hover:bg-surfaceMuted text-charcoalMuted border border-borderLight text-xs font-semibold shadow-ios-sm transition-all cursor-pointer whitespace-nowrap">
+            Active (<span id="filter-count-active">4</span>)
+          </button>
+          <button onclick="setFilter('EXPIRED')" id="filter-pill-EXPIRED" class="filter-pill px-3 py-1 rounded-xl bg-white hover:bg-surfaceMuted text-charcoalMuted border border-borderLight text-xs font-semibold shadow-ios-sm transition-all cursor-pointer whitespace-nowrap">
+            Expired (<span id="filter-count-expired">0</span>)
+          </button>
+          <button onclick="setFilter('INACTIVE')" id="filter-pill-INACTIVE" class="filter-pill px-3 py-1 rounded-xl bg-white hover:bg-surfaceMuted text-charcoalMuted border border-borderLight text-xs font-semibold shadow-ios-sm transition-all cursor-pointer whitespace-nowrap">
+            Killed (<span id="filter-count-inactive">0</span>)
+          </button>
+        </div>
+
+      </section>
+
+      <!-- GYM LIST CARDS -->
+      <section class="space-y-2.5">
+        <div class="flex items-center justify-between px-1">
+          <h2 class="text-xs font-bold text-charcoalSubtle uppercase tracking-wider">Fleet Nodes</h2>
+          <span class="text-[11px] text-skyPrimary font-semibold cursor-pointer hover:underline" onclick="refreshSupabaseData()">Sync Cloud 🔄</span>
+        </div>
+
+        <!-- Cards Container -->
+        <div id="gym-list-container" class="space-y-2.5">
+          <!-- Dynamically Rendered Clean Cards -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="gym-empty-state" class="hidden bg-white rounded-3xl p-8 text-center border border-dashed border-borderSubtle space-y-2 shadow-ios-sm">
+          <div class="text-3xl">🏢</div>
+          <h3 class="text-sm font-bold text-charcoal">No Gym Tenants Found</h3>
+          <p class="text-xs text-charcoalSubtle">No gym matched your search filter criteria.</p>
+          <button onclick="openOnboardModal()" class="px-4 py-2 bg-skyPrimary text-white text-xs font-bold rounded-xl cursor-pointer">Add New Gym</button>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="text-center text-[11px] text-charcoalSubtle font-medium pt-2 pb-6">
+      <span>NEXUS PLATFORM • Cloud Database (zfvkvrhuovvbfbrutpph)</span>
+    </footer>
+
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- 3. DEEP GYM TELEMETRY DRAWER (SLIDE-UP BOTTOM SHEET)     -->
+  <!-- ======================================================== -->
+  <div id="telemetry-drawer-overlay" class="fixed inset-0 z-50 bg-slate-900/30 backdrop-blur-sm hidden drawer-backdrop flex flex-col justify-end">
+    
+    <!-- Tap outside area -->
+    <div class="flex-1" onclick="closeTelemetryDrawer()"></div>
+
+    <!-- Drawer Content Box -->
+    <div id="telemetry-drawer-box" class="w-full max-w-[480px] mx-auto bg-white rounded-t-3xl shadow-ios-float border-t border-borderLight p-5 space-y-5 max-h-[88vh] overflow-y-auto drawer-content">
+      
+      <!-- Drawer Handle & Header -->
+      <div class="space-y-3">
+        <div class="w-10 h-1 bg-slate-200 rounded-full mx-auto"></div>
+        
+        <div class="flex items-start justify-between">
+          <div class="flex items-center gap-3">
+            <div id="drawer-gym-avatar" class="w-12 h-12 rounded-2xl bg-skyLight text-skyPrimary flex items-center justify-center font-bold text-base shadow-ios-sm border border-sky-100 shrink-0">
+              RG
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 id="drawer-gym-name" class="text-base font-extrabold text-charcoal leading-snug">Retro Gym</h3>
+                <span id="drawer-gym-status-badge" class="px-2 py-0.5 rounded-full bg-emeraldSoft text-emeraldMint text-[10px] font-bold border border-emerald-200">ACTIVE</span>
+              </div>
+              <p id="drawer-gym-slug" class="text-xs font-mono text-charcoalSubtle">@retro-gym • Phone: 8467895365</p>
+            </div>
+          </div>
+
+          <button onclick="closeTelemetryDrawer()" class="w-8 h-8 rounded-full bg-surfaceMuted hover:bg-slate-200 text-charcoalSubtle flex items-center justify-center text-sm font-bold cursor-pointer">
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <!-- 1. LIVE GYM STATUS & TIMINGS -->
+      <div class="bg-surfaceMuted rounded-2xl p-3.5 border border-borderLight space-y-2">
+        <div class="flex items-center justify-between text-xs font-bold text-charcoal">
+          <span>Operational State</span>
+          <span id="drawer-live-timing-label" class="text-[11px] font-mono text-charcoalSubtle">Synced with Member HUD</span>
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          <button type="button" onclick="setGymOperationalStatus('OPEN')" id="op-status-btn-OPEN" class="op-status-btn py-2 rounded-xl bg-white text-emeraldMint border border-emeraldMint/40 font-bold text-xs shadow-ios-sm flex items-center justify-center gap-1 cursor-pointer">
+            <span>🟢</span> <span>Open</span>
+          </button>
+          <button type="button" onclick="setGymOperationalStatus('DELAYED')" id="op-status-btn-DELAYED" class="op-status-btn py-2 rounded-xl bg-white text-charcoalMuted border border-borderLight font-semibold text-xs shadow-ios-sm flex items-center justify-center gap-1 cursor-pointer">
+            <span>🟡</span> <span>Delayed</span>
+          </button>
+          <button type="button" onclick="setGymOperationalStatus('CLOSED')" id="op-status-btn-CLOSED" class="op-status-btn py-2 rounded-xl bg-white text-charcoalMuted border border-borderLight font-semibold text-xs shadow-ios-sm flex items-center justify-center gap-1 cursor-pointer">
+            <span>🔴</span> <span>Closed</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. MEMBER & REVENUE TELEMETRY -->
+      <div class="bg-white rounded-2xl p-3.5 border border-borderLight shadow-ios-sm space-y-2.5">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-charcoalSubtle">Tenant Member Telemetry</span>
+        
+        <div class="grid grid-cols-3 gap-2 text-center">
+          <div class="bg-surfaceMuted p-2.5 rounded-xl">
+            <div id="telemetry-members-count" class="font-mono text-base font-extrabold text-charcoal">0</div>
+            <div class="text-[10px] text-charcoalSubtle font-medium">Total Passes</div>
+          </div>
+          <div class="bg-surfaceMuted p-2.5 rounded-xl">
+            <div id="telemetry-expired-count" class="font-mono text-base font-extrabold text-roseRed">0</div>
+            <div class="text-[10px] text-charcoalSubtle font-medium">Expired</div>
+          </div>
+          <div class="bg-surfaceMuted p-2.5 rounded-xl">
+            <div id="telemetry-fees-collected" class="font-mono text-base font-extrabold text-emeraldMint">₹0</div>
+            <div class="text-[10px] text-charcoalSubtle font-medium">Est. Revenue</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. MASTER FEATURE SWITCHES -->
+      <div class="bg-white rounded-2xl p-4 border border-borderLight shadow-ios-sm space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-charcoalSubtle">Master Feature Gates</span>
+          <span class="text-[10px] text-skyPrimary font-semibold">Real-Time Sync</span>
+        </div>
+
+        <div class="space-y-2.5 text-xs font-semibold text-charcoal">
+          
+          <!-- Toggle 1: Workouts -->
+          <div class="flex items-center justify-between p-2 rounded-xl hover:bg-surfaceMuted/60 transition-all">
+            <div class="flex items-center gap-2">
+              <span class="text-base">⚡</span>
+              <div>
+                <div>6-Day Workout Engine</div>
+                <div class="text-[10px] text-charcoalSubtle font-normal">Push / Pull / Legs routine HUD</div>
+              </div>
+            </div>
+            <label class="ios-switch">
+              <input type="checkbox" id="drawer-toggle-workouts" onchange="handleFeatureToggleChange('workouts', this.checked)">
+              <span class="ios-slider"></span>
+            </label>
+          </div>
+
+          <!-- Toggle 2: Nutrition -->
+          <div class="flex items-center justify-between p-2 rounded-xl hover:bg-surfaceMuted/60 transition-all">
+            <div class="flex items-center gap-2">
+              <span class="text-base">🥗</span>
+              <div>
+                <div>Vegetarian Nutrition Engine</div>
+                <div class="text-[10px] text-charcoalSubtle font-normal">High-protein meal planner & macros</div>
+              </div>
+            </div>
+            <label class="ios-switch">
+              <input type="checkbox" id="drawer-toggle-nutrition" onchange="handleFeatureToggleChange('nutrition', this.checked)">
+              <span class="ios-slider"></span>
+            </label>
+          </div>
+
+          <!-- Toggle 3: QR Attendance -->
+          <div class="flex items-center justify-between p-2 rounded-xl hover:bg-surfaceMuted/60 transition-all">
+            <div class="flex items-center gap-2">
+              <span class="text-base">📷</span>
+              <div>
+                <div>Reception QR Camera Attendance</div>
+                <div class="text-[10px] text-charcoalSubtle font-normal">Scan desk standee to punch check-in</div>
+              </div>
+            </div>
+            <label class="ios-switch">
+              <input type="checkbox" id="drawer-toggle-qr" onchange="handleFeatureToggleChange('qr_attendance', this.checked)">
+              <span class="ios-slider"></span>
+            </label>
+          </div>
+
+          <!-- Toggle 4: WhatsApp Notices -->
+          <div class="flex items-center justify-between p-2 rounded-xl hover:bg-surfaceMuted/60 transition-all">
+            <div class="flex items-center gap-2">
+              <span class="text-base">📢</span>
+              <div>
+                <div>WhatsApp Emergency Notice</div>
+                <div class="text-[10px] text-charcoalSubtle font-normal">Broadcast gym delay alerts to athletes</div>
+              </div>
+            </div>
+            <label class="ios-switch">
+              <input type="checkbox" id="drawer-toggle-notices" onchange="handleFeatureToggleChange('notices', this.checked)">
+              <span class="ios-slider"></span>
+            </label>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 4. 1-TAP ACTION DOCK -->
+      <div class="space-y-2 pt-1">
+        <div class="grid grid-cols-2 gap-2">
+          
+          <button 
+            onclick="copyActiveMemberLink()" 
+            class="py-2.5 px-3 rounded-xl bg-surfaceMuted hover:bg-skyLight hover:text-skyPrimary text-charcoal text-xs font-bold border border-borderLight shadow-ios-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
+          >
+            <span>📱</span>
+            <span>Copy Member Link</span>
+          </button>
+
+          <button 
+            onclick="copyActiveAdminLink()" 
+            class="py-2.5 px-3 rounded-xl bg-surfaceMuted hover:bg-amberSoft hover:text-amberSunrise text-charcoal text-xs font-bold border border-borderLight shadow-ios-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
+          >
+            <span>🏢</span>
+            <span>Copy Owner Link</span>
+          </button>
+
+        </div>
+
+        <button 
+          onclick="openActiveStandeeModal()" 
+          class="w-full py-2.5 px-4 rounded-xl bg-skySoft hover:bg-skyLight text-skyPrimary text-xs font-bold border border-sky-200 shadow-ios-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
+        >
+          <span>🖨️</span>
+          <span>Print Reception QR Standee</span>
+        </button>
+
+        <!-- KILL-SWITCH BUTTON -->
+        <button 
+          id="btn-drawer-kill-switch"
+          onclick="toggleActiveGymKillSwitch()" 
+          class="w-full py-2.5 px-4 rounded-xl bg-roseSoft hover:bg-rose-100 text-roseRed text-xs font-bold border border-rose-200 shadow-ios-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
+        >
+          <span>🚫</span>
+          <span id="kill-switch-btn-text">Deactivate SaaS Subscription</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- 4. ONBOARD NEW GYM FORM MODAL                             -->
+  <!-- ======================================================== -->
+  <div id="onboard-modal" class="fixed inset-0 z-50 bg-slate-900/30 backdrop-blur-sm hidden flex flex-col justify-end sm:justify-center items-center p-0 sm:p-4">
+    <div class="w-full max-w-[480px] bg-white rounded-t-3xl sm:rounded-3xl shadow-ios-float border border-borderLight p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+      
+      <!-- Header -->
+      <div class="flex items-center justify-between border-b border-borderLight pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-skySoft text-skyPrimary flex items-center justify-center text-lg font-bold border border-skyLight">
+            🏢
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold text-charcoal">Onboard New Gym</h3>
+            <p class="text-xs text-charcoalSubtle">Deploy a new white-label tenant</p>
+          </div>
+        </div>
+        <button onclick="closeOnboardModal()" class="w-7 h-7 rounded-full bg-surfaceMuted hover:bg-slate-200 text-charcoalSubtle flex items-center justify-center text-xs font-bold cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <!-- Form -->
+      <form id="onboard-form" onsubmit="event.preventDefault(); handleOnboardSubmit();" class="space-y-3.5 text-xs">
+        
+        <!-- Gym Name -->
+        <div>
+          <label class="block font-bold text-charcoal mb-1">Gym Business Name *</label>
+          <input 
+            type="text" 
+            id="form-name" 
+            placeholder="e.g. Iron Paradise Club" 
+            oninput="handleSlugAutoGenerate(this.value)"
+            class="w-full bg-surfaceMuted border border-borderLight focus:border-skyPrimary rounded-xl p-2.5 text-charcoal outline-none font-semibold text-xs"
+            required
+          />
+        </div>
+
+        <!-- Slug -->
+        <div>
+          <label class="block font-bold text-charcoal mb-1">Unique Slug / URL Handle *</label>
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-skyPrimary font-bold">@</span>
+            <input 
+              type="text" 
+              id="form-slug" 
+              placeholder="iron-paradise" 
+              class="w-full bg-surfaceMuted border border-borderLight focus:border-skyPrimary rounded-xl pl-7 pr-3 py-2.5 text-skyPrimary font-mono font-bold outline-none text-xs"
+              required
+            />
+          </div>
+        </div>
+
+        <!-- Phone & UPI ID -->
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label class="block font-bold text-charcoal mb-1">Owner Phone (10 Digits) *</label>
+            <input 
+              type="tel" 
+              id="form-phone" 
+              placeholder="8467895365" 
+              maxlength="10"
+              class="w-full bg-surfaceMuted border border-borderLight focus:border-skyPrimary rounded-xl p-2.5 text-charcoal font-mono outline-none text-xs"
+              required
+            />
+          </div>
+          <div>
+            <label class="block font-bold text-charcoal mb-1">Owner UPI ID *</label>
+            <input 
+              type="text" 
+              id="form-upi" 
+              placeholder="gym@okhdfc" 
+              class="w-full bg-surfaceMuted border border-borderLight focus:border-skyPrimary rounded-xl p-2.5 text-emeraldMint font-mono font-semibold outline-none text-xs"
+              required
+            />
+          </div>
+        </div>
+
+        <!-- Monthly SaaS Fee & Duration -->
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label class="block font-bold text-charcoal mb-1">Monthly SaaS Fee (₹) *</label>
+            <input 
+              type="number" 
+              id="form-fee" 
+              value="2499" 
+              step="100"
+              class="w-full bg-surfaceMuted border border-borderLight focus:border-skyPrimary rounded-xl p-2.5 text-charcoal font-mono font-bold outline-none text-xs"
+              required
+            />
+          </div>
+          <div>
+            <label class="block font-bold text-charcoal mb-1">Validity (Days)</label>
+            <select id="form-validity" class="w-full bg-surfaceMuted border border-borderLight focus:border-skyPrimary rounded-xl p-2.5 text-charcoal font-semibold outline-none text-xs">
+              <option value="30">30 Days (1 Month)</option>
+              <option value="90">90 Days (3 Months)</option>
+              <option value="180">180 Days (6 Months)</option>
+              <option value="365" selected>365 Days (1 Year)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Membership Pricing Defaults for Members -->
+        <div class="bg-surfaceMuted p-3 rounded-2xl border border-borderLight space-y-2">
+          <span class="text-[11px] font-bold text-charcoalSubtle uppercase">Default Member Pass Pricing (₹)</span>
+          <div class="grid grid-cols-4 gap-1.5 font-mono">
+            <div>
+              <label class="text-[10px] text-charcoalSubtle block">1 Mo</label>
+              <input type="number" id="form-p1" value="1200" class="w-full bg-white border border-borderLight rounded-lg p-1.5 text-center text-xs font-bold" />
+            </div>
+            <div>
+              <label class="text-[10px] text-charcoalSubtle block">3 Mo</label>
+              <input type="number" id="form-p3" value="3200" class="w-full bg-white border border-borderLight rounded-lg p-1.5 text-center text-xs font-bold" />
+            </div>
+            <div>
+              <label class="text-[10px] text-charcoalSubtle block">6 Mo</label>
+              <input type="number" id="form-p6" value="5800" class="w-full bg-white border border-borderLight rounded-lg p-1.5 text-center text-xs font-bold" />
+            </div>
+            <div>
+              <label class="text-[10px] text-charcoalSubtle block">12 Mo</label>
+              <input type="number" id="form-p12" value="10500" class="w-full bg-white border border-borderLight rounded-lg p-1.5 text-center text-xs font-bold" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Initial Feature Toggles -->
+        <div class="bg-surfaceMuted p-3 rounded-2xl border border-borderLight space-y-2">
+          <span class="text-[11px] font-bold text-charcoalSubtle uppercase">Initial Feature Gates</span>
+          <div class="grid grid-cols-2 gap-2 text-[11px] font-semibold text-charcoal">
+            <label class="flex items-center gap-2 p-1.5 bg-white rounded-xl border border-borderLight cursor-pointer">
+              <input type="checkbox" id="form-feat-workouts" checked class="accent-skyPrimary rounded" />
+              <span>🏋️ Workouts</span>
+            </label>
+            <label class="flex items-center gap-2 p-1.5 bg-white rounded-xl border border-borderLight cursor-pointer">
+              <input type="checkbox" id="form-feat-nutrition" checked class="accent-skyPrimary rounded" />
+              <span>🥗 Nutrition</span>
+            </label>
+            <label class="flex items-center gap-2 p-1.5 bg-white rounded-xl border border-borderLight cursor-pointer">
+              <input type="checkbox" id="form-feat-qr" checked class="accent-skyPrimary rounded" />
+              <span>📷 Desk QR</span>
+            </label>
+            <label class="flex items-center gap-2 p-1.5 bg-white rounded-xl border border-borderLight cursor-pointer">
+              <input type="checkbox" id="form-feat-notices" checked class="accent-skyPrimary rounded" />
+              <span>📢 Notices</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex items-center gap-2 pt-2">
+          <button 
+            type="submit" 
+            class="flex-1 py-3 bg-skyPrimary hover:bg-skyHover text-white font-bold rounded-xl shadow-ios-sm active:scale-95 transition-all text-xs cursor-pointer"
+          >
+            Deploy New Gym Node
+          </button>
+          <button 
+            type="button" 
+            onclick="closeOnboardModal()" 
+            class="px-4 py-3 bg-surfaceMuted hover:bg-slate-200 text-charcoalSubtle font-semibold rounded-xl text-xs cursor-pointer"
+          >
+            Cancel
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- 5. LIGHT LUXURY PRINTABLE RECEPTION QR STANDEE MODAL     -->
+  <!-- ======================================================== -->
+  <div id="standee-modal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md hidden flex flex-col items-center justify-center p-4">
+    <div class="w-full max-w-sm bg-white rounded-3xl shadow-ios-float border border-borderLight p-6 space-y-4 text-center">
+      
+      <!-- Close Button -->
+      <div class="flex justify-end no-print">
+        <button onclick="closeStandeeModal()" class="w-8 h-8 rounded-full bg-surfaceMuted text-charcoalSubtle flex items-center justify-center font-bold text-xs cursor-pointer">✕</button>
+      </div>
+
+      <div id="standee-print-zone" class="space-y-4">
+        <!-- Standee Header -->
+        <div class="space-y-1">
+          <div id="standee-logo-badge" class="w-12 h-12 rounded-2xl bg-skySoft text-skyPrimary font-bold text-lg flex items-center justify-center mx-auto shadow-ios-sm border border-sky-100">
+            RG
+          </div>
+          <h2 id="standee-gym-title" class="text-xl font-black text-charcoal tracking-tight">RETRO GYM</h2>
+          <p id="standee-gym-subtitle" class="text-xs font-mono font-semibold text-skyPrimary">RECEPTION DESK • ATHLETE PUNCH</p>
+        </div>
+
+        <!-- High-Res QR -->
+        <div class="p-4 bg-white rounded-3xl inline-block shadow-ios-card mx-auto border-2 border-slate-100">
+          <div id="standee-qrcode-target" class="w-[200px] h-[200px] flex items-center justify-center"></div>
+        </div>
+
+        <!-- Athlete Steps -->
+        <div class="bg-surfaceMuted p-3 rounded-2xl text-left text-xs font-medium text-charcoalSubtle space-y-1 border border-borderLight">
+          <div class="text-[11px] font-bold text-charcoal">Quick Attendance Steps:</div>
+          <ol class="list-decimal list-inside space-y-0.5 text-[11px]">
+            <li>Open <strong class="text-charcoal">Member HUD</strong> on phone</li>
+            <li>Tap <strong class="text-skyPrimary">"Scan Desk QR"</strong></li>
+            <li>Align camera to punch check-in instantly</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="space-y-2 no-print">
+        <button 
+          onclick="window.print()" 
+          class="w-full py-3 bg-skyPrimary hover:bg-skyHover text-white font-bold rounded-xl shadow-ios-sm active:scale-95 transition-all text-xs cursor-pointer"
+        >
+          🖨️ Print Reception Standee
+        </button>
+        <button 
+          onclick="closeStandeeModal()" 
+          class="w-full py-2 bg-surfaceMuted text-charcoalSubtle font-semibold rounded-xl text-xs cursor-pointer"
+        >
+          Close Preview
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION HUD -->
+  <div id="toast-container" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 pointer-events-none w-full max-w-[360px] px-4"></div>
+
+  <!-- ======================================================== -->
+  <!-- 6. MASTER ENGINE JAVASCRIPT LOGIC                        -->
+  <!-- ======================================================== -->
+  <script>
+    // ----------------------------------------------------
+    // SUPABASE & CONFIG CONSTANTS
+    // ----------------------------------------------------
+    const SUPABASE_URL = "https://zfvkvrhuovvbfbrutpph.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpmdmt2cmh1b3Z2YmZicnV0cHBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMzIyODQsImV4cCI6MjEwMjcwODI4NH0.M-WK1bgZDLXcuMTldMSwptx5XRpRnLAi-BxMFEoph4U";
+    const MASTER_SECURITY_PIN = "9900";
+    const GITHUB_REPO_BASE = "https://dixitayush7788-droid.github.io/retro-gym";
+
+    let db = null;
+    try {
+      if (window.supabase) {
+        db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      }
+    } catch (e) {
+      console.warn("Supabase initialization error:", e);
+    }
+
+    // Default Seed Gym Fleet
+    const DEFAULT_FLEET = [
+      {
+        id: "gym_001",
+        name: "Retro Gym",
+        slug: "retro-gym",
+        owner_phone: "8467895365",
+        owner_upi: "gymowner@okhdfcbank",
+        status: "ACTIVE", // ACTIVE, EXPIRED, INACTIVE
+        op_status: "OPEN", // OPEN, DELAYED, CLOSED
+        monthly_fee: 2499,
+        validity_days: 365,
+        created_at: new Date(Date.now() - 30 * 86400000).toISOString(),
+        expires_at: new Date(Date.now() + 335 * 86400000).toISOString(),
+        pricing: { p1: 1200, p3: 3200, p6: 5800, p12: 10500 },
+        features: {
+          workouts: true,
+          nutrition: true,
+          qr_attendance: true,
+          notices: true
+        }
+      },
+      {
+        id: "gym_002",
+        name: "Iron Paradise Club",
+        slug: "iron-paradise",
+        owner_phone: "9876543210",
+        owner_upi: "ironparadise@okaxis",
+        status: "ACTIVE",
+        op_status: "OPEN",
+        monthly_fee: 2999,
+        validity_days: 180,
+        created_at: new Date(Date.now() - 20 * 86400000).toISOString(),
+        expires_at: new Date(Date.now() + 160 * 86400000).toISOString(),
+        pricing: { p1: 1500, p3: 4000, p6: 7200, p12: 13000 },
+        features: {
+          workouts: true,
+          nutrition: true,
+          qr_attendance: true,
+          notices: true
+        }
+      },
+      {
+        id: "gym_003",
+        name: "Spartan Fitness Arena",
+        slug: "spartan-arena",
+        owner_phone: "9123456780",
+        owner_upi: "spartanfitness@paytm",
+        status: "ACTIVE",
+        op_status: "OPEN",
+        monthly_fee: 1999,
+        validity_days: 90,
+        created_at: new Date(Date.now() - 10 * 86400000).toISOString(),
+        expires_at: new Date(Date.now() + 80 * 86400000).toISOString(),
+        pricing: { p1: 1000, p3: 2700, p6: 5000, p12: 9000 },
+        features: {
+          workouts: true,
+          nutrition: false,
+          qr_attendance: true,
+          notices: true
+        }
+      },
+      {
+        id: "gym_004",
+        name: "Olympus Gym & Spa",
+        slug: "olympus-spa",
+        owner_phone: "9988776655",
+        owner_upi: "olympusgym@ybl",
+        status: "ACTIVE",
+        op_status: "DELAYED",
+        monthly_fee: 2499,
+        validity_days: 30,
+        created_at: new Date(Date.now() - 5 * 86400000).toISOString(),
+        expires_at: new Date(Date.now() + 25 * 86400000).toISOString(),
+        pricing: { p1: 1400, p3: 3800, p6: 6800, p12: 12000 },
+        features: {
+          workouts: true,
+          nutrition: true,
+          qr_attendance: true,
+          notices: false
+        }
+      }
+    ];
+
+    let gymFleet = [];
+    let allMembersList = [];
+    let currentFilter = 'ALL';
+    let selectedGymForTelemetry = null;
+
+    // Web Audio Synthesizer for tactile feedback
+    let audioCtx = null;
+    function playAudioChirp(freq = 600, duration = 0.06) {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    // ----------------------------------------------------
+    // PIN SECURITY ENGINE (9900)
+    // ----------------------------------------------------
+    let pinBuffer = "";
+
+    function pressPinDigit(digit) {
+      if (pinBuffer.length < 4) {
+        pinBuffer += digit;
+        playAudioChirp(700 + pinBuffer.length * 80, 0.05);
+        renderPinDots();
+        if (pinBuffer.length === 4) {
+          setTimeout(verifyPinCode, 120);
+        }
+      }
+    }
+
+    function deletePinDigit() {
+      if (pinBuffer.length > 0) {
+        pinBuffer = pinBuffer.slice(0, -1);
+        playAudioChirp(500, 0.05);
+        renderPinDots();
+        document.getElementById('pin-error-msg')?.classList.add('hidden');
+      }
+    }
+
+    function clearPinInput() {
+      pinBuffer = "";
+      playAudioChirp(400, 0.06);
+      renderPinDots();
+      document.getElementById('pin-error-msg')?.classList.add('hidden');
+    }
+
+    function renderPinDots() {
+      for (let i = 1; i <= 4; i++) {
+        const dot = document.getElementById(`pin-dot-${i}`);
+        if (dot) {
+          if (i <= pinBuffer.length) {
+            dot.className = "w-3.5 h-3.5 rounded-full bg-skyPrimary border-2 border-skyPrimary shadow-ios-glow transition-all scale-110";
+          } else {
+            dot.className = "w-3.5 h-3.5 rounded-full border-2 border-slate-300 bg-transparent transition-all";
+          }
+        }
+      }
+    }
+
+    function verifyPinCode() {
+      if (pinBuffer === MASTER_SECURITY_PIN) {
+        playAudioChirp(1050, 0.2);
+        sessionStorage.setItem('nexus_master_auth', 'true');
+        unlockConsole();
+      } else {
+        playAudioChirp(220, 0.3);
+        const card = document.getElementById('pin-card-box');
+        const errMsg = document.getElementById('pin-error-msg');
+        if (errMsg) errMsg.classList.remove('hidden');
+        if (card) {
+          card.classList.add('pin-shake-anim');
+          setTimeout(() => card.classList.remove('pin-shake-anim'), 400);
+        }
+        setTimeout(clearPinInput, 500);
+      }
+    }
+
+    function autoFillMasterPin() {
+      pinBuffer = "9900";
+      renderPinDots();
+      setTimeout(verifyPinCode, 80);
+    }
+
+    function unlockConsole() {
+      const overlay = document.getElementById('pin-lock-overlay');
+      const consoleMain = document.getElementById('main-console');
+      if (overlay) overlay.classList.add('hidden');
+      if (consoleMain) consoleMain.classList.remove('hidden');
+      showToast("✓ Authenticated into Nexus Master Console", "success");
+      loadInitialData();
+    }
+
+    // Keyboard Listener
+    window.addEventListener('keydown', (e) => {
+      const overlay = document.getElementById('pin-lock-overlay');
+      if (!overlay || overlay.classList.contains('hidden')) return;
+
+      if (e.key >= '0' && e.key <= '9') {
+        pressPinDigit(e.key);
+      } else if (e.key === 'Backspace') {
+        deletePinDigit();
+      } else if (e.key === 'Escape') {
+        clearPinInput();
+      }
+    });
+
+    // ----------------------------------------------------
+    // INITIALIZATION & SUPABASE SYNC
+    // ----------------------------------------------------
+    async function loadInitialData() {
+      // 1. Local Cache Hydration
+      const cached = localStorage.getItem('nexus_fleet_cache');
+      if (cached) {
+        try {
+          gymFleet = JSON.parse(cached);
+        } catch (e) {
+          gymFleet = [...DEFAULT_FLEET];
+        }
+      } else {
+        gymFleet = [...DEFAULT_FLEET];
+        localStorage.setItem('nexus_fleet_cache', JSON.stringify(gymFleet));
+      }
+
+      // 2. Fetch from Supabase
+      await refreshSupabaseData();
+    }
+
+    async function refreshSupabaseData() {
+      if (!db) {
+        updateKpis();
+        renderGymList();
+        return;
+      }
+
+      try {
+        // Fetch all members across gyms
+        const { data: members, error: mErr } = await db.from('members').select('*');
+        if (!mErr && members) {
+          allMembersList = members;
+        }
+
+        // Fetch gym_tenants if table exists
+        const { data: tenants, error: tErr } = await db.from('gym_tenants').select('*');
+        if (!tErr && tenants && tenants.length > 0) {
+          gymFleet = tenants.map(t => ({
+            id: t.id || `gym_${t.slug}`,
+            name: t.name || t.slug,
+            slug: t.slug,
+            owner_phone: t.owner_phone || "8467895365",
+            owner_upi: t.owner_upi || "gymowner@okhdfcbank",
+            status: t.status || "ACTIVE",
+            op_status: t.op_status || "OPEN",
+            monthly_fee: Number(t.monthly_fee) || 2499,
+            validity_days: t.validity_days || 365,
+            created_at: t.created_at || new Date().toISOString(),
+            expires_at: t.expires_at || new Date(Date.now() + 300 * 86400000).toISOString(),
+            pricing: t.pricing || { p1: 1200, p3: 3200, p6: 5800, p12: 10500 },
+            features: t.features || { workouts: true, nutrition: true, qr_attendance: true, notices: true }
+          }));
+          localStorage.setItem('nexus_fleet_cache', JSON.stringify(gymFleet));
+        }
+      } catch (err) {
+        console.warn("Supabase fetch note:", err);
+      }
+
+      updateKpis();
+      renderGymList();
+      showToast("Cloud fleet state synced 🔄", "info");
+    }
+
+    function saveFleetState() {
+      localStorage.setItem('nexus_fleet_cache', JSON.stringify(gymFleet));
+      updateKpis();
+      renderGymList();
+
+      if (db) {
+        try {
+          db.from('gym_tenants').upsert(gymFleet).then(({ error }) => {
+            if (error) console.warn("Supabase sync note:", error.message);
+          });
+        } catch (e) {}
+      }
+    }
+
+    // ----------------------------------------------------
+    // KPI UPDATER & METRICS
+    // ----------------------------------------------------
+    function updateKpis() {
+      const total = gymFleet.length;
+      const active = gymFleet.filter(g => g.status === 'ACTIVE').length;
+      const expired = gymFleet.filter(g => g.status === 'EXPIRED').length;
+      const inactive = gymFleet.filter(g => g.status === 'INACTIVE').length;
+
+      // MRR Calculation
+      const totalMRR = gymFleet
+        .filter(g => g.status === 'ACTIVE')
+        .reduce((sum, g) => sum + (Number(g.monthly_fee) || 2499), 0);
+
+      // Total athletes count
+      const totalAthletes = allMembersList.length > 0 ? allMembersList.length : 1248;
+
+      // Update KPI widgets
+      const kpiGyms = document.getElementById('kpi-gyms-ratio');
+      const kpiAthletes = document.getElementById('kpi-total-athletes');
+      const kpiMrr = document.getElementById('kpi-total-mrr');
+      const headerActive = document.getElementById('header-active-count');
+
+      if (kpiGyms) kpiGyms.innerText = `${active}/${total}`;
+      if (kpiAthletes) kpiAthletes.innerText = totalAthletes.toLocaleString('en-IN');
+      if (kpiMrr) kpiMrr.innerText = `₹${totalMRR.toLocaleString('en-IN')}`;
+      if (headerActive) headerActive.innerText = active;
+
+      // Update filter counts
+      document.getElementById('filter-count-all').innerText = total;
+      document.getElementById('filter-count-active').innerText = active;
+      document.getElementById('filter-count-expired').innerText = expired;
+      document.getElementById('filter-count-inactive').innerText = inactive;
+    }
+
+    // ----------------------------------------------------
+    // FILTER & SEARCH LOGIC
+    // ----------------------------------------------------
+    function setFilter(filter) {
+      playAudioChirp(750, 0.04);
+      currentFilter = filter;
+      document.querySelectorAll('.filter-pill').forEach(p => {
+        p.className = "filter-pill px-3 py-1 rounded-xl bg-white hover:bg-surfaceMuted text-charcoalMuted border border-borderLight text-xs font-semibold shadow-ios-sm transition-all cursor-pointer whitespace-nowrap";
+      });
+      const activePill = document.getElementById(`filter-pill-${filter}`);
+      if (activePill) {
+        activePill.className = "filter-pill px-3 py-1 rounded-xl bg-charcoal text-white text-xs font-semibold shadow-ios-sm transition-all cursor-pointer whitespace-nowrap";
+      }
+      renderGymList();
+    }
+
+    function getFilteredList() {
+      const q = (document.getElementById('search-gym-input')?.value || '').toLowerCase().trim();
+      return gymFleet.filter(g => {
+        if (currentFilter !== 'ALL' && g.status !== currentFilter) return false;
+        if (q) {
+          const matchName = g.name.toLowerCase().includes(q);
+          const matchSlug = g.slug.toLowerCase().includes(q);
+          const matchPhone = (g.owner_phone || '').includes(q);
+          return matchName || matchSlug || matchPhone;
+        }
+        return true;
+      });
+    }
+
+    // ----------------------------------------------------
+    // GYM LIST RENDERER (LIGHT LUXE CARDS)
+    // ----------------------------------------------------
+    function renderGymList() {
+      const container = document.getElementById('gym-list-container');
+      const empty = document.getElementById('gym-empty-state');
+      const list = getFilteredList();
+
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (list.length === 0) {
+        empty.classList.remove('hidden');
+        return;
+      }
+      empty.classList.add('hidden');
+
+      list.forEach(g => {
+        const initials = g.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'RG';
+        
+        let statusBadge = '';
+        if (g.status === 'ACTIVE') {
+          statusBadge = `<span class="px-2 py-0.5 rounded-full bg-emeraldSoft text-emeraldMint border border-emerald-200 text-[10px] font-bold flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emeraldMint"></span> Active</span>`;
+        } else if (g.status === 'EXPIRED') {
+          statusBadge = `<span class="px-2 py-0.5 rounded-full bg-amberSoft text-amberSunrise border border-amber-200 text-[10px] font-bold">Expired</span>`;
+        } else {
+          statusBadge = `<span class="px-2 py-0.5 rounded-full bg-roseSoft text-roseRed border border-rose-200 text-[10px] font-bold">Killed</span>`;
+        }
+
+        let opStatusDot = '<span class="text-emeraldMint text-[10px]">🟢 Open</span>';
+        if (g.op_status === 'DELAYED') opStatusDot = '<span class="text-amberSunrise text-[10px]">🟡 Delayed</span>';
+        if (g.op_status === 'CLOSED') opStatusDot = '<span class="text-roseRed text-[10px]">🔴 Closed</span>';
+
+        const card = document.createElement('div');
+        card.className = "bg-white rounded-2xl p-3.5 border border-borderLight hover:border-skyPrimary/60 hover:shadow-ios-card shadow-ios-sm transition-all duration-200 cursor-pointer active:scale-[0.99] flex items-center justify-between gap-3";
+        card.onclick = () => openTelemetryDrawer(g.id);
+
+        card.innerHTML = `
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-11 h-11 rounded-2xl bg-skySoft text-skyPrimary flex items-center justify-center font-bold text-sm shadow-ios-sm border border-sky-100 shrink-0">
+              ${initials}
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5">
+                <h3 class="text-xs font-bold text-charcoal truncate">${g.name}</h3>
+                ${opStatusDot}
+              </div>
+              <p class="text-[11px] font-mono text-charcoalSubtle truncate">@${g.slug} • 📞 ${g.owner_phone}</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 shrink-0">
+            ${statusBadge}
+            <div class="w-6 h-6 rounded-full bg-surfaceMuted flex items-center justify-center text-charcoalSubtle text-xs">
+              ›
+            </div>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    // ----------------------------------------------------
+    // DEEP GYM TELEMETRY DRAWER LOGIC
+    // ----------------------------------------------------
+    function openTelemetryDrawer(gymId) {
+      const g = gymFleet.find(item => item.id === gymId);
+      if (!g) return;
+
+      selectedGymForTelemetry = g;
+      playAudioChirp(700, 0.08);
+
+      const initials = g.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'RG';
+      document.getElementById('drawer-gym-avatar').innerText = initials;
+      document.getElementById('drawer-gym-name').innerText = g.name;
+      document.getElementById('drawer-gym-slug').innerText = `@${g.slug} • 📞 ${g.owner_phone} • UPI: ${g.owner_upi}`;
+
+      // Status Badge
+      const statusBadge = document.getElementById('drawer-gym-status-badge');
+      if (statusBadge) {
+        if (g.status === 'ACTIVE') {
+          statusBadge.className = "px-2 py-0.5 rounded-full bg-emeraldSoft text-emeraldMint text-[10px] font-bold border border-emerald-200";
+          statusBadge.innerText = "ACTIVE";
+        } else if (g.status === 'EXPIRED') {
+          statusBadge.className = "px-2 py-0.5 rounded-full bg-amberSoft text-amberSunrise text-[10px] font-bold border border-amber-200";
+          statusBadge.innerText = "EXPIRED";
+        } else {
+          statusBadge.className = "px-2 py-0.5 rounded-full bg-roseSoft text-roseRed text-[10px] font-bold border border-rose-200";
+          statusBadge.innerText = "KILLED";
+        }
+      }
+
+      // Operational Status Buttons (OPEN, DELAYED, CLOSED)
+      updateOpStatusButtonUI(g.op_status || 'OPEN');
+
+      // Member & Revenue Telemetry computed from allMembersList
+      const tenantMembers = allMembersList.filter(m => m.gym_id === g.slug || m.gym_slug === g.slug || (g.slug === 'retro-gym' && !m.gym_id));
+      const totalCount = tenantMembers.length > 0 ? tenantMembers.length : (g.slug === 'retro-gym' ? 34 : 12);
+      
+      const now = new Date();
+      const expiredCount = tenantMembers.filter(m => new Date(m.valid_until || m.expiry_date || 0) < now).length;
+      const totalFees = tenantMembers.reduce((sum, m) => sum + (Number(m.fees_paid) || 1200), 0) || (totalCount * 1200);
+
+      document.getElementById('telemetry-members-count').innerText = totalCount;
+      document.getElementById('telemetry-expired-count').innerText = expiredCount;
+      document.getElementById('telemetry-fees-collected').innerText = `₹${totalFees.toLocaleString('en-IN')}`;
+
+      // Feature Switches
+      const feats = g.features || { workouts: true, nutrition: true, qr_attendance: true, notices: true };
+      document.getElementById('drawer-toggle-workouts').checked = Boolean(feats.workouts);
+      document.getElementById('drawer-toggle-nutrition').checked = Boolean(feats.nutrition);
+      document.getElementById('drawer-toggle-qr').checked = Boolean(feats.qr_attendance);
+      document.getElementById('drawer-toggle-notices').checked = Boolean(feats.notices);
+
+      // Kill Switch Button Styling
+      const killBtn = document.getElementById('btn-drawer-kill-switch');
+      const killText = document.getElementById('kill-switch-btn-text');
+      if (g.status === 'INACTIVE') {
+        killBtn.className = "w-full py-2.5 px-4 rounded-xl bg-emeraldSoft hover:bg-emerald-100 text-emeraldMint text-xs font-bold border border-emerald-200 shadow-ios-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95";
+        killText.innerText = "✓ Reactivate SaaS Subscription";
+      } else {
+        killBtn.className = "w-full py-2.5 px-4 rounded-xl bg-roseSoft hover:bg-rose-100 text-roseRed text-xs font-bold border border-rose-200 shadow-ios-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95";
+        killText.innerText = "🚫 Deactivate SaaS Subscription (Kill-Switch)";
+      }
+
+      // Show Drawer
+      const overlay = document.getElementById('telemetry-drawer-overlay');
+      if (overlay) overlay.classList.remove('hidden');
+    }
+
+    function closeTelemetryDrawer() {
+      const overlay = document.getElementById('telemetry-drawer-overlay');
+      if (overlay) overlay.classList.add('hidden');
+      selectedGymForTelemetry = null;
+    }
+
+    function updateOpStatusButtonUI(status) {
+      ['OPEN', 'DELAYED', 'CLOSED'].forEach(s => {
+        const btn = document.getElementById(`op-status-btn-${s}`);
+        if (!btn) return;
+        if (s === status) {
+          if (s === 'OPEN') btn.className = "op-status-btn py-2 rounded-xl bg-white text-emeraldMint border border-emeraldMint font-bold text-xs shadow-ios-sm flex items-center justify-center gap-1 cursor-pointer ring-2 ring-emeraldSoft";
+          if (s === 'DELAYED') btn.className = "op-status-btn py-2 rounded-xl bg-white text-amberSunrise border border-amberSunrise font-bold text-xs shadow-ios-sm flex items-center justify-center gap-1 cursor-pointer ring-2 ring-amberSoft";
+          if (s === 'CLOSED') btn.className = "op-status-btn py-2 rounded-xl bg-white text-roseRed border border-roseRed font-bold text-xs shadow-ios-sm flex items-center justify-center gap-1 cursor-pointer ring-2 ring-roseSoft";
+        } else {
+          btn.className = "op-status-btn py-2 rounded-xl bg-white text-charcoalMuted border border-borderLight font-semibold text-xs shadow-ios-sm flex items-center justify-center gap-1 cursor-pointer hover:bg-surfaceMuted";
+        }
+      });
+    }
+
+    function setGymOperationalStatus(status) {
+      if (!selectedGymForTelemetry) return;
+      playAudioChirp(800, 0.06);
+      selectedGymForTelemetry.op_status = status;
+      updateOpStatusButtonUI(status);
+      saveFleetState();
+      showToast(`Operational status set to [${status}] for ${selectedGymForTelemetry.name}`, "success");
+    }
+
+    function handleFeatureToggleChange(featureKey, isChecked) {
+      if (!selectedGymForTelemetry) return;
+      playAudioChirp(isChecked ? 900 : 450, 0.05);
+      if (!selectedGymForTelemetry.features) selectedGymForTelemetry.features = {};
+      selectedGymForTelemetry.features[featureKey] = isChecked;
+      saveFleetState();
+      showToast(`Feature [${featureKey}] ${isChecked ? 'Enabled' : 'Disabled'} for ${selectedGymForTelemetry.slug}`, "info");
+    }
+
+    function toggleActiveGymKillSwitch() {
+      if (!selectedGymForTelemetry) return;
+      playAudioChirp(300, 0.2);
+
+      if (selectedGymForTelemetry.status === 'INACTIVE') {
+        selectedGymForTelemetry.status = 'ACTIVE';
+        showToast(`✓ SaaS Subscription reactivated for ${selectedGymForTelemetry.name}`, "success");
+      } else {
+        selectedGymForTelemetry.status = 'INACTIVE';
+        showToast(`🚫 SaaS Subscription suspended for ${selectedGymForTelemetry.name}`, "error");
+      }
+
+      saveFleetState();
+      openTelemetryDrawer(selectedGymForTelemetry.id);
+    }
+
+    // ----------------------------------------------------
+    // QUICK ACTIONS: COPY LINKS & STANDEE
+    // ----------------------------------------------------
+    function copyActiveMemberLink() {
+      if (!selectedGymForTelemetry) return;
+      const link = `${GITHUB_REPO_BASE}/?gym=${encodeURIComponent(selectedGymForTelemetry.slug)}`;
+      navigator.clipboard.writeText(link);
+      playAudioChirp(950, 0.1);
+      showToast("📋 Member Pass Link copied to clipboard!", "success");
+    }
+
+    function copyActiveAdminLink() {
+      if (!selectedGymForTelemetry) return;
+      const link = `${GITHUB_REPO_BASE}/admin.html?gym=${encodeURIComponent(selectedGymForTelemetry.slug)}`;
+      navigator.clipboard.writeText(link);
+      playAudioChirp(950, 0.1);
+      showToast("📋 Owner Admin Link copied to clipboard!", "success");
+    }
+
+    function openActiveStandeeModal() {
+      if (!selectedGymForTelemetry) return;
+      const g = selectedGymForTelemetry;
+      
+      const initials = g.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'RG';
+      document.getElementById('standee-logo-badge').innerText = initials;
+      document.getElementById('standee-gym-title').innerText = g.name.toUpperCase();
+      document.getElementById('standee-gym-subtitle').innerText = `@${g.slug.toUpperCase()} • RECEPTION PUNCH DESK`;
+
+      const target = document.getElementById('standee-qrcode-target');
+      target.innerHTML = '';
+
+      const qrToken = `PUNCH_${g.slug.toUpperCase().replace(/[^A-Z0-9]/g, '_')}_TOKEN_2026`;
+
+      if (window.QRCode) {
+        new QRCode(target, {
+          text: qrToken,
+          width: 200,
+          height: 200,
+          colorDark: "#0F172A",
+          colorLight: "#FFFFFF",
+          correctLevel: QRCode.CorrectLevel.H
+        });
+      } else {
+        target.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrToken)}" alt="QR Standee" class="w-full h-full object-contain" />`;
+      }
+
+      document.getElementById('standee-modal')?.classList.remove('hidden');
+    }
+
+    function closeStandeeModal() {
+      document.getElementById('standee-modal')?.classList.add('hidden');
+    }
+
+    // ----------------------------------------------------
+    // ONBOARD NEW GYM FORM
+    // ----------------------------------------------------
+    function openOnboardModal() {
+      playAudioChirp(720, 0.06);
+      document.getElementById('onboard-form')?.reset();
+      document.getElementById('onboard-modal')?.classList.remove('hidden');
+    }
+
+    function closeOnboardModal() {
+      document.getElementById('onboard-modal')?.classList.add('hidden');
+    }
+
+    function handleSlugAutoGenerate(nameVal) {
+      const slugInput = document.getElementById('form-slug');
+      if (slugInput) {
+        slugInput.value = (nameVal || '')
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '');
+      }
+    }
+
+    function handleOnboardSubmit() {
+      const name = document.getElementById('form-name').value.trim();
+      const slug = document.getElementById('form-slug').value.trim() || handleSlugAutoGenerate(name);
+      const phone = document.getElementById('form-phone').value.trim();
+      const upi = document.getElementById('form-upi').value.trim();
+      const fee = Number(document.getElementById('form-fee').value) || 2499;
+      const validityDays = Number(document.getElementById('form-validity').value) || 365;
+
+      const p1 = Number(document.getElementById('form-p1').value) || 1200;
+      const p3 = Number(document.getElementById('form-p3').value) || 3200;
+      const p6 = Number(document.getElementById('form-p6').value) || 5800;
+      const p12 = Number(document.getElementById('form-p12').value) || 10500;
+
+      const featWorkouts = document.getElementById('form-feat-workouts').checked;
+      const featNutrition = document.getElementById('form-feat-nutrition').checked;
+      const featQr = document.getElementById('form-feat-qr').checked;
+      const featNotices = document.getElementById('form-feat-notices').checked;
+
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + validityDays * 86400000).toISOString();
+
+      const newTenant = {
+        id: `gym_${Date.now()}`,
+        name,
+        slug,
+        owner_phone: phone,
+        owner_upi: upi,
+        status: "ACTIVE",
+        op_status: "OPEN",
+        monthly_fee: fee,
+        validity_days: validityDays,
+        created_at: now.toISOString(),
+        expires_at: expiresAt,
+        pricing: { p1, p3, p6, p12 },
+        features: {
+          workouts: featWorkouts,
+          nutrition: featNutrition,
+          qr_attendance: featQr,
+          notices: featNotices
+        }
+      };
+
+      gymFleet.unshift(newTenant);
+      saveFleetState();
+
+      playAudioChirp(1100, 0.25);
+      showToast(`🎉 Deployed [${name}] to Nexus Platform!`, "success");
+      closeOnboardModal();
+    }
+
+    // ----------------------------------------------------
+    // TOAST NOTIFICATIONS ENGINE
+    // ----------------------------------------------------
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+
+      const toast = document.createElement('div');
+      let colorClass = 'bg-charcoal text-white';
+      if (type === 'success') colorClass = 'bg-emeraldMint text-white shadow-ios-glow';
+      if (type === 'error') colorClass = 'bg-roseRed text-white';
+      if (type === 'info') colorClass = 'bg-skyPrimary text-white';
+
+      toast.className = `${colorClass} px-4 py-2.5 rounded-2xl text-xs font-semibold shadow-ios-float transition-all duration-300 transform translate-y-3 opacity-0 text-center pointer-events-auto border border-white/10`;
+      toast.innerText = message;
+
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.remove('translate-y-3', 'opacity-0');
+      }, 20);
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-3');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // ----------------------------------------------------
+    // SESSION AUTO-AUTH ON LOAD (IF ALREADY UNLOCKED)
+    // ----------------------------------------------------
+    window.addEventListener('DOMContentLoaded', () => {
+      if (sessionStorage.getItem('nexus_master_auth') === 'true') {
+        unlockConsole();
+      }
+    });
+  </script>
+</body>
+</html>

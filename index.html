@@ -295,9 +295,9 @@
           <span>📊</span>
           <span>Live Check-In Stream</span>
         </button>
-        <a href="./admin.html" class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl bg-moltenGold/10 hover:bg-moltenGold/20 border border-moltenGold/30 text-moltenGold transition-all text-left">
+        <a id="drawer-admin-console-link" href="./admin.html" class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl bg-moltenGold/10 hover:bg-moltenGold/20 border border-moltenGold/30 text-moltenGold transition-all text-left">
           <span>🛡️</span>
-          <span>Super Admin Console</span>
+          <span>Gym Admin Desk</span>
         </a>
       </nav>
     </div>
@@ -1105,6 +1105,17 @@
 
     const db = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
+    // Multi-tenant resolution via URL parameter (?gym=slug)
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentGymSlug = urlParams.get('gym') || 'retro-gym';
+
+    function getDeskQrToken() {
+      if (currentGymSlug === 'retro-gym') {
+        return "RETRO_GYM_PUNCH_SECURE_TOKEN_2026";
+      }
+      return `GYM_DESK_TOKEN_${currentGymSlug.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`;
+    }
+
     let currentAthlete = null;
     let athleteAttendanceHistory = [];
     let pendingMemberCandidate = null;
@@ -1582,7 +1593,8 @@
       const scannedToken = (decodedText || '').trim();
       console.log("Scanned QR Text:", scannedToken);
 
-      if (scannedToken === DESK_QR_SECRET_TOKEN) {
+      const expectedToken = getDeskQrToken();
+      if (scannedToken === expectedToken || scannedToken === "RETRO_GYM_PUNCH_SECURE_TOKEN_2026") {
         // Valid token! Stop scanner and execute punch
         try {
           await stopScannerSafely();
@@ -1635,12 +1647,14 @@
       const todayStr = nowIso.split('T')[0];
 
       try {
-        // 1. Insert record into attendance_logs in Supabase
+        // 1. Insert record into attendance_logs in Supabase with multi-tenant gym tag
         const { error: insErr } = await db
           .from('attendance_logs')
           .insert([{
             full_name: currentAthlete.full_name,
             phone: currentAthlete.phone,
+            gym_id: currentGymSlug,
+            gym_slug: currentGymSlug,
             checkin_time: nowIso
           }]);
 
@@ -1744,7 +1758,7 @@
     // --------------------------------------------------------
     let currentGymConfig = {
       id: 1,
-      gym_name: "RETRO GYM",
+      gym_name: currentGymSlug === 'retro-gym' ? 'RETRO GYM' : currentGymSlug.toUpperCase(),
       gym_tagline: "DIGITAL MEMBER HUD",
       logo_url: "",
       upi_id: "gymowner@okhdfcbank",
@@ -1764,7 +1778,7 @@
     async function fetchLiveGymStatus() {
       try {
         // 1. Instant local cache hydration for sub-millisecond paint
-        const cached = localStorage.getItem('retro_gym_white_label_config') || localStorage.getItem('retro_gym_status_config');
+        const cached = localStorage.getItem(`retro_gym_config_${currentGymSlug}`) || localStorage.getItem('retro_gym_white_label_config') || localStorage.getItem('retro_gym_status_config');
         if (cached) {
           try {
             const parsed = JSON.parse(cached);
@@ -1776,14 +1790,40 @@
 
         // 2. Live Supabase sync
         if (db) {
-          const { data, error } = await db.from('gym_config').select('*').limit(1);
-          if (!error && data && data.length > 0) {
-            currentGymConfig = { ...currentGymConfig, ...data[0] };
-            localStorage.setItem('retro_gym_white_label_config', JSON.stringify(currentGymConfig));
-            localStorage.setItem('retro_gym_status_config', JSON.stringify(currentGymConfig));
-            applyGymBrandingToMemberUI();
-            renderEmergencyBanner(currentGymConfig);
-          }
+          // Check gym_tenants first for onboarded SaaS gyms
+          try {
+            const { data: tenantData } = await db
+              .from('gym_tenants')
+              .select('*')
+              .eq('slug', currentGymSlug)
+              .limit(1);
+
+            if (tenantData && tenantData.length > 0) {
+              const t = tenantData[0];
+              currentGymConfig = {
+                ...currentGymConfig,
+                gym_name: t.name || currentGymConfig.gym_name,
+                gym_tagline: `${t.name} • DIGITAL MEMBER HUD`,
+                upi_id: t.owner_upi || currentGymConfig.upi_id,
+                support_phone: t.owner_phone || currentGymConfig.support_phone,
+                slug: currentGymSlug
+              };
+            }
+          } catch (e) {}
+
+          try {
+            const { data, error } = await db.from('gym_config').select('*').limit(1);
+            if (!error && data && data.length > 0) {
+              const remoteConfig = data[0];
+              if (currentGymSlug === 'retro-gym' || remoteConfig.slug === currentGymSlug) {
+                currentGymConfig = { ...currentGymConfig, ...remoteConfig };
+              }
+            }
+          } catch (e) {}
+
+          localStorage.setItem(`retro_gym_config_${currentGymSlug}`, JSON.stringify(currentGymConfig));
+          applyGymBrandingToMemberUI();
+          renderEmergencyBanner(currentGymConfig);
         }
       } catch (err) {
         console.warn("Live gym SaaS status warning:", err);
@@ -1792,7 +1832,7 @@
 
     function applyGymBrandingToMemberUI() {
       const c = currentGymConfig;
-      const gymName = c.gym_name || "RETRO GYM";
+      const gymName = c.gym_name || (currentGymSlug === 'retro-gym' ? 'RETRO GYM' : currentGymSlug.toUpperCase());
       const tagline = c.gym_tagline || "DIGITAL MEMBER HUD";
       const initials = gymName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'RG';
       const logoUrl = (c.logo_url && c.logo_url.startsWith('http')) ? c.logo_url : null;
@@ -1827,14 +1867,18 @@
         authLogo.innerHTML = `<img src="${logoUrl}" alt="${gymName}" class="w-10 h-10 object-contain rounded-xl" referrerpolicy="no-referrer" />`;
       }
 
-      // 4. Side Drawer
+      // 4. Side Drawer & Admin Link
       const drawerTitle = document.getElementById('drawer-gym-title');
       const drawerTagline = document.getElementById('drawer-gym-tagline');
       const drawerLogo = document.getElementById('drawer-logo-badge');
       const drawerHelpdesk = document.getElementById('drawer-helpdesk-phone');
       const drawerWhatsapp = document.getElementById('drawer-whatsapp-btn');
+      const drawerAdminLink = document.getElementById('drawer-admin-console-link');
+
       if (drawerTitle) drawerTitle.innerText = gymName;
       if (drawerTagline) drawerTagline.innerText = tagline;
+      if (drawerAdminLink) drawerAdminLink.href = `./admin.html?gym=${encodeURIComponent(currentGymSlug)}`;
+
       if (drawerLogo) {
         if (logoUrl) {
           drawerLogo.innerHTML = `<img src="${logoUrl}" alt="${gymName}" class="w-full h-full object-cover" referrerpolicy="no-referrer" />`;
