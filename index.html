@@ -1238,6 +1238,36 @@
       if (first) first.focus();
     }
 
+    let memberPassRealtimeChannel = null;
+
+    function initMemberPassRealtimeListener(phone) {
+      if (!db || !currentGymSlug || !phone) return;
+      
+      try {
+        if (memberPassRealtimeChannel) {
+          db.removeChannel(memberPassRealtimeChannel);
+        }
+
+        memberPassRealtimeChannel = db.channel('member-pass-live-sync')
+          .on('postgres_changes', { 
+            event: 'UPDATE', 
+            schema: 'public', 
+            table: 'members', 
+            filter: `gym_slug=eq.${currentGymSlug}` 
+          }, (payload) => {
+            const currentMemberPhone = currentAthlete ? currentAthlete.phone : phone;
+            if (payload.new && (payload.new.phone === currentMemberPhone || String(payload.new.phone).slice(-10) === currentMemberPhone)) {
+              // Re-render pass UI with new valid_until date instantly
+              renderAthletePass(payload.new);
+              showToast("Membership pass renewed in real-time! ⚡", "success");
+            }
+          })
+          .subscribe();
+      } catch (subErr) {
+        console.warn("Member pass real-time listener note:", subErr);
+      }
+    }
+
     async function handlePhoneSubmit() {
       const phoneInput = document.getElementById('auth-phone-input');
       const rawPhone = phoneInput.value.replace(/\D/g, '').slice(-10);
@@ -1256,24 +1286,33 @@
       try {
         if (!db) throw new Error("Supabase client not initialized");
 
-        // Fetch athlete defensively for this specific gym tenant
-        let query = db.from('members').select('*').eq('phone', rawPhone);
-        if (currentGymSlug) {
-          query = query.or(`gym_slug.eq.${currentGymSlug},gym_id.eq.${currentGymSlug}`);
+        // Fetch fresh athlete directly from Supabase (bypassing any stale local storage)
+        const { data: freshMember, error } = await db
+          .from('members')
+          .select('*')
+          .eq('phone', rawPhone)
+          .eq('gym_slug', currentGymSlug)
+          .single();
+
+        if (error || !freshMember) {
+          // Fallback check with gym_id or general search if tenant slug was newly configured
+          const { data: fallbackList, error: fErr } = await db
+            .from('members')
+            .select('*')
+            .eq('phone', rawPhone)
+            .limit(1);
+
+          if (fErr || !fallbackList || fallbackList.length === 0) {
+            playCyberChime('alert');
+            showToast("Athlete not found on roster. Please register at front desk.", "error");
+            btn.innerText = "VERIFY ATHLETE IDENTITY ⚡";
+            btn.disabled = false;
+            return;
+          }
+          pendingMemberCandidate = normalizeMemberData(fallbackList[0]);
+        } else {
+          pendingMemberCandidate = normalizeMemberData(freshMember);
         }
-        const { data, error } = await query.limit(1);
-
-        if (error) throw error;
-
-        if (!data || data.length === 0) {
-          playCyberChime('alert');
-          showToast("Athlete not found on roster. Please register at front desk.", "error");
-          btn.innerText = "VERIFY ATHLETE IDENTITY ⚡";
-          btn.disabled = false;
-          return;
-        }
-
-        pendingMemberCandidate = normalizeMemberData(data[0]);
 
         // Proceed to Step 2: PIN Check
         document.getElementById('auth-step-phone').classList.add('hidden');
@@ -1353,6 +1392,8 @@
 
         // Hydrate all UI modules
         renderAthletePassHUD();
+        initMemberPassRealtimeListener(currentAthlete.phone);
+        fetchFreshAthleteData(currentAthlete.phone);
         fetchAthleteAttendanceHistory();
         checkTodayAttendancePunchState();
       } catch (err) {
@@ -1361,6 +1402,10 @@
     }
 
     function logoutAthlete() {
+      if (memberPassRealtimeChannel && db) {
+        try { db.removeChannel(memberPassRealtimeChannel); } catch (e) {}
+        memberPassRealtimeChannel = null;
+      }
       localStorage.removeItem('rg_member_session');
       currentAthlete = null;
       document.getElementById('auth-modal').classList.remove('hidden');
@@ -1391,8 +1436,15 @@
     }
 
     // --------------------------------------------------------
-    // RENDER PASS HUD
+    // RENDER PASS HUD & DYNAMIC VALIDITY RE-CALCULATION
     // --------------------------------------------------------
+    function renderAthletePass(memberData) {
+      if (!memberData) return;
+      currentAthlete = normalizeMemberData(memberData);
+      localStorage.setItem('rg_member_session', JSON.stringify(currentAthlete));
+      renderAthletePassHUD();
+    }
+
     function renderAthletePassHUD() {
       if (!currentAthlete) return;
 
@@ -1407,22 +1459,26 @@
       const drawerPhoneEl = document.getElementById('drawer-member-phone');
       const ringEl = document.getElementById('pass-progress-ring');
 
-      nameEl.innerText = currentAthlete.full_name;
-      phoneEl.innerText = `+91 ${currentAthlete.phone}`;
-      drawerNameEl.innerText = currentAthlete.full_name;
-      drawerPhoneEl.innerText = `+91 ${currentAthlete.phone}`;
-      topAvatarEl.innerText = currentAthlete.full_name.charAt(0).toUpperCase() || 'A';
-      passIdEl.innerText = `RT-${currentAthlete.phone}`;
+      if (nameEl) nameEl.innerText = currentAthlete.full_name;
+      if (phoneEl) phoneEl.innerText = `+91 ${currentAthlete.phone}`;
+      if (drawerNameEl) drawerNameEl.innerText = currentAthlete.full_name;
+      if (drawerPhoneEl) drawerPhoneEl.innerText = `+91 ${currentAthlete.phone}`;
+      if (topAvatarEl) topAvatarEl.innerText = currentAthlete.full_name.charAt(0).toUpperCase() || 'A';
+      if (passIdEl) passIdEl.innerText = `RT-${currentAthlete.phone}`;
 
       const expDate = new Date(currentAthlete.valid_until);
-      validUntilEl.innerText = expDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      if (validUntilEl) {
+        validUntilEl.innerText = isNaN(expDate.getTime()) 
+          ? "ACTIVE PASS" 
+          : expDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      }
 
-      // Calculate days left
+      // Calculate days left dynamically using (expDate - now)
       const now = new Date();
       const diffMs = expDate.getTime() - now.getTime();
       const daysLeft = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
-      daysLeftEl.innerText = daysLeft;
-      streakEl.innerText = currentAthlete.streak_count;
+      if (daysLeftEl) daysLeftEl.innerText = daysLeft;
+      if (streakEl) streakEl.innerText = currentAthlete.streak_count;
 
       // Update SVG Ring (188.4 is circumference for r=30)
       const maxDays = 30;
@@ -1448,6 +1504,30 @@
       ];
       const splitEl = document.getElementById('hud-split-name');
       if (splitEl) splitEl.innerText = splitNames[dayIndex];
+    }
+
+    // Direct fresh fetch from Supabase bypassing any stale local storage
+    async function fetchFreshAthleteData(phone) {
+      const targetPhone = phone || (currentAthlete && currentAthlete.phone);
+      if (!targetPhone || !db || !currentGymSlug) return null;
+
+      try {
+        let query = db.from('members')
+          .select('*')
+          .eq('phone', targetPhone);
+        
+        query = query.or(`gym_slug.eq.${currentGymSlug},gym_id.eq.${currentGymSlug}`);
+        
+        const { data: freshMember, error } = await query.limit(1).maybeSingle();
+
+        if (!error && freshMember) {
+          renderAthletePass(freshMember);
+          return freshMember;
+        }
+      } catch (err) {
+        console.warn("Fresh member fetch note:", err);
+      }
+      return null;
     }
 
     // --------------------------------------------------------
@@ -2205,6 +2285,11 @@
         if (ind) ind.classList.replace('bg-transparent', 'bg-cyberVolt');
       }
 
+      // Always re-sync fresh validity from Supabase when member switches tabs
+      if (currentAthlete && currentAthlete.phone) {
+        fetchFreshAthleteData(currentAthlete.phone);
+      }
+
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -2297,7 +2382,7 @@
         initPinKeypad();
         setInterval(fetchLiveGymStatus, 30000); // 30s auto poll
 
-        // Restore session if exists for this gym
+        // Restore session if exists for this gym & immediately refresh from Supabase
         const saved = localStorage.getItem('rg_member_session');
         if (saved) {
           try {
@@ -2306,6 +2391,8 @@
               currentAthlete = parsed;
               document.getElementById('auth-modal').classList.add('hidden');
               renderAthletePassHUD();
+              initMemberPassRealtimeListener(currentAthlete.phone);
+              fetchFreshAthleteData(currentAthlete.phone);
               fetchAthleteAttendanceHistory();
               checkTodayAttendancePunchState();
             } else {
