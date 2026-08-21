@@ -2467,8 +2467,12 @@
 
       let html = '<option value="">-- Choose Referring Athlete --</option>';
       currentMembers.forEach(m => {
-        if (!filter || m.fullName.toLowerCase().includes(filter) || m.phone.includes(filter)) {
-          html += `<option value="${m.phone}">${m.fullName} (+91 ${m.phone})</option>`;
+        const rawPhone = m.phone || '';
+        const cleanRefPhone = rawPhone.replace(/\D/g, '').slice(-10);
+        if (!cleanRefPhone) return;
+
+        if (!filter || m.fullName.toLowerCase().includes(filter) || cleanRefPhone.includes(filter)) {
+          html += `<option value="${cleanRefPhone}">${m.fullName} (+91 ${cleanRefPhone})</option>`;
         }
       });
 
@@ -2554,8 +2558,8 @@
     async function handleCreateMember(e) {
       e.preventDefault();
       const fullName = document.getElementById('new-member-name').value.trim();
-      const rawPhone = document.getElementById('new-member-phone').value.trim();
-      const cleanPhone = rawPhone.replace(/\D/g, '').slice(-10);
+      const phoneInput = document.getElementById('new-member-phone');
+      const cleanPhone = (phoneInput?.value || '').replace(/\D/g, '').slice(-10);
       const age = document.getElementById('new-member-age')?.value.trim();
       const address = document.getElementById('new-member-address')?.value.trim() || '';
 
@@ -2573,7 +2577,8 @@
       const collectedAmount = parseFloat(document.getElementById('feeAmountInput')?.value) || selectedFee || 1200;
 
       const isReferred = document.getElementById('ref-type-referred')?.checked;
-      const selectedReferrerPhone = isReferred ? (document.getElementById('new-member-referrer')?.value || '') : '';
+      const selectedValue = isReferred ? (document.getElementById('new-member-referrer')?.value || '') : '';
+      const cleanRefPhone = selectedValue.replace(/\D/g, '').slice(-10);
 
       const btn = document.getElementById('btn-submit-member');
       btn.innerText = "Registering Athlete to Cloud...";
@@ -2595,7 +2600,7 @@
               p_photo_url: newMemberPhotoBase64 || '',
               p_plan_months: selectedPlanMonths,
               p_fees_paid: collectedAmount,
-              p_referrer_phone: selectedReferrerPhone || ''
+              p_referrer_phone: cleanRefPhone || ''
             });
 
             if (!error && (!data || data.success !== false)) {
@@ -2628,8 +2633,9 @@
             age: parseInt(age, 10) || null,
             address: address,
             photo_url: newMemberPhotoBase64 || null,
-            referred_by: selectedReferrerPhone || null,
-            referrer_phone: selectedReferrerPhone || null,
+            referred_by: cleanRefPhone || null,
+            referrer_phone: cleanRefPhone || null,
+            referred_by_phone: cleanRefPhone || null,
             streak_count: 0,
             password: null
           };

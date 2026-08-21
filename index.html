@@ -2605,6 +2605,10 @@
     async function fetchReferralSquad(showToastFeedback = false) {
       if (!currentAthlete || !db) return;
 
+      const currentMemberPhone = currentAthlete.phone || '';
+      const memberPhone10 = currentMemberPhone.replace(/\D/g, '').slice(-10);
+      if (!memberPhone10) return;
+
       const container = document.getElementById('referral-squad-container');
       const countEl = document.getElementById('reward-friends-count');
       const freeDaysEl = document.getElementById('reward-free-days');
@@ -2615,54 +2619,56 @@
       const tierBadge = document.getElementById('reward-tier-badge');
       const codeDisplay = document.getElementById('reward-referral-code-display');
 
-      if (codeDisplay) codeDisplay.innerText = currentAthlete.phone;
+      if (codeDisplay) codeDisplay.innerText = memberPhone10;
 
       try {
-        // Query members referred by current athlete's 10-digit phone
-        const { data, error } = await db
+        // Query all friends joined under this member's referral
+        const { data: squad, error } = await db
           .from('members')
-          .select('*')
-          .or(`referred_by.eq.${currentAthlete.phone},referrer_phone.eq.${currentAthlete.phone},referred_by_phone.eq.${currentAthlete.phone}`)
+          .select('name, full_name, joining_date, created_at')
+          .or(`referred_by_phone.ilike.%${memberPhone10}%,referred_by.ilike.%${memberPhone10}%`)
+          .eq('gym_slug', currentGymSlug)
           .order('created_at', { ascending: false });
 
+        let finalSquad = squad;
         if (error) {
-          // Fallback query
-          const { data: fbData, error: fbErr } = await db
+          console.warn("Primary referral query notice:", error);
+          // Fallback query matching clean 10-digit number
+          const { data: fbData } = await db
             .from('members')
-            .select('*')
-            .eq('referred_by', currentAthlete.phone)
+            .select('name, full_name, joining_date, created_at')
+            .eq('referred_by', memberPhone10)
+            .eq('gym_slug', currentGymSlug)
             .order('created_at', { ascending: false });
-
-          if (fbErr) throw fbErr;
-          memberReferralSquad = fbData || [];
-        } else {
-          memberReferralSquad = data || [];
+          finalSquad = fbData || [];
         }
 
-        const squadCount = memberReferralSquad.length;
-        const freeDays = squadCount * 7;
-        const plan1m = currentGymConfig.plan_1m_price || 1200;
-        const moneySaved = Math.round((freeDays / 30) * plan1m);
+        memberReferralSquad = finalSquad || [];
+        const totalCount = memberReferralSquad.length;
+        const freeDays = totalCount * 7;
+        const plan1mPrice = currentGymConfig.plan_1m_price || 1200;
+        const moneySaved = Math.round((totalCount * 7 / 30) * plan1mPrice);
 
-        if (countEl) countEl.innerText = squadCount;
-        if (freeDaysEl) freeDaysEl.innerText = `+${freeDays} Days`;
+        // Update UI Elements
+        if (countEl) countEl.innerText = `${totalCount}`;
+        if (freeDaysEl) freeDaysEl.innerText = `+${totalCount * 7} Days`;
         if (moneySavedEl) moneySavedEl.innerText = `₹${moneySaved.toLocaleString('en-IN')}`;
 
         // Milestone & Tier Calculation
         let targetFriends = 3;
         let tierName = "LEVEL 1 RECRUITER";
-        if (squadCount >= 6) {
+        if (totalCount >= 6) {
           targetFriends = 10;
           tierName = "GOLD AMBASSADOR 👑";
-        } else if (squadCount >= 3) {
+        } else if (totalCount >= 3) {
           targetFriends = 6;
           tierName = "SILVER POWER RECRUITER 🥈";
-        } else if (squadCount >= 1) {
+        } else if (totalCount >= 1) {
           targetFriends = 3;
           tierName = "BRONZE SQUAD LEADER 🥉";
         }
 
-        const progressPct = Math.min(100, Math.round((squadCount / targetFriends) * 100));
+        const progressPct = Math.min(100, Math.round((totalCount / targetFriends) * 100));
         if (milestonePct) milestonePct.innerText = `${progressPct}%`;
         if (milestoneBar) milestoneBar.style.width = `${progressPct}%`;
         if (milestoneLabel) milestoneLabel.innerText = `Next Target: ${targetFriends} Friends (+${targetFriends * 7} Days)`;
@@ -2670,7 +2676,7 @@
 
         if (!container) return;
 
-        if (memberReferralSquad.length === 0) {
+        if (totalCount === 0) {
           container.innerHTML = `
             <div class="text-center py-6 px-4 bg-black/40 rounded-2xl border border-white/5 space-y-3">
               <div class="w-12 h-12 rounded-2xl bg-moltenGold/15 border border-moltenGold/30 text-moltenGold flex items-center justify-center text-2xl mx-auto shadow-glow-gold">
@@ -2679,7 +2685,7 @@
               <div class="space-y-1">
                 <h4 class="font-brand text-sm font-bold text-white">NO FRIENDS ONBOARDED YET</h4>
                 <p class="text-[11px] font-sans text-zinc-400 max-w-xs mx-auto">
-                  Share your invite link on WhatsApp or give your phone number <strong class="text-cyberVolt font-mono">${currentAthlete.phone}</strong> to friends. You'll earn <strong class="text-cyberVolt font-bold">+7 free pass days</strong> the moment they join!
+                  Share your invite link on WhatsApp or give your phone number <strong class="text-cyberVolt font-mono">${memberPhone10}</strong> to friends. You'll earn <strong class="text-cyberVolt font-bold">+7 free pass days</strong> the moment they join!
                 </p>
               </div>
               <button onclick="shareReferralViaWhatsApp()" class="px-4 py-2 bg-gradient-to-r from-matrixGreen to-cyberVolt text-black font-brand font-bold text-xs rounded-xl shadow-glow-green hover:brightness-110 active:scale-95 transition-all uppercase cursor-pointer">
@@ -2694,7 +2700,7 @@
         memberReferralSquad.forEach((friend, idx) => {
           const name = friend.full_name || friend.name || `Athlete #${idx + 1}`;
           const initial = name.charAt(0).toUpperCase() || 'A';
-          const joinDate = friend.created_at || friend.joining_date || friend.valid_until;
+          const joinDate = friend.created_at || friend.joining_date;
           const dateStr = joinDate ? new Date(joinDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recently Joined';
           
           html += `
@@ -2751,7 +2757,8 @@
         return;
       }
       const gymName = currentGymConfig.gym_name || "Retro Gym";
-      const referralCode = currentAthlete.phone;
+      const currentMemberPhone = currentAthlete.phone || '';
+      const referralCode = currentMemberPhone.replace(/\D/g, '').slice(-10);
       const shareUrl = `${window.location.origin}${window.location.pathname}?gym=${currentGymSlug}&ref=${referralCode}`;
       
       const message = `Hey! 🏋️‍♂️ Join me at *${gymName}*! Get fit, build strength, and use my referral code *${referralCode}* when you register at reception or online.\n\n⚡ Access our VIP Member Portal & Pass:\n${shareUrl}\n\nLet's crush our workouts together! 🔥`;
@@ -2767,7 +2774,8 @@
         showToast("Please authenticate pass first", "error");
         return;
       }
-      const referralCode = currentAthlete.phone;
+      const currentMemberPhone = currentAthlete.phone || '';
+      const referralCode = currentMemberPhone.replace(/\D/g, '').slice(-10);
       const shareUrl = `${window.location.origin}${window.location.pathname}?gym=${currentGymSlug}&ref=${referralCode}`;
       
       navigator.clipboard.writeText(shareUrl).then(() => {
@@ -2786,16 +2794,18 @@
     function copyReferralCodeOnly() {
       playCyberChime('tap');
       if (!currentAthlete) return;
-      navigator.clipboard.writeText(currentAthlete.phone).then(() => {
+      const currentMemberPhone = currentAthlete.phone || '';
+      const referralCode = currentMemberPhone.replace(/\D/g, '').slice(-10);
+      navigator.clipboard.writeText(referralCode).then(() => {
         const label = document.getElementById('copy-code-label');
         if (label) label.innerText = "Copied!";
         playCyberChime('success');
-        showToast(`Referral Code ${currentAthlete.phone} copied! 📋`, "success");
+        showToast(`Referral Code ${referralCode} copied! 📋`, "success");
         setTimeout(() => {
           if (label) label.innerText = "Copy Code";
         }, 2000);
       }).catch(() => {
-        showToast(`Code: ${currentAthlete.phone}`, "info");
+        showToast(`Code: ${referralCode}`, "info");
       });
     }
 
