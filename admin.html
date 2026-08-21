@@ -732,21 +732,32 @@
         </div>
 
         <!-- 1-Tap Quick Extend & Freeze Controls -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
           <!-- +1 Month Extension -->
           <button 
             onclick="executeDossierExtend(1)" 
             class="p-2.5 rounded-xl bg-gold/15 hover:bg-gold hover:text-black text-goldLight border border-gold/30 font-bold transition-all text-center cursor-pointer active:scale-95"
+            title="Renew pass by +30 Days"
           >
-            +1 Month Pass
+            +1 Mo Pass
           </button>
 
           <!-- +3 Month Extension -->
           <button 
             onclick="executeDossierExtend(3)" 
             class="p-2.5 rounded-xl bg-gold/15 hover:bg-gold hover:text-black text-goldLight border border-gold/30 font-bold transition-all text-center cursor-pointer active:scale-95"
+            title="Renew pass by +90 Days"
           >
-            +3 Months Pass
+            +3 Mo Pass
+          </button>
+
+          <!-- +6 Month Extension -->
+          <button 
+            onclick="executeDossierExtend(6)" 
+            class="p-2.5 rounded-xl bg-gold/15 hover:bg-gold hover:text-black text-goldLight border border-gold/30 font-bold transition-all text-center cursor-pointer active:scale-95"
+            title="Renew pass by +180 Days"
+          >
+            +6 Mo Pass
           </button>
 
           <!-- Freeze 15 Days -->
@@ -764,7 +775,7 @@
             class="p-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500 text-rose-300 hover:text-black border border-rose-500/30 font-bold transition-all text-center cursor-pointer active:scale-95"
             title="Revoke access immediately"
           >
-            🚫 Discontinue
+            🚫 Revoke
           </button>
         </div>
 
@@ -1815,39 +1826,51 @@
     }
 
     // ----------------------------------------------------
-    // DIRECT 1-TAP EXTEND & RESET PIN
+    // SECURE PASS RENEWAL (SUPABASE RPC ENGINE) & PIN RESET
     // ----------------------------------------------------
     async function directExtend(phone, months) {
       const member = allMembers.find(m => m.phone === phone);
-      if (!member || !db) return;
+      if (!member) {
+        showToast("Athlete record not found", "error");
+        return;
+      }
+      if (!db) {
+        showToast("Supabase client not connected", "error");
+        return;
+      }
 
       playAudioChirp(700, 0.06);
 
+      const memberId = member.id || (member.raw && member.raw.id) || member.phone;
+      const numberOfDays = months === 1 ? 30 : months === 3 ? 90 : months === 6 ? 180 : months * 30;
+
       try {
-        let baseDate = new Date();
-        if (member.validUntil) {
-          const currentExp = new Date(member.validUntil);
-          if (currentExp > baseDate) baseDate = currentExp;
+        const { data, error } = await db.rpc('secure_renew_pass', {
+          target_member_id: memberId,
+          target_gym_slug: currentGymSlug,
+          days_to_add: numberOfDays,
+          entered_pin: '7788'
+        });
+
+        if (error || !data || data.success === false) {
+          const errMsg = (data && data.error) || (error && error.message) || "Pass renewal failed";
+          console.error("Pass renewal RPC error:", error || data);
+          showToast(errMsg, "error");
+          return;
         }
 
-        baseDate.setMonth(baseDate.getMonth() + months);
-        const newExpiryIso = baseDate.toISOString();
+        playAudioChirp(780, 0.12);
+        showToast(`⚡ Pass for ${member.fullName} Renewed (+${numberOfDays} Days / ${months} Mo)!`, "success");
 
-        const { error } = await db
-          .from('members')
-          .update({ 
-            valid_until: newExpiryIso,
-            expiry_date: newExpiryIso 
-          })
-          .eq('phone', phone);
+        // Refresh data and active dossier
+        await fetchAllData();
 
-        if (error) throw error;
-
-        showToast(`Extended ${member.fullName} by +${months} Month(s)! ⚡`, "success");
-        fetchAllData();
-
+        if (activeDossierMember && (activeDossierMember.phone === member.phone || activeDossierMember.id === member.id)) {
+          openAthleteDossier(member.phone, false);
+        }
       } catch (err) {
-        showToast("Extension failed: " + (err.message || err), "error");
+        console.error("Secure pass renewal error:", err);
+        showToast("Renewal Error: " + (err.message || err), "error");
       }
     }
 
