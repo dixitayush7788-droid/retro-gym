@@ -286,6 +286,10 @@
           <span>💳</span>
           <span>Digital VIP Pass</span>
         </button>
+        <button onclick="switchTab('rewards'); toggleDrawer(false);" class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl bg-gradient-to-r from-moltenGold/20 via-cyberVolt/15 to-transparent hover:brightness-110 border border-moltenGold/40 text-moltenGold transition-all text-left font-bold">
+          <span>🎁</span>
+          <span>Share & Earn (+7 Days)</span>
+        </button>
         <button onclick="openPassRenewalModal(); toggleDrawer(false);" class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl bg-gradient-to-r from-moltenGold/20 to-cyberVolt/20 hover:brightness-110 border border-moltenGold/40 text-moltenGold transition-all text-left font-bold">
           <span>⚡</span>
           <span>Renew Pass Online (UPI)</span>
@@ -841,8 +845,213 @@
     </main>
 
     <!-- ======================================================== -->
-    <!-- TAB 2: WORKOUTS (6-DAY HYPERTROPHY PROTOCOLS) -->
+    <!-- TAB 2: REWARDS (SHARE & EARN / VIRAL REFERRAL HUD) -->
     <!-- ======================================================== -->
+    <main id="tab-rewards" class="tab-view space-y-4 hidden">
+      <div id="pane-rewards" class="space-y-4">
+        
+        <!-- Top Section Header -->
+        <div class="flex items-center justify-between pb-2 border-b border-white/10">
+          <div>
+            <h2 class="font-brand text-2xl font-extrabold text-white tracking-wide">SHARE & EARN</h2>
+            <p class="text-xs font-mono text-zinc-400">Cyber Referral Protocol • +7 Days Bonus</p>
+          </div>
+          <span class="text-[10px] font-mono px-2.5 py-1 rounded-full bg-moltenGold/15 text-moltenGold border border-moltenGold/30 flex items-center gap-1 font-bold">
+            <span class="w-1.5 h-1.5 rounded-full bg-moltenGold animate-pulse"></span>
+            <span>🎁 +7 DAYS BONUS</span>
+          </span>
+        </div>
+
+        <!-- HERO MILESTONE CARD: GLOWING CYBER-LUXE REWARD HUD -->
+        <div class="p-[1.5px] rounded-3xl bg-gradient-to-tr from-moltenGold via-cyberVolt to-cyanCyber shadow-glow-gold relative overflow-hidden">
+          <div class="holo-foil-beam animate-foil-sheen"></div>
+          <div class="bg-gradient-to-b from-[#18150d] via-[#100f0a] to-[#0a0a07] rounded-[22px] p-4 sm:p-5 relative overflow-hidden space-y-4">
+            
+            <!-- Top Tag & Recruiter Tier Status -->
+            <div class="flex items-center justify-between pb-2 border-b border-white/10">
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-xl bg-moltenGold/20 border border-moltenGold/40 flex items-center justify-center text-moltenGold font-bold text-sm shadow-glow-gold">
+                  👑
+                </div>
+                <div>
+                  <span class="font-brand text-xs font-bold text-white block uppercase leading-tight">ATHLETE AMBASSADOR REWARDS</span>
+                  <span class="text-[9px] font-mono text-zinc-400">Unlimited Pass Extensions</span>
+                </div>
+              </div>
+              <span id="reward-tier-badge" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyberVolt/20 text-cyberVolt border border-cyberVolt/40">
+                LEVEL 1 RECRUITER
+              </span>
+            </div>
+
+            <!-- 3-Stat Metric Grid -->
+            <div class="grid grid-cols-3 gap-2 text-center font-mono">
+              <!-- Stat 1: Total Friends Joined -->
+              <div class="p-2.5 sm:p-3 bg-black/50 rounded-2xl border border-white/10 space-y-1">
+                <span class="text-[9px] text-zinc-400 uppercase block leading-tight">Friends Joined</span>
+                <span id="reward-friends-count" class="font-brand text-xl font-extrabold text-white block">0</span>
+                <span class="text-[8px] text-zinc-500 block">Athletes</span>
+              </div>
+
+              <!-- Stat 2: Total Free Days Added -->
+              <div class="p-2.5 sm:p-3 bg-black/50 rounded-2xl border border-cyberVolt/30 space-y-1 shadow-glow-volt">
+                <span class="text-[9px] text-cyberVolt uppercase block leading-tight font-bold">Free Days Added</span>
+                <span id="reward-free-days" class="font-brand text-xl font-extrabold text-cyberVolt block">+0 Days</span>
+                <span class="text-[8px] text-cyberVolt/80 block">Bonus Days</span>
+              </div>
+
+              <!-- Stat 3: Money Saved -->
+              <div class="p-2.5 sm:p-3 bg-black/50 rounded-2xl border border-moltenGold/30 space-y-1 shadow-glow-gold">
+                <span class="text-[9px] text-moltenGold uppercase block leading-tight font-bold">Money Saved</span>
+                <span id="reward-money-saved" class="font-brand text-xl font-extrabold text-moltenGold block">₹0</span>
+                <span class="text-[8px] text-moltenGold/80 block">Pass Value</span>
+              </div>
+            </div>
+
+            <!-- Next Milestone Progress Bar -->
+            <div class="p-3 bg-surfaceMuted/50 rounded-2xl border border-white/5 space-y-1.5">
+              <div class="flex items-center justify-between text-[10px] font-mono">
+                <span class="text-zinc-300 flex items-center gap-1">
+                  <span>🎯</span>
+                  <span id="reward-milestone-label">Next Target: 3 Friends (+21 Days)</span>
+                </span>
+                <span id="reward-milestone-pct" class="text-cyberVolt font-bold">0%</span>
+              </div>
+              <div class="w-full h-2 bg-black/60 rounded-full overflow-hidden border border-white/10">
+                <div id="reward-milestone-bar" class="h-full bg-gradient-to-r from-moltenGold via-cyberVolt to-matrixGreen transition-all duration-500 rounded-full" style="width: 0%;"></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- 1-TAP REFERRAL SHARE DOCK -->
+        <section class="bg-surfaceCard/90 backdrop-blur-xl rounded-3xl p-4 sm:p-5 border border-white/10 shadow-glass-card space-y-3.5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-moltenGold text-base">🎁</span>
+              <h3 class="font-brand text-base font-bold text-white tracking-wide">YOUR PERSONAL INVITE CODE</h3>
+            </div>
+            <span class="text-[9px] font-mono text-zinc-400 uppercase">10-Digit Mobile Key</span>
+          </div>
+
+          <!-- Referral Code Display Card -->
+          <div class="p-3.5 bg-black/50 rounded-2xl border border-white/10 flex items-center justify-between gap-2">
+            <div>
+              <span class="text-[9px] font-mono text-zinc-400 uppercase block">REFERRAL CODE / MOBILE:</span>
+              <span id="reward-referral-code-display" class="font-mono text-base sm:text-lg font-bold text-cyberVolt tracking-wider">
+                9876543210
+              </span>
+            </div>
+            <button 
+              onclick="copyReferralCodeOnly()" 
+              class="px-3 py-2 bg-surfaceMuted hover:bg-white/10 text-zinc-300 hover:text-white border border-white/10 rounded-xl font-mono text-xs flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shrink-0"
+            >
+              <span id="copy-code-label">Copy Code</span>
+              <span>📋</span>
+            </button>
+          </div>
+
+          <!-- 2 Viral Sharing Action CTAs -->
+          <div class="space-y-2 pt-1">
+            <!-- Primary WhatsApp Share Button -->
+            <button 
+              onclick="shareReferralViaWhatsApp()" 
+              class="w-full py-3.5 px-4 bg-gradient-to-r from-matrixGreen via-[#25D366] to-cyberVolt text-black font-brand font-extrabold text-xs sm:text-sm tracking-wider rounded-2xl shadow-glow-green hover:brightness-110 active:scale-95 transition-all uppercase flex items-center justify-center gap-2 cursor-pointer relative overflow-hidden"
+            >
+              <span class="text-lg">🔥</span>
+              <span>SHARE ON WHATSAPP (+7 DAYS INVITE)</span>
+            </button>
+
+            <!-- Secondary Copy Full Referral Link Button -->
+            <button 
+              onclick="copyReferralFullLink()" 
+              class="w-full py-3 px-4 bg-surfaceMuted hover:bg-white/10 border border-white/15 text-white font-mono text-xs font-bold rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
+            >
+              <span>📋</span>
+              <span id="copy-link-label">COPY MY REFERRAL LINK</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- 3-STEP EARNING PROTOCOL GUIDE -->
+        <section class="bg-surfaceCard/90 backdrop-blur-xl rounded-3xl p-4 sm:p-5 border border-white/10 shadow-glass-card space-y-3">
+          <div class="flex items-center justify-between pb-1 border-b border-white/5">
+            <h3 class="font-brand text-sm font-bold text-white tracking-wider flex items-center gap-2">
+              <span class="text-cyberVolt">⚡</span>
+              <span>3-STEP EARNING PROTOCOL</span>
+            </h3>
+            <span class="text-[9px] font-mono text-matrixGreen font-bold">AUTOMATIC +7 DAYS</span>
+          </div>
+
+          <div class="space-y-2.5 font-sans text-xs">
+            <!-- Step 1 -->
+            <div class="flex items-start gap-3 p-2.5 bg-black/40 rounded-2xl border border-white/5">
+              <div class="w-7 h-7 rounded-xl bg-cyberVolt/20 border border-cyberVolt/40 text-cyberVolt font-mono font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                1
+              </div>
+              <div>
+                <h4 class="font-bold text-white leading-tight">Share Your Invite Link</h4>
+                <p class="text-[11px] text-zinc-400 leading-normal mt-0.5">
+                  Send your WhatsApp invite link or tell your friend to mention your registered phone number at reception.
+                </p>
+              </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="flex items-start gap-3 p-2.5 bg-black/40 rounded-2xl border border-white/5">
+              <div class="w-7 h-7 rounded-xl bg-cyanCyber/20 border border-cyanCyber/40 text-cyanCyber font-mono font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                2
+              </div>
+              <div>
+                <h4 class="font-bold text-white leading-tight">Friend Registers with Any Plan</h4>
+                <p class="text-[11px] text-zinc-400 leading-normal mt-0.5">
+                  Your friend joins <span id="protocol-gym-name" class="text-white font-bold">Retro Gym</span> on any membership plan (1, 3, 6, or 12 months).
+                </p>
+              </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="flex items-start gap-3 p-2.5 bg-black/40 rounded-2xl border border-white/5">
+              <div class="w-7 h-7 rounded-xl bg-moltenGold/20 border border-moltenGold/40 text-moltenGold font-mono font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                3
+              </div>
+              <div>
+                <h4 class="font-bold text-moltenGold leading-tight">Instant +7 Days Pass Extension</h4>
+                <p class="text-[11px] text-zinc-400 leading-normal mt-0.5">
+                  You instantly receive <strong class="text-cyberVolt font-bold">+7 Free Days</strong> automatically added to your VIP Pass! No cap on earnings.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- MY REFERRAL SQUAD (LIVE FRIENDS ROSTER) -->
+        <section class="bg-surfaceCard/90 backdrop-blur-xl rounded-3xl p-4 sm:p-5 border border-white/10 shadow-glass-card space-y-3.5">
+          <div class="flex items-center justify-between pb-1 border-b border-white/5">
+            <div class="flex items-center gap-2">
+              <span class="text-cyberVolt">👥</span>
+              <h3 class="font-brand text-base font-bold text-white tracking-wide">MY REFERRAL SQUAD</h3>
+            </div>
+            <button 
+              onclick="fetchReferralSquad(true)" 
+              class="text-[11px] font-mono text-cyberVolt hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <span>Live Roster</span>
+              <span>⟳</span>
+            </button>
+          </div>
+
+          <!-- Squad Roster List Container -->
+          <div id="referral-squad-container" class="space-y-2.5 max-h-[360px] overflow-y-auto pr-1 font-mono text-xs">
+            <div class="text-center py-8 text-zinc-500 space-y-2">
+              <div class="w-8 h-8 border-2 border-cyberVolt border-t-transparent rounded-full animate-spin mx-auto"></div>
+              <p class="text-xs">Connecting to Referral Squad database...</p>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
     <main id="tab-workouts" class="tab-view space-y-4 hidden">
       <div class="flex items-center justify-between pb-2 border-b border-white/10">
         <div>
@@ -1122,50 +1331,61 @@
     <!-- ======================================================== -->
     <!-- 5. FLOATING HUD BOTTOM NAVIGATION DOCK -->
     <!-- ======================================================== -->
-    <nav class="fixed bottom-4 left-1/2 -translate-x-1/2 w-11/12 max-w-[420px] z-30 bg-surfaceCard/90 backdrop-blur-2xl border border-white/15 rounded-3xl p-2 shadow-2xl flex items-center justify-around">
+    <nav class="fixed bottom-3 left-1/2 -translate-x-1/2 w-[94%] max-w-[440px] z-30 bg-surfaceCard/95 backdrop-blur-2xl border border-white/15 rounded-3xl p-1.5 shadow-2xl flex items-center justify-between">
       
       <!-- Tab 1: PASS -->
       <button 
         onclick="switchTab('pass')" 
         id="nav-tab-pass" 
-        class="nav-tab-item flex-1 py-2.5 flex flex-col items-center gap-1 rounded-2xl text-cyberVolt font-mono text-[10px] font-bold transition-all relative"
+        class="nav-tab-item flex-1 py-2 flex flex-col items-center gap-0.5 rounded-2xl text-cyberVolt font-mono text-[9px] font-bold transition-all relative cursor-pointer"
       >
-        <span class="text-base">💳</span>
-        <span>PASS</span>
-        <span class="active-indicator w-1 h-1 rounded-full bg-cyberVolt absolute bottom-1"></span>
+        <span class="text-base leading-none">💳</span>
+        <span class="tracking-tight">PASS</span>
+        <span class="active-indicator w-1 h-1 rounded-full bg-cyberVolt absolute bottom-0.5"></span>
       </button>
 
-      <!-- Tab 2: WORKOUTS -->
+      <!-- Tab 2: REWARDS (SHARE & EARN) -->
+      <button 
+        onclick="switchTab('rewards')" 
+        id="nav-tab-rewards" 
+        class="nav-tab-item flex-1 py-2 flex flex-col items-center gap-0.5 rounded-2xl text-zinc-400 hover:text-white font-mono text-[9px] font-bold transition-all relative cursor-pointer"
+      >
+        <span class="text-base leading-none">🎁</span>
+        <span class="tracking-tight">REWARDS</span>
+        <span class="active-indicator w-1 h-1 rounded-full bg-transparent absolute bottom-0.5"></span>
+      </button>
+
+      <!-- Tab 3: WORKOUTS -->
       <button 
         onclick="switchTab('workouts')" 
         id="nav-tab-workouts" 
-        class="nav-tab-item flex-1 py-2.5 flex flex-col items-center gap-1 rounded-2xl text-zinc-400 hover:text-white font-mono text-[10px] font-bold transition-all relative"
+        class="nav-tab-item flex-1 py-2 flex flex-col items-center gap-0.5 rounded-2xl text-zinc-400 hover:text-white font-mono text-[9px] font-bold transition-all relative cursor-pointer"
       >
-        <span class="text-base">🏋️‍♂️</span>
-        <span>WORKOUTS</span>
-        <span class="active-indicator w-1 h-1 rounded-full bg-transparent absolute bottom-1"></span>
+        <span class="text-base leading-none">🏋️‍♂️</span>
+        <span class="tracking-tight">WORKOUTS</span>
+        <span class="active-indicator w-1 h-1 rounded-full bg-transparent absolute bottom-0.5"></span>
       </button>
 
-      <!-- Tab 3: NUTRITION -->
+      <!-- Tab 4: NUTRITION -->
       <button 
         onclick="switchTab('nutrition')" 
         id="nav-tab-nutrition" 
-        class="nav-tab-item flex-1 py-2.5 flex flex-col items-center gap-1 rounded-2xl text-zinc-400 hover:text-white font-mono text-[10px] font-bold transition-all relative"
+        class="nav-tab-item flex-1 py-2 flex flex-col items-center gap-0.5 rounded-2xl text-zinc-400 hover:text-white font-mono text-[9px] font-bold transition-all relative cursor-pointer"
       >
-        <span class="text-base">🥗</span>
-        <span>NUTRITION</span>
-        <span class="active-indicator w-1 h-1 rounded-full bg-transparent absolute bottom-1"></span>
+        <span class="text-base leading-none">🥗</span>
+        <span class="tracking-tight">NUTRITION</span>
+        <span class="active-indicator w-1 h-1 rounded-full bg-transparent absolute bottom-0.5"></span>
       </button>
 
-      <!-- Tab 4: ACTIVITY -->
+      <!-- Tab 5: ACTIVITY -->
       <button 
         onclick="switchTab('activity')" 
         id="nav-tab-activity" 
-        class="nav-tab-item flex-1 py-2.5 flex flex-col items-center gap-1 rounded-2xl text-zinc-400 hover:text-white font-mono text-[10px] font-bold transition-all relative"
+        class="nav-tab-item flex-1 py-2 flex flex-col items-center gap-0.5 rounded-2xl text-zinc-400 hover:text-white font-mono text-[9px] font-bold transition-all relative cursor-pointer"
       >
-        <span class="text-base">📊</span>
-        <span>ACTIVITY</span>
-        <span class="active-indicator w-1 h-1 rounded-full bg-transparent absolute bottom-1"></span>
+        <span class="text-base leading-none">📊</span>
+        <span class="tracking-tight">ACTIVITY</span>
+        <span class="active-indicator w-1 h-1 rounded-full bg-transparent absolute bottom-0.5"></span>
       </button>
 
     </nav>
@@ -1475,6 +1695,7 @@
         fetchFreshAthleteData(currentAthlete.phone);
         fetchAthleteAttendanceHistory();
         checkTodayAttendancePunchState();
+        fetchReferralSquad();
       } catch (err) {
         showToast("Auth failed: " + (err.message || err), "error");
       }
@@ -2368,9 +2589,214 @@
       // Always re-sync fresh validity from Supabase when member switches tabs
       if (currentAthlete && currentAthlete.phone) {
         fetchFreshAthleteData(currentAthlete.phone);
+        if (tabId === 'rewards') {
+          fetchReferralSquad();
+        }
       }
 
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // --------------------------------------------------------
+    // SHARE & EARN / VIRAL REFERRAL ENGINE
+    // --------------------------------------------------------
+    let memberReferralSquad = [];
+
+    async function fetchReferralSquad(showToastFeedback = false) {
+      if (!currentAthlete || !db) return;
+
+      const container = document.getElementById('referral-squad-container');
+      const countEl = document.getElementById('reward-friends-count');
+      const freeDaysEl = document.getElementById('reward-free-days');
+      const moneySavedEl = document.getElementById('reward-money-saved');
+      const milestoneBar = document.getElementById('reward-milestone-bar');
+      const milestonePct = document.getElementById('reward-milestone-pct');
+      const milestoneLabel = document.getElementById('reward-milestone-label');
+      const tierBadge = document.getElementById('reward-tier-badge');
+      const codeDisplay = document.getElementById('reward-referral-code-display');
+
+      if (codeDisplay) codeDisplay.innerText = currentAthlete.phone;
+
+      try {
+        // Query members referred by current athlete's 10-digit phone
+        const { data, error } = await db
+          .from('members')
+          .select('*')
+          .or(`referred_by.eq.${currentAthlete.phone},referrer_phone.eq.${currentAthlete.phone},referred_by_phone.eq.${currentAthlete.phone}`)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          // Fallback query
+          const { data: fbData, error: fbErr } = await db
+            .from('members')
+            .select('*')
+            .eq('referred_by', currentAthlete.phone)
+            .order('created_at', { ascending: false });
+
+          if (fbErr) throw fbErr;
+          memberReferralSquad = fbData || [];
+        } else {
+          memberReferralSquad = data || [];
+        }
+
+        const squadCount = memberReferralSquad.length;
+        const freeDays = squadCount * 7;
+        const plan1m = currentGymConfig.plan_1m_price || 1200;
+        const moneySaved = Math.round((freeDays / 30) * plan1m);
+
+        if (countEl) countEl.innerText = squadCount;
+        if (freeDaysEl) freeDaysEl.innerText = `+${freeDays} Days`;
+        if (moneySavedEl) moneySavedEl.innerText = `₹${moneySaved.toLocaleString('en-IN')}`;
+
+        // Milestone & Tier Calculation
+        let targetFriends = 3;
+        let tierName = "LEVEL 1 RECRUITER";
+        if (squadCount >= 6) {
+          targetFriends = 10;
+          tierName = "GOLD AMBASSADOR 👑";
+        } else if (squadCount >= 3) {
+          targetFriends = 6;
+          tierName = "SILVER POWER RECRUITER 🥈";
+        } else if (squadCount >= 1) {
+          targetFriends = 3;
+          tierName = "BRONZE SQUAD LEADER 🥉";
+        }
+
+        const progressPct = Math.min(100, Math.round((squadCount / targetFriends) * 100));
+        if (milestonePct) milestonePct.innerText = `${progressPct}%`;
+        if (milestoneBar) milestoneBar.style.width = `${progressPct}%`;
+        if (milestoneLabel) milestoneLabel.innerText = `Next Target: ${targetFriends} Friends (+${targetFriends * 7} Days)`;
+        if (tierBadge) tierBadge.innerText = tierName;
+
+        if (!container) return;
+
+        if (memberReferralSquad.length === 0) {
+          container.innerHTML = `
+            <div class="text-center py-6 px-4 bg-black/40 rounded-2xl border border-white/5 space-y-3">
+              <div class="w-12 h-12 rounded-2xl bg-moltenGold/15 border border-moltenGold/30 text-moltenGold flex items-center justify-center text-2xl mx-auto shadow-glow-gold">
+                👥
+              </div>
+              <div class="space-y-1">
+                <h4 class="font-brand text-sm font-bold text-white">NO FRIENDS ONBOARDED YET</h4>
+                <p class="text-[11px] font-sans text-zinc-400 max-w-xs mx-auto">
+                  Share your invite link on WhatsApp or give your phone number <strong class="text-cyberVolt font-mono">${currentAthlete.phone}</strong> to friends. You'll earn <strong class="text-cyberVolt font-bold">+7 free pass days</strong> the moment they join!
+                </p>
+              </div>
+              <button onclick="shareReferralViaWhatsApp()" class="px-4 py-2 bg-gradient-to-r from-matrixGreen to-cyberVolt text-black font-brand font-bold text-xs rounded-xl shadow-glow-green hover:brightness-110 active:scale-95 transition-all uppercase cursor-pointer">
+                🔥 Share on WhatsApp (+7 Days)
+              </button>
+            </div>
+          `;
+          return;
+        }
+
+        let html = '';
+        memberReferralSquad.forEach((friend, idx) => {
+          const name = friend.full_name || friend.name || `Athlete #${idx + 1}`;
+          const initial = name.charAt(0).toUpperCase() || 'A';
+          const joinDate = friend.created_at || friend.joining_date || friend.valid_until;
+          const dateStr = joinDate ? new Date(joinDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recently Joined';
+          
+          html += `
+            <div class="p-3 bg-black/40 rounded-2xl border border-white/10 flex items-center justify-between gap-3 shadow-glass-card hover:border-cyberVolt/40 transition-all">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-moltenGold/20 to-cyberVolt/20 border border-moltenGold/40 text-moltenGold font-brand font-bold text-sm flex items-center justify-center shrink-0">
+                  ${initial}
+                </div>
+                <div class="min-w-0">
+                  <h4 class="font-bold text-white text-xs truncate leading-tight">${name}</h4>
+                  <span class="text-[10px] text-zinc-400 block font-mono">Joined: ${dateStr}</span>
+                </div>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="px-2.5 py-1 rounded-full bg-matrixGreen/15 border border-matrixGreen/30 text-matrixGreen font-mono font-bold text-[10px] flex items-center gap-1">
+                  <span>✓</span>
+                  <span>+7 Days Claimed ⚡</span>
+                </span>
+              </div>
+            </div>
+          `;
+        });
+
+        container.innerHTML = html;
+        if (showToastFeedback) showToast("Referral Squad live roster updated! 👥", "success");
+
+      } catch (err) {
+        console.warn("Referral squad fetch notice:", err);
+        if (container) {
+          container.innerHTML = `
+            <div class="text-center py-6 px-4 bg-black/40 rounded-2xl border border-white/5 space-y-3">
+              <div class="w-12 h-12 rounded-2xl bg-moltenGold/15 border border-moltenGold/30 text-moltenGold flex items-center justify-center text-2xl mx-auto shadow-glow-gold">
+                👥
+              </div>
+              <div class="space-y-1">
+                <h4 class="font-brand text-sm font-bold text-white">READY TO EARN FREE DAYS</h4>
+                <p class="text-[11px] font-sans text-zinc-400 max-w-xs mx-auto">
+                  Share your invite link with your workout squad and earn <strong class="text-cyberVolt font-bold">+7 free days</strong> for every registered friend!
+                </p>
+              </div>
+              <button onclick="shareReferralViaWhatsApp()" class="px-4 py-2 bg-gradient-to-r from-matrixGreen to-cyberVolt text-black font-brand font-bold text-xs rounded-xl shadow-glow-green hover:brightness-110 active:scale-95 transition-all uppercase cursor-pointer">
+                🔥 Share on WhatsApp (+7 Days)
+              </button>
+            </div>
+          `;
+        }
+      }
+    }
+
+    function shareReferralViaWhatsApp() {
+      playCyberChime('tap');
+      if (!currentAthlete) {
+        showToast("Please authenticate pass first", "error");
+        return;
+      }
+      const gymName = currentGymConfig.gym_name || "Retro Gym";
+      const referralCode = currentAthlete.phone;
+      const shareUrl = `${window.location.origin}${window.location.pathname}?gym=${currentGymSlug}&ref=${referralCode}`;
+      
+      const message = `Hey! 🏋️‍♂️ Join me at *${gymName}*! Get fit, build strength, and use my referral code *${referralCode}* when you register at reception or online.\n\n⚡ Access our VIP Member Portal & Pass:\n${shareUrl}\n\nLet's crush our workouts together! 🔥`;
+      
+      const waUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+      window.open(waUrl, '_blank');
+      showToast("Opening WhatsApp with your invite link! 🚀", "success");
+    }
+
+    function copyReferralFullLink() {
+      playCyberChime('tap');
+      if (!currentAthlete) {
+        showToast("Please authenticate pass first", "error");
+        return;
+      }
+      const referralCode = currentAthlete.phone;
+      const shareUrl = `${window.location.origin}${window.location.pathname}?gym=${currentGymSlug}&ref=${referralCode}`;
+      
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        const label = document.getElementById('copy-link-label');
+        if (label) label.innerText = "COPIED REFERRAL LINK! ✓";
+        playCyberChime('success');
+        showToast("Referral link copied to clipboard! 📋", "success");
+        setTimeout(() => {
+          if (label) label.innerText = "COPY MY REFERRAL LINK";
+        }, 2500);
+      }).catch(() => {
+        showToast(`Link: ${shareUrl}`, "info");
+      });
+    }
+
+    function copyReferralCodeOnly() {
+      playCyberChime('tap');
+      if (!currentAthlete) return;
+      navigator.clipboard.writeText(currentAthlete.phone).then(() => {
+        const label = document.getElementById('copy-code-label');
+        if (label) label.innerText = "Copied!";
+        playCyberChime('success');
+        showToast(`Referral Code ${currentAthlete.phone} copied! 📋`, "success");
+        setTimeout(() => {
+          if (label) label.innerText = "Copy Code";
+        }, 2000);
+      }).catch(() => {
+        showToast(`Code: ${currentAthlete.phone}`, "info");
+      });
     }
 
     function toggleDrawer(open) {
@@ -2546,6 +2972,7 @@
               fetchFreshAthleteData(currentAthlete.phone);
               fetchAthleteAttendanceHistory();
               checkTodayAttendancePunchState();
+              fetchReferralSquad();
             } else {
               localStorage.removeItem('rg_member_session');
               document.getElementById('auth-modal').classList.remove('hidden');
