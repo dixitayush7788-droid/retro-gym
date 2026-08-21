@@ -532,115 +532,265 @@
   </button>
 
   <!-- ======================================================== -->
-  <!-- 5. SLIDE-UP ATHLETE REGISTRATION DRAWER -->
+  <!-- 5. SLIDE-UP ATHLETE REGISTRATION DRAWER / KYC ONBOARDING -->
   <!-- ======================================================== -->
   <div id="add-member-drawer" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-    <div id="add-member-card" class="w-full max-w-md bg-surface border-t sm:border border-gold/40 rounded-t-3xl sm:rounded-3xl p-6 shadow-glow-card space-y-5 max-h-[92vh] overflow-y-auto sheet-drawer translate-y-full">
+    <div id="add-member-card" class="w-full max-w-lg bg-surface border-t sm:border border-gold/40 rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-glow-card space-y-5 max-h-[92vh] overflow-y-auto sheet-drawer translate-y-full">
       
-      <div class="flex items-center justify-between pb-2 border-b border-white/10">
-        <div class="flex items-center gap-2">
-          <span class="text-gold text-xl">➕</span>
-          <h3 class="font-display text-2xl text-white tracking-wider">REGISTER NEW ATHLETE</h3>
+      <!-- Drawer Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-white/10">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-2xl bg-gradient-to-tr from-gold/30 via-goldLight/20 to-cyanCustom/20 border border-gold/40 text-goldLight flex items-center justify-center font-bold text-lg shadow-glow-gold">
+            ➕
+          </div>
+          <div>
+            <h3 class="font-display text-2xl text-white tracking-wider leading-none">REGISTER NEW ATHLETE</h3>
+            <p class="text-[11px] font-mono text-zinc-400 mt-0.5">KYC Baseline Profile, Day-1 Photo & Referral Engine</p>
+          </div>
         </div>
-        <button onclick="closeAddMemberDrawer()" class="w-8 h-8 rounded-xl bg-surfaceCard hover:bg-surfaceMuted text-zinc-400 hover:text-white flex items-center justify-center cursor-pointer">✕</button>
+        <button onclick="closeAddMemberDrawer()" class="w-8 h-8 rounded-xl bg-surfaceCard hover:bg-surfaceMuted text-zinc-400 hover:text-white flex items-center justify-center cursor-pointer transition-all">✕</button>
       </div>
 
       <form id="add-member-form" onsubmit="handleCreateMember(event)" class="space-y-4 text-xs font-mono">
         
-        <!-- Full Name -->
-        <div>
-          <label class="block text-zinc-400 uppercase tracking-wider mb-1">Athlete Full Name *</label>
-          <input 
-            type="text" 
-            id="new-member-name" 
-            required 
-            placeholder="e.g. Vikramaditya Singh"
-            class="w-full bg-surfaceCard border border-white/10 focus:border-gold rounded-2xl p-3.5 text-sm text-white font-sans outline-none"
-          />
+        <!-- SECTION 1: PRIMARY IDENTITY & CONTACT -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <!-- Full Name -->
+          <div>
+            <label class="block text-zinc-300 font-bold uppercase tracking-wider mb-1">Athlete Full Name *</label>
+            <input 
+              type="text" 
+              id="new-member-name" 
+              required 
+              placeholder="e.g. Vikramaditya Singh"
+              class="w-full bg-surfaceCard border border-white/10 focus:border-gold rounded-2xl p-3 text-sm text-white font-sans outline-none transition-all"
+            />
+          </div>
+
+          <!-- 10-Digit Mobile -->
+          <div>
+            <label class="block text-zinc-300 font-bold uppercase tracking-wider mb-1">10-Digit Mobile *</label>
+            <div class="relative">
+              <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gold font-mono text-xs font-bold">+91</span>
+              <input 
+                type="tel" 
+                id="new-member-phone" 
+                required 
+                maxlength="10" 
+                placeholder="9876543210"
+                class="w-full bg-surfaceCard border border-white/10 focus:border-gold rounded-2xl py-3 pl-12 pr-3 text-sm text-white font-mono outline-none transition-all"
+              />
+            </div>
+          </div>
         </div>
 
-        <!-- 10-Digit Mobile -->
-        <div>
-          <label class="block text-zinc-400 uppercase tracking-wider mb-1">10-Digit Mobile Number *</label>
-          <div class="relative">
-            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gold font-mono text-xs">+91</span>
+        <!-- SECTION 2: KYC PROFILE (AGE & ADDRESS) -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <!-- Age -->
+          <div>
+            <label class="block text-zinc-300 font-bold uppercase tracking-wider mb-1">Age</label>
             <input 
-              type="tel" 
-              id="new-member-phone" 
-              required 
-              maxlength="10" 
-              placeholder="9876543210"
-              class="w-full bg-surfaceCard border border-white/10 focus:border-gold rounded-2xl py-3.5 pl-12 pr-3 text-sm text-white font-mono outline-none"
+              type="number" 
+              id="new-member-age" 
+              min="10" 
+              max="100" 
+              placeholder="e.g. 24"
+              class="w-full bg-surfaceCard border border-white/10 focus:border-gold rounded-2xl p-3 text-sm text-white font-mono outline-none transition-all"
+            />
+          </div>
+
+          <!-- Address -->
+          <div class="sm:col-span-2">
+            <label class="block text-zinc-300 font-bold uppercase tracking-wider mb-1">Residential Address</label>
+            <input 
+              type="text" 
+              id="new-member-address" 
+              placeholder="Flat / Street / Area / Landmark"
+              class="w-full bg-surfaceCard border border-white/10 focus:border-gold rounded-2xl p-3 text-sm text-white font-sans outline-none transition-all"
             />
           </div>
         </div>
 
-        <!-- Plan Selection -->
+        <!-- SECTION 3: DAY-1 BASELINE PHOTO CAPTURE (<60KB CANVAS COMPRESSION) -->
+        <div class="p-3.5 bg-surfaceCard rounded-2xl border border-white/10 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <label class="block text-zinc-300 font-bold uppercase tracking-wider">Day-1 Baseline Photo</label>
+            <span class="text-[10px] text-zinc-400 font-mono">Max 400x400 • JPEG &lt; 60KB</span>
+          </div>
+
+          <div class="flex items-center gap-4">
+            <!-- Circular Live Preview -->
+            <div class="relative shrink-0">
+              <div id="photo-placeholder-icon" class="w-16 h-16 rounded-full bg-black/40 border-2 border-dashed border-white/20 flex flex-col items-center justify-center text-zinc-400">
+                <span class="text-xl">👤</span>
+                <span class="text-[8px] font-mono text-zinc-500">NO PHOTO</span>
+              </div>
+              <img 
+                id="photo-preview-img" 
+                src="" 
+                alt="Baseline Preview" 
+                class="w-16 h-16 rounded-full object-cover border-2 border-gold shadow-glow-gold hidden" 
+              />
+            </div>
+
+            <!-- Upload / Capture Controls -->
+            <div class="space-y-1.5 flex-1">
+              <input 
+                type="file" 
+                id="new-member-photo-input" 
+                accept="image/*" 
+                capture="user" 
+                onchange="handlePhotoUpload(event)" 
+                class="hidden" 
+              />
+              <div class="flex flex-wrap items-center gap-2">
+                <button 
+                  type="button" 
+                  onclick="document.getElementById('new-member-photo-input').click()" 
+                  class="px-3 py-2 rounded-xl bg-gold/20 hover:bg-gold hover:text-black text-goldLight border border-gold/40 text-xs font-bold font-mono flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                >
+                  <span>📷</span>
+                  <span>Capture / Upload Photo</span>
+                </button>
+
+                <button 
+                  type="button" 
+                  id="btn-remove-photo" 
+                  onclick="removeNewMemberPhoto()" 
+                  class="px-2.5 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/40 text-rose-300 border border-rose-500/30 text-xs font-mono transition-all hidden cursor-pointer"
+                >
+                  ✕ Remove
+                </button>
+              </div>
+              <p id="photo-status-text" class="text-[10px] text-zinc-400 font-mono">Tap to take camera selfie or upload gallery image</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 4: MEMBERSHIP PLAN & DYNAMIC PRICING -->
         <div>
           <div class="flex items-center justify-between mb-1.5">
-            <label class="block text-zinc-400 uppercase tracking-wider">Membership Plan *</label>
-            <span class="text-[10px] text-cyanCustom font-mono cursor-pointer hover:underline" onclick="openGymSettingsModal()">⚙️ Edit Prices</span>
+            <label class="block text-zinc-300 font-bold uppercase tracking-wider">Membership Plan *</label>
+            <span class="text-[10px] text-cyanCustom font-mono cursor-pointer hover:underline" onclick="openGymSettingsModal()">⚙️ Edit Gym Prices</span>
           </div>
-          <div id="drawer-plan-buttons-grid" class="grid grid-cols-2 gap-2">
+          <div id="drawer-plan-buttons-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <button 
               type="button" 
               onclick="selectNewPlan(1)" 
               id="plan-opt-1" 
-              class="plan-choice-btn p-3 rounded-2xl bg-gold text-black font-bold text-center border border-gold shadow-glow-gold cursor-pointer"
+              class="plan-choice-btn p-2.5 rounded-2xl bg-gold text-black font-bold text-center border border-gold shadow-glow-gold cursor-pointer"
             >
-              <span class="block text-sm font-display tracking-wider">1 MONTH</span>
+              <span class="block text-xs font-display tracking-wider">1 MONTH</span>
               <span id="plan-opt-1-price" class="text-[10px]">₹1,200</span>
             </button>
             <button 
               type="button" 
               onclick="selectNewPlan(3)" 
               id="plan-opt-3" 
-              class="plan-choice-btn p-3 rounded-2xl bg-surfaceCard text-zinc-300 text-center border border-white/10 cursor-pointer hover:border-gold/50"
+              class="plan-choice-btn p-2.5 rounded-2xl bg-surfaceCard text-zinc-300 text-center border border-white/10 cursor-pointer hover:border-gold/50"
             >
-              <span class="block text-sm font-display tracking-wider">3 MONTHS (Quarterly)</span>
+              <span class="block text-xs font-display tracking-wider">3 MONTHS</span>
               <span id="plan-opt-3-price" class="text-[10px] text-goldLight">₹3,200</span>
             </button>
             <button 
               type="button" 
               onclick="selectNewPlan(6)" 
               id="plan-opt-6" 
-              class="plan-choice-btn p-3 rounded-2xl bg-surfaceCard text-zinc-300 text-center border border-white/10 cursor-pointer hover:border-gold/50"
+              class="plan-choice-btn p-2.5 rounded-2xl bg-surfaceCard text-zinc-300 text-center border border-white/10 cursor-pointer hover:border-gold/50"
             >
-              <span class="block text-sm font-display tracking-wider">6 MONTHS (Half-Year)</span>
+              <span class="block text-xs font-display tracking-wider">6 MONTHS</span>
               <span id="plan-opt-6-price" class="text-[10px] text-goldLight">₹5,800</span>
             </button>
             <button 
               type="button" 
               onclick="selectNewPlan(12)" 
               id="plan-opt-12" 
-              class="plan-choice-btn p-3 rounded-2xl bg-surfaceCard text-zinc-300 text-center border border-white/10 cursor-pointer hover:border-gold/50"
+              class="plan-choice-btn p-2.5 rounded-2xl bg-surfaceCard text-zinc-300 text-center border border-white/10 cursor-pointer hover:border-gold/50"
             >
-              <span class="block text-sm font-display tracking-wider">12 MONTHS (VIP Pass)</span>
+              <span class="block text-xs font-display tracking-wider">12 MONTHS</span>
               <span id="plan-opt-12-price" class="text-[10px] text-emeraldCustom">₹10,500</span>
             </button>
           </div>
         </div>
 
         <!-- Calculated Fee & Expiry Preview -->
-        <div class="p-3.5 bg-surfaceCard rounded-2xl border border-white/10 space-y-2">
-          <div class="flex justify-between items-center">
-            <span class="text-zinc-400">Calculated Expiry Date:</span>
+        <div class="p-3.5 bg-surfaceCard rounded-2xl border border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+          <div class="flex justify-between sm:justify-start items-center gap-2">
+            <span class="text-zinc-400">Calculated Expiry:</span>
             <span id="new-expiry-preview" class="text-goldLight font-bold font-mono">--</span>
           </div>
-          <div class="flex justify-between items-center">
+          <div class="flex justify-between sm:justify-end items-center gap-2">
             <span class="text-zinc-400">Fees Paid (₹):</span>
-            <div class="relative w-28">
-              <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-emeraldCustom font-mono text-xs">₹</span>
+            <div class="relative w-32">
+              <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-emeraldCustom font-mono text-xs font-bold">₹</span>
               <input 
                 type="number" 
                 id="feeAmountInput" 
                 value="1200" 
-                class="w-full bg-black/40 border border-white/10 focus:border-emeraldCustom rounded-xl py-1 pl-6 pr-2 text-right text-emeraldCustom font-bold font-mono text-sm outline-none"
+                class="w-full bg-black/50 border border-white/10 focus:border-emeraldCustom rounded-xl py-1.5 pl-6 pr-2 text-right text-emeraldCustom font-bold font-mono text-sm outline-none"
               />
             </div>
           </div>
         </div>
 
+        <!-- SECTION 5: REFERRAL SOURCE SELECTOR -->
+        <div class="p-3.5 bg-surfaceCard rounded-2xl border border-white/10 space-y-3">
+          <label class="block text-zinc-300 font-bold uppercase tracking-wider">Referral Source</label>
+          
+          <!-- Radio Choices -->
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex items-center gap-2 p-2.5 rounded-xl bg-black/40 border border-white/10 cursor-pointer hover:border-gold/40 transition-all">
+              <input 
+                type="radio" 
+                name="referral-type" 
+                value="direct" 
+                id="ref-type-direct" 
+                checked 
+                onchange="handleReferralTypeChange()" 
+                class="accent-gold text-gold cursor-pointer"
+              />
+              <span class="text-xs text-white font-medium">Direct Walk-in</span>
+            </label>
+
+            <label class="flex items-center gap-2 p-2.5 rounded-xl bg-black/40 border border-white/10 cursor-pointer hover:border-gold/40 transition-all">
+              <input 
+                type="radio" 
+                name="referral-type" 
+                value="referred" 
+                id="ref-type-referred" 
+                onchange="handleReferralTypeChange()" 
+                class="accent-gold text-gold cursor-pointer"
+              />
+              <span class="text-xs text-white font-medium">Referred by Member</span>
+            </label>
+          </div>
+
+          <!-- Searchable Dropdown for Existing Members -->
+          <div id="referral-select-container" class="space-y-1.5 hidden pt-1">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] text-zinc-400 uppercase">Select Referring Member *</span>
+              <span id="referral-members-count" class="text-[9px] font-mono text-cyanCustom">0 active members</span>
+            </div>
+            
+            <div class="space-y-2">
+              <input 
+                type="text" 
+                id="referral-search-filter" 
+                placeholder="Filter members by name or phone..." 
+                oninput="filterReferrerOptions()" 
+                class="w-full bg-black/40 border border-white/10 focus:border-cyanCustom rounded-xl px-3 py-2 text-xs text-white font-mono outline-none"
+              />
+              <select 
+                id="new-member-referrer" 
+                class="w-full bg-black/60 border border-white/15 focus:border-gold rounded-xl p-2.5 text-xs text-white font-mono outline-none"
+              >
+                <option value="">-- Choose Referring Athlete --</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUBMIT ACTION -->
         <button 
           type="submit" 
           id="btn-submit-member"
@@ -710,7 +860,21 @@
         </div>
       </div>
 
-      <!-- Attendance & Punching Intelligence -->
+      <!-- KYC Baseline & Referral Summary -->
+      <div class="bg-surfaceCard p-3 rounded-2xl border border-white/10 grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs font-mono">
+        <div>
+          <span class="text-[10px] text-zinc-400 uppercase block">Age / KYC</span>
+          <span id="dossier-age" class="text-white font-bold">--</span>
+        </div>
+        <div>
+          <span class="text-[10px] text-zinc-400 uppercase block">Address</span>
+          <span id="dossier-address" class="text-zinc-300 font-sans text-xs truncate block">--</span>
+        </div>
+        <div>
+          <span class="text-[10px] text-zinc-400 uppercase block">Referral Source</span>
+          <span id="dossier-referral" class="text-cyanCustom font-bold">Direct Walk-in</span>
+        </div>
+      </div>
       <div class="bg-surfaceCard rounded-2xl border border-white/10 p-4 space-y-3">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
@@ -1497,6 +1661,10 @@
       const feesPaid = m.fees_paid !== undefined ? m.fees_paid : 1200;
       const planDuration = m.plan_duration_months || 1;
       const gymId = m.gym_id || m.gym_slug || 'retro-gym';
+      const photoUrl = m.photo_url || m.avatar_url || m.photo || '';
+      const age = m.age || null;
+      const address = m.address || '';
+      const referredBy = m.referred_by || m.referrer_phone || '';
 
       return {
         raw: m,
@@ -1509,6 +1677,10 @@
         hasPin,
         feesPaid,
         planDuration,
+        photoUrl,
+        age,
+        address,
+        referredBy,
         password: m.password
       };
     }
@@ -1709,6 +1881,10 @@
 
         const smartWaText = encodeURIComponent(`Hi ${m.fullName}! 🏋️‍♂️ Your Retro Gym membership is active until ${expFormatted}. Reach out to reception to renew, upgrade your plan, or manage your pass.`);
 
+        const avatarHtml = m.photoUrl 
+          ? `<img src="${m.photoUrl}" alt="${m.fullName}" class="w-11 h-11 rounded-2xl object-cover border border-gold/40 shrink-0 shadow-glow-gold" onerror="this.outerHTML='<div class=\\'w-11 h-11 rounded-2xl bg-gradient-to-tr from-gold/25 via-goldLight/20 to-cyanCustom/20 text-goldLight font-bold flex items-center justify-center border border-gold/40 text-base shrink-0 shadow-glow-gold\\'>${m.fullName.charAt(0).toUpperCase()}</div>'" />`
+          : `<div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-gold/25 via-goldLight/20 to-cyanCustom/20 text-goldLight font-bold flex items-center justify-center border border-gold/40 text-base shrink-0 shadow-glow-gold">${m.fullName.charAt(0).toUpperCase()}</div>`;
+
         html += `
           <div class="bg-surfaceCard hover:bg-surfaceCardHover rounded-3xl p-4 md:p-5 border ${borderAccent} shadow-glow-card transition-all space-y-3 flex flex-col justify-between">
             
@@ -1716,9 +1892,7 @@
             <div>
               <div class="flex items-start justify-between gap-2">
                 <div class="flex items-center gap-3 cursor-pointer" onclick="openAthleteDossier('${m.phone}')">
-                  <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-gold/25 via-goldLight/20 to-cyanCustom/20 text-goldLight font-bold flex items-center justify-center border border-gold/40 text-base shrink-0 shadow-glow-gold">
-                    ${m.fullName.charAt(0).toUpperCase()}
-                  </div>
+                  ${avatarHtml}
                   <div>
                     <h3 class="font-bold text-white text-sm leading-tight flex items-center gap-1.5">
                       <span>${m.fullName}</span>
@@ -1817,12 +1991,34 @@
       const expFormatted = exp.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
       // Populate UI Fields
-      document.getElementById('dossier-avatar').innerText = member.fullName.charAt(0).toUpperCase();
+      const avatarEl = document.getElementById('dossier-avatar');
+      if (member.photoUrl) {
+        avatarEl.innerHTML = `<img src="${member.photoUrl}" alt="${member.fullName}" class="w-full h-full object-cover rounded-2xl" onerror="this.parentElement.innerText='${member.fullName.charAt(0).toUpperCase()}'" />`;
+      } else {
+        avatarEl.innerText = member.fullName.charAt(0).toUpperCase();
+      }
+
       document.getElementById('dossier-name').innerText = member.fullName;
       document.getElementById('dossier-phone').innerText = `+91 ${member.phone}`;
       document.getElementById('dossier-valid-until').innerText = expFormatted;
       document.getElementById('dossier-fees-paid').innerText = `₹${Number(member.feesPaid || 1200).toLocaleString()}`;
       document.getElementById('dossier-streak').innerText = `🔥 ${member.streak} Days`;
+      
+      const ageEl = document.getElementById('dossier-age');
+      if (ageEl) ageEl.innerText = member.age ? `${member.age} Yrs` : 'Not Specified';
+
+      const addressEl = document.getElementById('dossier-address');
+      if (addressEl) addressEl.innerText = member.address || 'No Address Logged';
+
+      const referralEl = document.getElementById('dossier-referral');
+      if (referralEl) {
+        if (member.referredBy) {
+          const referrerMember = allMembers.find(m => m.phone === member.referredBy);
+          referralEl.innerText = referrerMember ? `Referred by ${referrerMember.fullName}` : `Ref: +91 ${member.referredBy}`;
+        } else {
+          referralEl.innerText = 'Direct Walk-in';
+        }
+      }
 
       // Status pill
       const statusEl = document.getElementById('dossier-status-pill');
@@ -2159,13 +2355,160 @@
     }
 
     // ----------------------------------------------------
-    // SLIDE-UP ATHLETE REGISTRATION DRAWER
+    // SLIDE-UP ATHLETE REGISTRATION DRAWER & KYC ENGINE
     // ----------------------------------------------------
+    let newMemberPhotoBase64 = '';
+
+    function handlePhotoUpload(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      const statusText = document.getElementById('photo-status-text');
+      if (statusText) statusText.innerText = "Compressing photo via Canvas...";
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          try {
+            const canvas = document.createElement('canvas');
+            const MAX_SIZE = 400;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+              if (width > MAX_SIZE) {
+                height = Math.round((height * MAX_SIZE) / width);
+                width = MAX_SIZE;
+              }
+            } else {
+              if (height > MAX_SIZE) {
+                width = Math.round((width * MAX_SIZE) / height);
+                height = MAX_SIZE;
+              }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // Compress to JPEG with quality 0.7 (<60KB)
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+            newMemberPhotoBase64 = compressedDataUrl;
+
+            const previewImg = document.getElementById('photo-preview-img');
+            const placeholder = document.getElementById('photo-placeholder-icon');
+            const removeBtn = document.getElementById('btn-remove-photo');
+
+            if (previewImg) {
+              previewImg.src = compressedDataUrl;
+              previewImg.classList.remove('hidden');
+            }
+            if (placeholder) placeholder.classList.add('hidden');
+            if (removeBtn) removeBtn.classList.remove('hidden');
+            if (statusText) {
+              const approxKb = Math.round((compressedDataUrl.length * 3) / 4 / 1024);
+              statusText.innerText = `✓ Compressed ${width}x${height}px JPEG (~${approxKb} KB)`;
+            }
+
+            playAudioChirp(750, 0.08);
+          } catch (err) {
+            console.error("Photo compression error:", err);
+            if (statusText) statusText.innerText = "Failed to process photo";
+          }
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function removeNewMemberPhoto() {
+      newMemberPhotoBase64 = '';
+      const input = document.getElementById('new-member-photo-input');
+      if (input) input.value = '';
+      const previewImg = document.getElementById('photo-preview-img');
+      const placeholder = document.getElementById('photo-placeholder-icon');
+      const removeBtn = document.getElementById('btn-remove-photo');
+      const statusText = document.getElementById('photo-status-text');
+
+      if (previewImg) {
+        previewImg.src = '';
+        previewImg.classList.add('hidden');
+      }
+      if (placeholder) placeholder.classList.remove('hidden');
+      if (removeBtn) removeBtn.classList.add('hidden');
+      if (statusText) statusText.innerText = "Tap to take camera selfie or upload gallery image";
+      playAudioChirp(400, 0.05);
+    }
+
+    function handleReferralTypeChange() {
+      const isReferred = document.getElementById('ref-type-referred')?.checked;
+      const container = document.getElementById('referral-select-container');
+      if (isReferred) {
+        if (container) container.classList.remove('hidden');
+        populateReferralOptions();
+      } else {
+        if (container) container.classList.add('hidden');
+        const select = document.getElementById('new-member-referrer');
+        if (select) select.value = '';
+      }
+    }
+
+    function populateReferralOptions() {
+      const select = document.getElementById('new-member-referrer');
+      const countEl = document.getElementById('referral-members-count');
+      if (!select) return;
+
+      const currentMembers = allMembers || [];
+      if (countEl) countEl.innerText = `${currentMembers.length} active athletes`;
+
+      const filter = (document.getElementById('referral-search-filter')?.value || '').toLowerCase().trim();
+
+      let html = '<option value="">-- Choose Referring Athlete --</option>';
+      currentMembers.forEach(m => {
+        if (!filter || m.fullName.toLowerCase().includes(filter) || m.phone.includes(filter)) {
+          html += `<option value="${m.phone}">${m.fullName} (+91 ${m.phone})</option>`;
+        }
+      });
+
+      select.innerHTML = html;
+    }
+
+    function filterReferrerOptions() {
+      populateReferralOptions();
+    }
+
     function openAddMemberDrawer() {
       selectNewPlan(1);
       document.getElementById('new-member-name').value = '';
       document.getElementById('new-member-phone').value = '';
       
+      const ageInput = document.getElementById('new-member-age');
+      if (ageInput) ageInput.value = '';
+      const addressInput = document.getElementById('new-member-address');
+      if (addressInput) addressInput.value = '';
+      
+      // Reset Photo
+      removeNewMemberPhoto();
+
+      // Reset Referral
+      const directRadio = document.getElementById('ref-type-direct');
+      if (directRadio) directRadio.checked = true;
+      const referralFilter = document.getElementById('referral-search-filter');
+      if (referralFilter) referralFilter.value = '';
+      handleReferralTypeChange();
+
+      // Update plan prices dynamically in buttons
+      const p1 = document.getElementById('plan-opt-1-price');
+      if (p1) p1.innerText = `₹${(currentGymConfig.plan_1m_price || 1200).toLocaleString()}`;
+      const p3 = document.getElementById('plan-opt-3-price');
+      if (p3) p3.innerText = `₹${(currentGymConfig.plan_3m_price || 3200).toLocaleString()}`;
+      const p6 = document.getElementById('plan-opt-6-price');
+      if (p6) p6.innerText = `₹${(currentGymConfig.plan_6m_price || 5800).toLocaleString()}`;
+      const p12 = document.getElementById('plan-opt-12-price');
+      if (p12) p12.innerText = `₹${(currentGymConfig.plan_12m_price || 10500).toLocaleString()}`;
+
       const drawer = document.getElementById('add-member-drawer');
       const card = document.getElementById('add-member-card');
       drawer.classList.remove('hidden');
@@ -2193,11 +2536,11 @@
       selectedFee = fee;
 
       document.querySelectorAll('.plan-choice-btn').forEach(b => {
-        b.className = "plan-choice-btn p-3 rounded-2xl bg-surfaceCard text-zinc-300 text-center border border-white/10 cursor-pointer hover:border-gold/50";
+        b.className = "plan-choice-btn p-2.5 rounded-2xl bg-surfaceCard text-zinc-300 text-center border border-white/10 cursor-pointer hover:border-gold/50";
       });
       const active = document.getElementById(`plan-opt-${months}`);
       if (active) {
-        active.className = "plan-choice-btn p-3 rounded-2xl bg-gold text-black font-bold text-center border border-gold shadow-glow-gold cursor-pointer";
+        active.className = "plan-choice-btn p-2.5 rounded-2xl bg-gold text-black font-bold text-center border border-gold shadow-glow-gold cursor-pointer";
       }
 
       // Calculate future expiry date
@@ -2210,49 +2553,100 @@
 
     async function handleCreateMember(e) {
       e.preventDefault();
-      const trimmedName = document.getElementById('new-member-name').value.trim();
+      const fullName = document.getElementById('new-member-name').value.trim();
       const rawPhone = document.getElementById('new-member-phone').value.trim();
       const cleanPhone = rawPhone.replace(/\D/g, '').slice(-10);
+      const age = document.getElementById('new-member-age')?.value.trim();
+      const address = document.getElementById('new-member-address')?.value.trim() || '';
+
+      if (!fullName) {
+        showToast("Please enter athlete full name", "error");
+        return;
+      }
 
       if (!/^\d{10}$/.test(cleanPhone)) {
         showToast("Please enter a valid 10-digit mobile number", "error");
         return;
       }
 
+      const selectedPlanMonths = parseInt(selectedMonths, 10) || 1;
+      const collectedAmount = parseFloat(document.getElementById('feeAmountInput')?.value) || selectedFee || 1200;
+
+      const isReferred = document.getElementById('ref-type-referred')?.checked;
+      const selectedReferrerPhone = isReferred ? (document.getElementById('new-member-referrer')?.value || '') : '';
+
       const btn = document.getElementById('btn-submit-member');
-      btn.innerText = "Registering to Database...";
+      btn.innerText = "Registering Athlete to Cloud...";
       btn.disabled = true;
 
       try {
-        const selectedPlanMonths = parseInt(selectedMonths, 10) || 1;
-        const calculatedExpiryDate = new Date();
-        calculatedExpiryDate.setMonth(calculatedExpiryDate.getMonth() + selectedPlanMonths);
-        const isoExpiry = calculatedExpiryDate.toISOString();
-        const collectedAmount = Number(document.getElementById('feeAmountInput')?.value || selectedFee || 1200);
+        let success = false;
+        let rpcError = null;
 
-        const newMemberPayload = {
-          full_name: trimmedName,
-          phone: cleanPhone,
-          gym_id: currentGymSlug,
-          gym_slug: currentGymSlug,
-          valid_until: isoExpiry,
-          expiry_date: isoExpiry,
-          plan_duration_months: selectedPlanMonths || 1,
-          fees_paid: collectedAmount,
-          streak_count: 0,
-          password: null
-        };
+        // 1. Primary path: Supabase RPC register_member_with_referral
+        if (db) {
+          try {
+            const { data, error } = await db.rpc('register_member_with_referral', {
+              p_gym_slug: currentGymSlug,
+              p_name: fullName,
+              p_phone: cleanPhone,
+              p_age: parseInt(age, 10) || null,
+              p_address: address,
+              p_photo_url: newMemberPhotoBase64 || '',
+              p_plan_months: selectedPlanMonths,
+              p_fees_paid: collectedAmount,
+              p_referrer_phone: selectedReferrerPhone || ''
+            });
 
-        const { error } = await db.from('members').insert([newMemberPayload]);
-        if (error) throw error;
+            if (!error && (!data || data.success !== false)) {
+              success = true;
+            } else {
+              rpcError = error || (data && data.error);
+              console.warn("RPC register_member_with_referral notice:", rpcError);
+            }
+          } catch (rpcEx) {
+            console.warn("RPC invocation exception:", rpcEx);
+          }
+        }
+
+        // 2. Defensive fallback: Direct table insert if RPC is unavailable
+        if (!success && db) {
+          const calculatedExpiryDate = new Date();
+          calculatedExpiryDate.setMonth(calculatedExpiryDate.getMonth() + selectedPlanMonths);
+          const isoExpiry = calculatedExpiryDate.toISOString();
+
+          const newMemberPayload = {
+            full_name: fullName,
+            name: fullName,
+            phone: cleanPhone,
+            gym_id: currentGymSlug,
+            gym_slug: currentGymSlug,
+            valid_until: isoExpiry,
+            expiry_date: isoExpiry,
+            plan_duration_months: selectedPlanMonths,
+            fees_paid: collectedAmount,
+            age: parseInt(age, 10) || null,
+            address: address,
+            photo_url: newMemberPhotoBase64 || null,
+            referred_by: selectedReferrerPhone || null,
+            referrer_phone: selectedReferrerPhone || null,
+            streak_count: 0,
+            password: null
+          };
+
+          const { error: insertErr } = await db.from('members').insert([newMemberPayload]);
+          if (insertErr) throw insertErr;
+          success = true;
+        }
 
         playAudioChirp(880, 0.15);
-        showToast(`Athlete ${trimmedName} registered to [${currentGymConfig.gym_name}]! ⚡`, "success");
+        showToast(`Athlete ${fullName} registered to [${currentGymConfig.gym_name}]! ⚡`, "success");
         closeAddMemberDrawer();
-        fetchAllData();
+        await fetchAllData();
 
       } catch (err) {
-        showToast("Failed to create member: " + (err.message || err), "error");
+        console.error("Failed to register athlete:", err);
+        showToast("Registration failed: " + (err.message || err), "error");
       } finally {
         btn.innerText = "Confirm & Save Athlete to Cloud ⚡";
         btn.disabled = false;
