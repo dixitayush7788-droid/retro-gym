@@ -194,19 +194,17 @@
     <header class="bg-surface/90 backdrop-blur-xl rounded-3xl border border-gold/25 p-4 shadow-glow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
       
       <div class="flex items-center gap-3">
-        <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-gold/30 via-goldLight/20 to-cyanCustom/20 border border-gold/50 text-goldLight flex items-center justify-center shadow-glow-gold shrink-0">
-          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M6 5v14M18 5v14M3 9v6M21 9v6M6 12h12" />
-          </svg>
+        <div id="admin-gym-logo-badge" class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-gold/30 via-goldLight/20 to-cyanCustom/20 border border-gold/50 text-goldLight flex items-center justify-center shadow-glow-gold shrink-0 overflow-hidden font-display text-2xl">
+          RG
         </div>
         <div>
           <div class="flex items-center gap-2">
-            <h1 class="font-display text-2xl md:text-3xl text-white tracking-wider leading-none">RETRO GYM</h1>
+            <h1 id="admin-gym-header-title" class="font-display text-2xl md:text-3xl text-white tracking-wider leading-none">RETRO GYM</h1>
             <span class="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-emeraldCustom/20 text-emeraldCustom border border-emeraldCustom/40 flex items-center gap-1">
               <span class="w-1.5 h-1.5 rounded-full bg-emeraldCustom animate-pulse"></span> CYBER COMMAND DESK
             </span>
           </div>
-          <p class="text-xs font-mono text-zinc-400">Old School Iron • 360° Athlete Dossiers & Lifecycle Hub</p>
+          <p id="admin-gym-header-tagline" class="text-xs font-mono text-zinc-400">Old School Iron • 360° Athlete Dossiers & Lifecycle Hub</p>
         </div>
       </div>
 
@@ -217,6 +215,14 @@
           class="px-4 py-2.5 bg-gradient-to-r from-gold via-goldLight to-cyanCustom text-black font-display text-base tracking-wider rounded-2xl shadow-glow-gold hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer uppercase font-bold"
         >
           <span>➕ REGISTER ATHLETE</span>
+        </button>
+
+        <button 
+          onclick="openGymSettingsModal()"
+          class="px-3.5 py-2.5 bg-gradient-to-r from-cyanCustom/20 via-gold/20 to-emeraldCustom/20 hover:from-cyanCustom/30 hover:to-emeraldCustom/30 text-white font-mono text-xs rounded-2xl border border-cyanCustom/40 flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-glow-cyan"
+          title="Configure White-Label Gym Branding, Pricing & UPI"
+        >
+          <span>⚙️ Gym Branding & SaaS Settings</span>
         </button>
 
         <button 
@@ -552,43 +558,46 @@
 
         <!-- Plan Selection -->
         <div>
-          <label class="block text-zinc-400 uppercase tracking-wider mb-1.5">Membership Plan *</label>
-          <div class="grid grid-cols-2 gap-2">
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block text-zinc-400 uppercase tracking-wider">Membership Plan *</label>
+            <span class="text-[10px] text-cyanCustom font-mono cursor-pointer hover:underline" onclick="openGymSettingsModal()">⚙️ Edit Prices</span>
+          </div>
+          <div id="drawer-plan-buttons-grid" class="grid grid-cols-2 gap-2">
             <button 
               type="button" 
-              onclick="selectNewPlan(1, 1200)" 
+              onclick="selectNewPlan(1)" 
               id="plan-opt-1" 
               class="plan-choice-btn p-3 rounded-2xl bg-gold text-black font-bold text-center border border-gold shadow-glow-gold cursor-pointer"
             >
               <span class="block text-sm font-display tracking-wider">1 MONTH</span>
-              <span class="text-[10px]">₹1,200</span>
+              <span id="plan-opt-1-price" class="text-[10px]">₹1,200</span>
             </button>
             <button 
               type="button" 
-              onclick="selectNewPlan(3, 3200)" 
+              onclick="selectNewPlan(3)" 
               id="plan-opt-3" 
               class="plan-choice-btn p-3 rounded-2xl bg-surfaceCard text-zinc-300 text-center border border-white/10 cursor-pointer hover:border-gold/50"
             >
               <span class="block text-sm font-display tracking-wider">3 MONTHS (Quarterly)</span>
-              <span class="text-[10px] text-goldLight">₹3,200</span>
+              <span id="plan-opt-3-price" class="text-[10px] text-goldLight">₹3,200</span>
             </button>
             <button 
               type="button" 
-              onclick="selectNewPlan(6, 6000)" 
+              onclick="selectNewPlan(6)" 
               id="plan-opt-6" 
               class="plan-choice-btn p-3 rounded-2xl bg-surfaceCard text-zinc-300 text-center border border-white/10 cursor-pointer hover:border-gold/50"
             >
               <span class="block text-sm font-display tracking-wider">6 MONTHS (Half-Year)</span>
-              <span class="text-[10px] text-goldLight">₹6,000</span>
+              <span id="plan-opt-6-price" class="text-[10px] text-goldLight">₹5,800</span>
             </button>
             <button 
               type="button" 
-              onclick="selectNewPlan(12, 11000)" 
+              onclick="selectNewPlan(12)" 
               id="plan-opt-12" 
               class="plan-choice-btn p-3 rounded-2xl bg-surfaceCard text-zinc-300 text-center border border-white/10 cursor-pointer hover:border-gold/50"
             >
               <span class="block text-sm font-display tracking-wider">12 MONTHS (VIP Pass)</span>
-              <span class="text-[10px] text-emeraldCustom">₹11,000</span>
+              <span id="plan-opt-12-price" class="text-[10px] text-emeraldCustom">₹10,500</span>
             </button>
           </div>
         </div>
@@ -781,13 +790,13 @@
 
       <!-- Printable Standee Header -->
       <div class="space-y-2">
-        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gold/20 border-2 border-gold/40 text-gold text-2xl font-display shadow-glow-gold mx-auto">
+        <div id="standee-logo-container" class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gold/20 border-2 border-gold/40 text-gold text-2xl font-display shadow-glow-gold mx-auto overflow-hidden">
           RG
         </div>
-        <h2 class="font-display text-3xl sm:text-4xl text-white tracking-widest leading-none standee-title">
+        <h2 id="standee-gym-title" class="font-display text-3xl sm:text-4xl text-white tracking-widest leading-none standee-title uppercase">
           RETRO GYM
         </h2>
-        <p class="font-mono text-xs font-bold uppercase tracking-widest text-goldLight standee-sub">
+        <p id="standee-gym-subtitle" class="font-mono text-xs font-bold uppercase tracking-widest text-goldLight standee-sub">
           VIP ATHLETE CHECK-IN STATION
         </p>
         <p class="text-[11px] text-zinc-400 font-sans">
@@ -807,7 +816,7 @@
       <div class="standee-box bg-black/50 p-4 rounded-2xl border border-white/10 text-left space-y-2 font-mono text-xs text-zinc-300">
         <div class="text-[10px] text-goldLight font-bold uppercase tracking-wider">How to punch attendance:</div>
         <ol class="space-y-1.5 text-[11px] text-zinc-300 list-decimal list-inside">
-          <li>Open Retro Gym App (<strong class="text-white">Member Portal</strong>)</li>
+          <li>Open <span id="standee-guide-gym-name" class="font-bold text-white">Retro Gym</span> App (<strong class="text-white">Member Portal</strong>)</li>
           <li>Tap <strong class="text-emeraldCustom">"📷 SCAN DESK QR TO PUNCH"</strong></li>
           <li>Align camera with this QR Code to log attendance</li>
         </ol>
@@ -833,6 +842,194 @@
   </div>
 
   <!-- ======================================================== -->
+  <!-- 6.6 WHITE-LABEL SAAS BRANDING & GYM PRICING CONFIG MODAL -->
+  <!-- ======================================================== -->
+  <div id="gym-settings-modal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl hidden flex items-center justify-center p-3 sm:p-4">
+    <div class="w-full max-w-2xl bg-surface rounded-3xl border border-cyanCustom/40 shadow-2xl p-5 sm:p-7 space-y-5 relative overflow-hidden max-h-[92vh] overflow-y-auto">
+      
+      <!-- Top Header & Badges -->
+      <div class="flex items-center justify-between border-b border-white/10 pb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-2xl bg-cyanCustom/20 border border-cyanCustom/40 text-cyanCustom flex items-center justify-center text-xl shadow-glow-cyan">
+            ⚙️
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="font-display text-2xl text-white tracking-wider leading-none">GYM BRANDING & SAAS SETTINGS</h3>
+              <span class="text-[9px] font-mono px-2 py-0.5 rounded bg-cyanCustom/20 text-cyanCustom border border-cyanCustom/40 font-bold uppercase">100% WHITE-LABEL</span>
+            </div>
+            <p class="text-xs font-mono text-zinc-400">Customize Gym Identity, UPI ID, WhatsApp Support & Membership Fees</p>
+          </div>
+        </div>
+        <button onclick="closeGymSettingsModal()" class="w-8 h-8 rounded-full bg-surfaceMuted hover:bg-white/10 text-zinc-400 hover:text-white flex items-center justify-center font-mono cursor-pointer transition-all">
+          ✕
+        </button>
+      </div>
+
+      <!-- Settings Form Grid -->
+      <form id="gym-settings-form" onsubmit="event.preventDefault(); saveGymBrandingSettings();" class="space-y-5 font-mono text-xs">
+        
+        <!-- Section 1: Branding & Identity -->
+        <div class="bg-surfaceCard p-4 rounded-2xl border border-white/10 space-y-3">
+          <div class="flex items-center gap-2 text-goldLight font-bold uppercase tracking-wider text-xs">
+            <span>🏢</span>
+            <span>1. Gym Identity & Visual Branding</span>
+          </div>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-zinc-400 mb-1">Gym Business Name *</label>
+              <input 
+                type="text" 
+                id="config-gym-name" 
+                placeholder="e.g. RETRO GYM, IRON PARADISE" 
+                class="w-full bg-surfaceMuted border border-white/15 focus:border-cyanCustom rounded-xl p-2.5 text-white font-sans text-sm outline-none"
+                required
+              />
+            </div>
+            <div>
+              <label class="block text-zinc-400 mb-1">App Tagline / Subtitle *</label>
+              <input 
+                type="text" 
+                id="config-gym-tagline" 
+                placeholder="e.g. DIGITAL MEMBER HUD" 
+                class="w-full bg-surfaceMuted border border-white/15 focus:border-cyanCustom rounded-xl p-2.5 text-white font-sans text-sm outline-none"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-zinc-400 mb-1">Custom Logo Image URL <span class="text-zinc-500">(Optional — leaves styled avatar if empty)</span></label>
+            <div class="flex gap-2">
+              <input 
+                type="url" 
+                id="config-logo-url" 
+                placeholder="https://example.com/logo.png" 
+                oninput="previewLogoUrl(this.value)"
+                class="flex-1 bg-surfaceMuted border border-white/15 focus:border-cyanCustom rounded-xl p-2.5 text-white font-sans text-xs outline-none"
+              />
+              <div id="config-logo-preview" class="w-10 h-10 rounded-xl bg-surfaceMuted border border-white/10 flex items-center justify-center text-xs overflow-hidden shrink-0 text-zinc-400">
+                🖼️
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: Payments & Reception Channels -->
+        <div class="bg-surfaceCard p-4 rounded-2xl border border-white/10 space-y-3">
+          <div class="flex items-center gap-2 text-emeraldCustom font-bold uppercase tracking-wider text-xs">
+            <span>💳</span>
+            <span>2. Instant Fee Recovery & Reception Channels</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-zinc-400 mb-1">Owner UPI ID (1-Tap Payments) *</label>
+              <input 
+                type="text" 
+                id="config-upi-id" 
+                placeholder="e.g. gymowner@okhdfcbank or 8467895365@ybl" 
+                class="w-full bg-surfaceMuted border border-white/15 focus:border-emeraldCustom rounded-xl p-2.5 text-emeraldCustom font-mono text-sm outline-none font-bold"
+                required
+              />
+              <p class="text-[10px] text-zinc-500 mt-1">Used to generate 1-Tap UPI pay links in member passes.</p>
+            </div>
+            <div>
+              <label class="block text-zinc-400 mb-1">Reception WhatsApp / Phone (10 Digits) *</label>
+              <input 
+                type="tel" 
+                id="config-support-phone" 
+                placeholder="e.g. 8467895365" 
+                maxlength="10"
+                class="w-full bg-surfaceMuted border border-white/15 focus:border-emeraldCustom rounded-xl p-2.5 text-white font-mono text-sm outline-none"
+                required
+              />
+              <p class="text-[10px] text-zinc-500 mt-1">Direct destination for athlete WhatsApp queries & payment proofs.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Membership Pricing Engine -->
+        <div class="bg-surfaceCard p-4 rounded-2xl border border-white/10 space-y-3">
+          <div class="flex items-center gap-2 text-goldLight font-bold uppercase tracking-wider text-xs">
+            <span>🏷️</span>
+            <span>3. Custom Membership Pricing Engine (INR ₹)</span>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div class="p-2.5 bg-black/40 rounded-xl border border-white/5 space-y-1">
+              <label class="block text-[10px] text-zinc-400 uppercase">1 Month (₹)</label>
+              <input 
+                type="number" 
+                id="config-plan-1m" 
+                min="0" 
+                step="50" 
+                class="w-full bg-surfaceMuted border border-white/10 focus:border-gold rounded-lg p-2 text-goldLight font-bold font-mono text-sm outline-none text-center"
+                required
+              />
+            </div>
+            <div class="p-2.5 bg-black/40 rounded-xl border border-white/5 space-y-1">
+              <label class="block text-[10px] text-zinc-400 uppercase">3 Months (₹)</label>
+              <input 
+                type="number" 
+                id="config-plan-3m" 
+                min="0" 
+                step="50" 
+                class="w-full bg-surfaceMuted border border-white/10 focus:border-gold rounded-lg p-2 text-goldLight font-bold font-mono text-sm outline-none text-center"
+                required
+              />
+            </div>
+            <div class="p-2.5 bg-black/40 rounded-xl border border-white/5 space-y-1">
+              <label class="block text-[10px] text-zinc-400 uppercase">6 Months (₹)</label>
+              <input 
+                type="number" 
+                id="config-plan-6m" 
+                min="0" 
+                step="50" 
+                class="w-full bg-surfaceMuted border border-white/10 focus:border-gold rounded-lg p-2 text-goldLight font-bold font-mono text-sm outline-none text-center"
+                required
+              />
+            </div>
+            <div class="p-2.5 bg-black/40 rounded-xl border border-white/5 space-y-1">
+              <label class="block text-[10px] text-zinc-400 uppercase">12 Months (₹)</label>
+              <input 
+                type="number" 
+                id="config-plan-12m" 
+                min="0" 
+                step="50" 
+                class="w-full bg-surfaceMuted border border-white/10 focus:border-emeraldCustom rounded-lg p-2 text-emeraldCustom font-bold font-mono text-sm outline-none text-center"
+                required
+              />
+            </div>
+          </div>
+          <p class="text-[10px] text-zinc-500">Prices are automatically bound to the Admin Registration Drawer & Athlete Pass Renewal Modal.</p>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center gap-3 pt-2">
+          <button 
+            type="submit" 
+            id="btn-save-gym-settings"
+            class="flex-1 py-3.5 bg-gradient-to-r from-cyanCustom via-emeraldCustom to-gold text-black font-display text-lg tracking-wider rounded-2xl shadow-glow-cyan hover:brightness-110 active:scale-95 transition-all font-bold cursor-pointer uppercase flex items-center justify-center gap-2"
+          >
+            <span>🚀 SAVE & DEPLOY TO CLOUD</span>
+          </button>
+          <button 
+            type="button" 
+            onclick="closeGymSettingsModal()" 
+            class="px-5 py-3.5 bg-surfaceMuted hover:bg-white/10 text-zinc-300 font-mono text-xs rounded-2xl border border-white/10 active:scale-95 transition-all cursor-pointer"
+          >
+            Cancel
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
   <!-- 7. APPLICATION SCRIPT LOGIC ENGINE -->
   <!-- ======================================================== -->
   <script>
@@ -852,6 +1049,16 @@
     let selectedFee = 1200;
     let activeDossierMember = null;
     let currentGymConfig = {
+      id: 1,
+      gym_name: "RETRO GYM",
+      gym_tagline: "DIGITAL MEMBER HUD",
+      logo_url: "",
+      upi_id: "gymowner@okhdfcbank",
+      support_phone: "8467895365",
+      plan_1m_price: 1200,
+      plan_3m_price: 3200,
+      plan_6m_price: 5800,
+      plan_12m_price: 10500,
       status: "OPEN",
       notice_text: "Regular timings in effect. Stay hydrated and hit your sets!",
       delayed_time: "5:00 PM",
@@ -1652,7 +1859,7 @@
     // SLIDE-UP ATHLETE REGISTRATION DRAWER
     // ----------------------------------------------------
     function openAddMemberDrawer() {
-      selectNewPlan(1, 1200);
+      selectNewPlan(1);
       document.getElementById('new-member-name').value = '';
       document.getElementById('new-member-phone').value = '';
       
@@ -1669,8 +1876,17 @@
       setTimeout(() => document.getElementById('add-member-drawer').classList.add('hidden'), 250);
     }
 
-    function selectNewPlan(months, fee) {
+    function selectNewPlan(months, customFee = null) {
       selectedMonths = months;
+      
+      let fee = customFee;
+      if (fee === null) {
+        if (months === 1) fee = currentGymConfig.plan_1m_price || 1200;
+        else if (months === 3) fee = currentGymConfig.plan_3m_price || 3200;
+        else if (months === 6) fee = currentGymConfig.plan_6m_price || 5800;
+        else if (months === 12) fee = currentGymConfig.plan_12m_price || 10500;
+        else fee = 1200;
+      }
       selectedFee = fee;
 
       document.querySelectorAll('.plan-choice-btn').forEach(b => {
@@ -1762,7 +1978,193 @@
     }
 
     // ----------------------------------------------------
-    // 8. GYM EMERGENCY STATUS & BROADCAST ENGINE
+    // 8. WHITE-LABEL SAAS BRANDING & GYM PRICING CONTROLS
+    // ----------------------------------------------------
+    function openGymSettingsModal() {
+      populateGymSettingsForm();
+      document.getElementById('gym-settings-modal').classList.remove('hidden');
+      playAudioChirp(800, 0.08);
+    }
+
+    function closeGymSettingsModal() {
+      document.getElementById('gym-settings-modal').classList.add('hidden');
+    }
+
+    function populateGymSettingsForm() {
+      document.getElementById('config-gym-name').value = currentGymConfig.gym_name || 'RETRO GYM';
+      document.getElementById('config-gym-tagline').value = currentGymConfig.gym_tagline || 'DIGITAL MEMBER HUD';
+      document.getElementById('config-logo-url').value = currentGymConfig.logo_url || '';
+      document.getElementById('config-upi-id').value = currentGymConfig.upi_id || 'gymowner@okhdfcbank';
+      document.getElementById('config-support-phone').value = currentGymConfig.support_phone || '8467895365';
+      document.getElementById('config-plan-1m').value = currentGymConfig.plan_1m_price || 1200;
+      document.getElementById('config-plan-3m').value = currentGymConfig.plan_3m_price || 3200;
+      document.getElementById('config-plan-6m').value = currentGymConfig.plan_6m_price || 5800;
+      document.getElementById('config-plan-12m').value = currentGymConfig.plan_12m_price || 10500;
+      previewLogoUrl(currentGymConfig.logo_url || '');
+    }
+
+    function previewLogoUrl(url) {
+      const preview = document.getElementById('config-logo-preview');
+      if (!preview) return;
+      if (url && url.startsWith('http')) {
+        preview.innerHTML = `<img src="${url}" class="w-full h-full object-cover rounded-lg" onerror="this.parentElement.innerHTML='🖼️'" />`;
+      } else {
+        preview.innerHTML = '🖼️';
+      }
+    }
+
+    async function saveGymBrandingSettings() {
+      const name = document.getElementById('config-gym-name').value.trim() || 'RETRO GYM';
+      const tagline = document.getElementById('config-gym-tagline').value.trim() || 'DIGITAL MEMBER HUD';
+      const logoUrl = document.getElementById('config-logo-url').value.trim();
+      const upiId = document.getElementById('config-upi-id').value.trim() || 'gymowner@okhdfcbank';
+      const supportPhone = document.getElementById('config-support-phone').value.trim().replace(/\D/g, '') || '8467895365';
+      const plan1m = Number(document.getElementById('config-plan-1m').value) || 1200;
+      const plan3m = Number(document.getElementById('config-plan-3m').value) || 3200;
+      const plan6m = Number(document.getElementById('config-plan-6m').value) || 5800;
+      const plan12m = Number(document.getElementById('config-plan-12m').value) || 10500;
+
+      const btn = document.getElementById('btn-save-gym-settings');
+      btn.innerText = "Deploying to Cloud...";
+      btn.disabled = true;
+
+      const updatedPayload = {
+        id: 1,
+        gym_name: name,
+        gym_tagline: tagline,
+        logo_url: logoUrl,
+        upi_id: upiId,
+        support_phone: supportPhone,
+        plan_1m_price: plan1m,
+        plan_3m_price: plan3m,
+        plan_6m_price: plan6m,
+        plan_12m_price: plan12m,
+        status: currentGymConfig.status || 'OPEN',
+        notice_text: currentGymConfig.notice_text || '',
+        delayed_time: currentGymConfig.delayed_time || '5:00 PM',
+        updated_at: new Date().toISOString()
+      };
+
+      currentGymConfig = { ...currentGymConfig, ...updatedPayload };
+
+      // Cache locally immediately
+      localStorage.setItem('retro_gym_white_label_config', JSON.stringify(currentGymConfig));
+      localStorage.setItem('retro_gym_status_config', JSON.stringify(currentGymConfig));
+
+      applyGymBrandingToAdminUI(currentGymConfig);
+
+      try {
+        if (db) {
+          const { error } = await db.from('gym_config').upsert(updatedPayload);
+          if (error) throw error;
+        }
+        playAudioChirp(980, 0.2);
+        showToast("✓ White-Label Branding Live Across All Member Devices", "success");
+        closeGymSettingsModal();
+      } catch (err) {
+        showToast("Branding saved locally (" + (err.message || 'Cloud sync note') + ")", "info");
+        closeGymSettingsModal();
+      } finally {
+        btn.innerText = "🚀 SAVE & DEPLOY TO CLOUD";
+        btn.disabled = false;
+      }
+    }
+
+    function applyGymBrandingToAdminUI(config) {
+      if (!config) return;
+      
+      // Update Header
+      const headerTitle = document.getElementById('admin-gym-header-title');
+      const headerTagline = document.getElementById('admin-gym-header-tagline');
+      const logoBadge = document.getElementById('admin-gym-logo-badge');
+      
+      if (headerTitle) headerTitle.innerText = config.gym_name || 'RETRO GYM';
+      if (headerTagline) headerTagline.innerText = config.gym_tagline ? `${config.gym_name} • ${config.gym_tagline}` : '360° Athlete Dossiers & Lifecycle Hub';
+      
+      if (logoBadge) {
+        if (config.logo_url && config.logo_url.startsWith('http')) {
+          logoBadge.innerHTML = `<img src="${config.logo_url}" class="w-full h-full object-cover" onerror="this.parentElement.innerText='${(config.gym_name || 'RG').slice(0, 2).toUpperCase()}'" />`;
+        } else {
+          const initials = (config.gym_name || 'RETRO GYM').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'RG';
+          logoBadge.innerText = initials;
+        }
+      }
+
+      // Update Registration Drawer Plan Pricing Pills
+      const p1 = document.getElementById('plan-opt-1-price');
+      const p3 = document.getElementById('plan-opt-3-price');
+      const p6 = document.getElementById('plan-opt-6-price');
+      const p12 = document.getElementById('plan-opt-12-price');
+      if (p1) p1.innerText = `₹${(config.plan_1m_price || 1200).toLocaleString()}`;
+      if (p3) p3.innerText = `₹${(config.plan_3m_price || 3200).toLocaleString()}`;
+      if (p6) p6.innerText = `₹${(config.plan_6m_price || 5800).toLocaleString()}`;
+      if (p12) p12.innerText = `₹${(config.plan_12m_price || 10500).toLocaleString()}`;
+
+      // Update Standee Modal
+      const standeeTitle = document.getElementById('standee-gym-title');
+      const standeeSub = document.getElementById('standee-gym-subtitle');
+      const standeeGuide = document.getElementById('standee-guide-gym-name');
+      const standeeLogo = document.getElementById('standee-logo-container');
+
+      if (standeeTitle) standeeTitle.innerText = config.gym_name || 'RETRO GYM';
+      if (standeeSub) standeeSub.innerText = `${config.gym_name} VIP ATHLETE CHECK-IN STATION`;
+      if (standeeGuide) standeeGuide.innerText = config.gym_name || 'Retro Gym';
+      if (standeeLogo) {
+        if (config.logo_url && config.logo_url.startsWith('http')) {
+          standeeLogo.innerHTML = `<img src="${config.logo_url}" class="w-full h-full object-cover" onerror="this.parentElement.innerText='${(config.gym_name || 'RG').slice(0, 2).toUpperCase()}'" />`;
+        } else {
+          const initials = (config.gym_name || 'RETRO GYM').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'RG';
+          standeeLogo.innerText = initials;
+        }
+      }
+    }
+
+    // ----------------------------------------------------
+    // 9. PRINTABLE RECEPTION DESK QR STANDEE GENERATOR
+    // ----------------------------------------------------
+    let deskQrCodeInstance = null;
+    const DESK_QR_SECRET_TOKEN = "RETRO_GYM_PUNCH_SECURE_TOKEN_2026";
+
+    function openDeskQRModal() {
+      playAudioChirp(780, 0.08);
+      const modal = document.getElementById('desk-qr-modal');
+      modal.classList.remove('hidden');
+
+      // Update branding in standee
+      applyGymBrandingToAdminUI(currentGymConfig);
+
+      // Generate high-resolution QR code
+      const container = document.getElementById('desk-qrcode-container');
+      container.innerHTML = '';
+
+      if (window.QRCode) {
+        deskQrCodeInstance = new QRCode(container, {
+          text: DESK_QR_SECRET_TOKEN,
+          width: 240,
+          height: 240,
+          colorDark: "#000000",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.H
+        });
+      } else {
+        container.innerHTML = `
+          <div class="p-4 text-center font-mono text-xs text-black">
+            <p class="font-bold">TOKEN: ${DESK_QR_SECRET_TOKEN}</p>
+          </div>
+        `;
+      }
+    }
+
+    function closeDeskQRModal() {
+      document.getElementById('desk-qr-modal').classList.add('hidden');
+    }
+
+    function printDeskStandee() {
+      window.print();
+    }
+
+    // ----------------------------------------------------
+    // 10. GYM EMERGENCY STATUS & BROADCAST ENGINE
     // ----------------------------------------------------
     function handleStatusRadioChange(status) {
       currentGymConfig.status = status;
@@ -1828,10 +2230,12 @@
     async function fetchGymConfig() {
       try {
         // Try local storage first for instant rendering
-        const localSaved = localStorage.getItem('retro_gym_status_config');
+        const localSaved = localStorage.getItem('retro_gym_white_label_config') || localStorage.getItem('retro_gym_status_config');
         if (localSaved) {
           const parsed = JSON.parse(localSaved);
-          applyGymConfigToUI(parsed);
+          currentGymConfig = { ...currentGymConfig, ...parsed };
+          applyGymConfigToUI(currentGymConfig);
+          applyGymBrandingToAdminUI(currentGymConfig);
         }
 
         if (db) {
@@ -1839,13 +2243,25 @@
           if (!error && data && data.length > 0) {
             const remoteConfig = data[0];
             currentGymConfig = {
+              id: 1,
+              gym_name: remoteConfig.gym_name || currentGymConfig.gym_name || 'RETRO GYM',
+              gym_tagline: remoteConfig.gym_tagline || currentGymConfig.gym_tagline || 'DIGITAL MEMBER HUD',
+              logo_url: remoteConfig.logo_url || '',
+              upi_id: remoteConfig.upi_id || currentGymConfig.upi_id || 'gymowner@okhdfcbank',
+              support_phone: remoteConfig.support_phone || currentGymConfig.support_phone || '8467895365',
+              plan_1m_price: remoteConfig.plan_1m_price || currentGymConfig.plan_1m_price || 1200,
+              plan_3m_price: remoteConfig.plan_3m_price || currentGymConfig.plan_3m_price || 3200,
+              plan_6m_price: remoteConfig.plan_6m_price || currentGymConfig.plan_6m_price || 5800,
+              plan_12m_price: remoteConfig.plan_12m_price || currentGymConfig.plan_12m_price || 10500,
               status: remoteConfig.status || 'OPEN',
               notice_text: remoteConfig.notice_text || '',
               delayed_time: remoteConfig.delayed_time || '5:00 PM',
               updated_at: remoteConfig.updated_at || new Date().toISOString()
             };
+            localStorage.setItem('retro_gym_white_label_config', JSON.stringify(currentGymConfig));
             localStorage.setItem('retro_gym_status_config', JSON.stringify(currentGymConfig));
             applyGymConfigToUI(currentGymConfig);
+            applyGymBrandingToAdminUI(currentGymConfig);
           }
         }
       } catch (e) {
@@ -1887,6 +2303,7 @@
       const delayedTime = document.getElementById('gym-delayed-time-input').value.trim();
 
       currentGymConfig = {
+        ...currentGymConfig,
         status: status,
         notice_text: notice,
         delayed_time: delayedTime,
@@ -1895,6 +2312,7 @@
 
       // Save locally immediately
       localStorage.setItem('retro_gym_status_config', JSON.stringify(currentGymConfig));
+      localStorage.setItem('retro_gym_white_label_config', JSON.stringify(currentGymConfig));
 
       btn.innerText = "Syncing to Cloud...";
       btn.disabled = true;
@@ -1904,6 +2322,15 @@
           // Direct upsert with primary key id: 1
           const { error } = await db.from('gym_config').upsert({
             id: 1,
+            gym_name: currentGymConfig.gym_name,
+            gym_tagline: currentGymConfig.gym_tagline,
+            logo_url: currentGymConfig.logo_url,
+            upi_id: currentGymConfig.upi_id,
+            support_phone: currentGymConfig.support_phone,
+            plan_1m_price: currentGymConfig.plan_1m_price,
+            plan_3m_price: currentGymConfig.plan_3m_price,
+            plan_6m_price: currentGymConfig.plan_6m_price,
+            plan_12m_price: currentGymConfig.plan_12m_price,
             status: status,
             delayed_time: delayedTime || '',
             notice_text: notice || '',
@@ -1927,6 +2354,7 @@
     }
 
     function shareNoticeWhatsApp() {
+      const gymName = currentGymConfig.gym_name || 'RETRO GYM';
       const status = currentGymConfig.status;
       const notice = document.getElementById('gym-notice-input').value.trim() || currentGymConfig.notice_text;
       const delayedTime = document.getElementById('gym-delayed-time-input').value.trim() || currentGymConfig.delayed_time;
@@ -1946,7 +2374,7 @@
       }
 
       const formattedNotice = 
-`🏋️ *RETRO GYM — OFFICIAL ANNOUNCEMENT*
+`🏋️ *${gymName.toUpperCase()} — OFFICIAL ANNOUNCEMENT*
 ━━━━━━━━━━━━━━━━━━━━
 ${statusEmoji} *STATUS:* ${statusHeadline}
 
@@ -1954,8 +2382,7 @@ ${statusEmoji} *STATUS:* ${statusHeadline}
 "${notice}"
 
 📍 *Gym Timings & Portal:*
-• Portal: https://retrogym.vercel.app (or member app)
-• Helpline: +91 8467895365
+• Helpline: +91 ${currentGymConfig.support_phone || '8467895365'}
 
 _Old School Iron • Modern Discipline_`;
 

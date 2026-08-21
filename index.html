@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>RETRO GYM — Cyber HUD Member Portal</title>
+  <title id="page-title">RETRO GYM — Cyber HUD Member Portal</title>
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -165,13 +165,13 @@
 
       <!-- Auth Branding -->
       <div class="text-center space-y-2 relative z-10">
-        <div class="inline-flex p-3 rounded-2xl bg-gradient-to-tr from-cyberVolt/20 via-cyanCyber/10 to-transparent border border-cyberVolt/40 text-cyberVolt mb-1 shadow-glow-volt">
+        <div id="auth-logo-badge" class="inline-flex p-3 rounded-2xl bg-gradient-to-tr from-cyberVolt/20 via-cyanCyber/10 to-transparent border border-cyberVolt/40 text-cyberVolt mb-1 shadow-glow-volt">
           <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M6 5v14M18 5v14M3 9v6M21 9v6M6 12h12" />
           </svg>
         </div>
-        <h1 class="font-brand text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-none">RETRO GYM</h1>
-        <p class="font-mono text-xs tracking-wider uppercase text-cyberVolt">Athlete Cyber HUD Terminal</p>
+        <h1 id="auth-gym-title" class="font-brand text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-none">RETRO GYM</h1>
+        <p id="auth-gym-tagline" class="font-mono text-xs tracking-wider uppercase text-cyberVolt">Athlete Cyber HUD Terminal</p>
       </div>
 
       <!-- STEP 1: PHONE NUMBER INPUT -->
@@ -255,12 +255,12 @@
       <!-- Drawer Header -->
       <div class="flex items-center justify-between pb-4 border-b border-white/10">
         <div class="flex items-center gap-2.5">
-          <div class="w-9 h-9 rounded-xl bg-cyberVolt/20 border border-cyberVolt/40 text-cyberVolt flex items-center justify-center font-brand font-bold text-lg">
+          <div id="drawer-logo-badge" class="w-9 h-9 rounded-xl bg-cyberVolt/20 border border-cyberVolt/40 text-cyberVolt flex items-center justify-center font-brand font-bold text-lg overflow-hidden shrink-0">
             RG
           </div>
           <div>
-            <h2 class="font-brand text-lg font-bold text-white leading-none">RETRO GYM</h2>
-            <span class="text-[9px] font-mono text-cyberVolt uppercase">Cyber Pass HUD</span>
+            <h2 id="drawer-gym-title" class="font-brand text-lg font-bold text-white leading-none">RETRO GYM</h2>
+            <span id="drawer-gym-tagline" class="text-[9px] font-mono text-cyberVolt uppercase">Cyber Pass HUD</span>
           </div>
         </div>
         <button onclick="toggleDrawer(false)" class="w-8 h-8 rounded-lg bg-surfaceMuted hover:bg-white/10 text-zinc-400 hover:text-white flex items-center justify-center text-sm cursor-pointer">✕</button>
@@ -278,6 +278,10 @@
         <button onclick="switchTab('pass'); toggleDrawer(false);" class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl bg-surfaceMuted hover:bg-white/10 text-white transition-all text-left">
           <span>💳</span>
           <span>Digital VIP Pass</span>
+        </button>
+        <button onclick="openPassRenewalModal(); toggleDrawer(false);" class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl bg-gradient-to-r from-moltenGold/20 to-cyberVolt/20 hover:brightness-110 border border-moltenGold/40 text-moltenGold transition-all text-left font-bold">
+          <span>⚡</span>
+          <span>Renew Pass Online (UPI)</span>
         </button>
         <button onclick="switchTab('workouts'); toggleDrawer(false);" class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl bg-surfaceMuted hover:bg-white/10 text-white transition-all text-left">
           <span>🏋️‍♂️</span>
@@ -300,9 +304,13 @@
 
     <!-- Drawer Footer -->
     <div class="space-y-3 pt-4 border-t border-white/10 font-mono text-xs">
+      <a id="drawer-whatsapp-btn" href="https://wa.me/918467895365" target="_blank" class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-matrixGreen/15 hover:bg-matrixGreen/25 text-matrixGreen border border-matrixGreen/30 font-bold transition-all text-center">
+        <span>💬</span>
+        <span>WhatsApp Concierge</span>
+      </a>
       <div class="flex items-center justify-between text-[11px] text-zinc-400">
-        <span>Emergency Helpdesk:</span>
-        <a href="tel:+918467895365" class="text-cyberVolt hover:underline">+91 8467895365</a>
+        <span>Helpdesk:</span>
+        <a id="drawer-helpdesk-phone" href="tel:+918467895365" class="text-cyberVolt hover:underline">+91 8467895365</a>
       </div>
       <button onclick="logoutAthlete()" class="w-full py-2.5 rounded-xl bg-crimsonAlert/15 hover:bg-crimsonAlert/25 text-crimsonAlert border border-crimsonAlert/30 font-bold transition-all text-center cursor-pointer">
         🔒 Logout Pass
@@ -406,6 +414,109 @@
   </div>
 
   <!-- ======================================================== -->
+  <!-- 2.9 VIP PASS ONLINE RENEWAL & UPI INTENT MODAL -->
+  <!-- ======================================================== -->
+  <div id="pass-renewal-modal" class="fixed inset-0 z-50 bg-black/95 backdrop-blur-2xl hidden flex flex-col items-center justify-center p-4">
+    <div class="w-full max-w-sm bg-surfaceCard rounded-3xl border border-moltenGold/50 shadow-2xl p-5 relative overflow-hidden space-y-4 text-center">
+      
+      <!-- Top Cyber HUD Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-white/10">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-moltenGold/20 border border-moltenGold/40 text-moltenGold flex items-center justify-center font-bold text-sm">
+            ⚡
+          </div>
+          <div class="text-left">
+            <h3 id="renew-modal-gym-title" class="font-brand text-base font-bold text-white leading-none">RETRO GYM</h3>
+            <span class="text-[9px] font-mono text-moltenGold uppercase">Instant VIP Pass Renewal</span>
+          </div>
+        </div>
+        <button 
+          onclick="closePassRenewalModal()" 
+          class="w-8 h-8 rounded-full bg-surfaceMuted hover:bg-white/10 text-zinc-400 hover:text-white flex items-center justify-center font-mono cursor-pointer transition-all"
+        >
+          ✕
+        </button>
+      </div>
+
+      <!-- Plan Selection 4-Grid -->
+      <div class="space-y-2 text-left">
+        <label class="block font-mono text-[10px] uppercase tracking-wider text-zinc-400">Select Membership Duration</label>
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" onclick="selectRenewalPlan(1)" id="renew-plan-btn-1" class="p-3 rounded-2xl border-2 border-cyberVolt bg-cyberVolt/10 text-left transition-all relative overflow-hidden cursor-pointer">
+            <span class="text-[10px] font-mono text-zinc-400 block uppercase">1 Month Plan</span>
+            <span id="renew-card-price-1" class="font-brand text-base font-extrabold text-white">₹1,200</span>
+            <span class="text-[9px] font-mono text-cyberVolt block">Starter Tier</span>
+          </button>
+          <button type="button" onclick="selectRenewalPlan(3)" id="renew-plan-btn-3" class="p-3 rounded-2xl border border-white/10 bg-surfaceMuted hover:border-moltenGold/40 text-left transition-all relative overflow-hidden cursor-pointer">
+            <span class="text-[10px] font-mono text-zinc-400 block uppercase">3 Months Plan</span>
+            <span id="renew-card-price-3" class="font-brand text-base font-extrabold text-white">₹3,200</span>
+            <span class="text-[9px] font-mono text-moltenGold block">Save ~11%</span>
+          </button>
+          <button type="button" onclick="selectRenewalPlan(6)" id="renew-plan-btn-6" class="p-3 rounded-2xl border border-white/10 bg-surfaceMuted hover:border-cyanCyber/40 text-left transition-all relative overflow-hidden cursor-pointer">
+            <span class="text-[10px] font-mono text-zinc-400 block uppercase">6 Months Plan</span>
+            <span id="renew-card-price-6" class="font-brand text-base font-extrabold text-white">₹5,800</span>
+            <span class="text-[9px] font-mono text-cyanCyber block">Save ~20%</span>
+          </button>
+          <button type="button" onclick="selectRenewalPlan(12)" id="renew-plan-btn-12" class="p-3 rounded-2xl border border-white/10 bg-surfaceMuted hover:border-matrixGreen/40 text-left transition-all relative overflow-hidden cursor-pointer">
+            <span class="text-[10px] font-mono text-zinc-400 block uppercase">12 Months (VIP)</span>
+            <span id="renew-card-price-12" class="font-brand text-base font-extrabold text-white">₹10,500</span>
+            <span class="text-[9px] font-mono text-matrixGreen block">Best Value</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- UPI Payment Target Card -->
+      <div class="p-3.5 bg-black/50 rounded-2xl border border-white/10 space-y-2 text-left font-mono text-xs">
+        <div class="flex items-center justify-between text-[11px] text-zinc-400">
+          <span>Official Gym UPI ID:</span>
+          <button onclick="copyGymUpiId()" class="text-cyberVolt hover:underline flex items-center gap-1 cursor-pointer">
+            <span id="renew-copy-feedback">Copy ID</span> 📋
+          </button>
+        </div>
+        <div class="p-2 bg-surfaceMuted rounded-xl border border-white/5 flex items-center justify-between">
+          <span id="renew-upi-id-display" class="font-mono text-white font-bold text-xs truncate">gymowner@okhdfcbank</span>
+          <span class="text-[9px] text-matrixGreen px-1.5 py-0.5 rounded bg-matrixGreen/10">VERIFIED</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="space-y-2 pt-1">
+        <!-- 1-Tap UPI Intent Button -->
+        <button 
+          id="btn-trigger-upi-pay"
+          onclick="executeUPIPay()" 
+          class="w-full py-3.5 bg-gradient-to-r from-moltenGold via-[#ffc837] to-cyberVolt text-black font-brand font-extrabold text-base tracking-wider rounded-2xl shadow-glow-gold hover:brightness-110 active:scale-95 transition-all uppercase flex items-center justify-center gap-2 cursor-pointer"
+        >
+          <span>⚡</span>
+          <span id="renew-pay-button-label">PAY ₹1,200 VIA ANY UPI APP</span>
+        </button>
+
+        <!-- WhatsApp Payment Confirmation Button -->
+        <a 
+          id="btn-whatsapp-confirm-pay"
+          href="#" 
+          target="_blank"
+          class="w-full py-2.5 bg-matrixGreen/15 hover:bg-matrixGreen/25 border border-matrixGreen/30 text-matrixGreen font-mono text-xs font-bold rounded-2xl flex items-center justify-center gap-2 transition-all"
+        >
+          <span>💬</span>
+          <span>Send Payment Screenshot via WhatsApp</span>
+        </a>
+      </div>
+
+      <!-- Bottom Cancel Controls -->
+      <div class="pt-1">
+        <button 
+          onclick="closePassRenewalModal()" 
+          class="w-full py-2.5 bg-surfaceMuted hover:bg-white/10 text-zinc-400 font-mono text-xs rounded-xl border border-white/5 active:scale-95 transition-all cursor-pointer"
+        >
+          Cancel
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
   <!-- 3. MAIN MOBILE-FIRST CONTAINER (MAX 460px) -->
   <!-- ======================================================== -->
   <div class="min-h-screen max-w-[460px] mx-auto flex flex-col justify-between relative z-10 px-4 pt-3 pb-28">
@@ -426,14 +537,19 @@
           </svg>
         </button>
 
-        <div>
-          <div class="flex items-center gap-1.5">
-            <span class="font-brand text-xl font-extrabold text-white tracking-tight leading-none">RETRO GYM</span>
-            <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-cyberVolt/15 text-cyberVolt border border-cyberVolt/30 flex items-center gap-1">
-              <span class="w-1.5 h-1.5 rounded-full bg-cyberVolt animate-pulse"></span> VIP
-            </span>
+        <div class="flex items-center gap-2">
+          <div id="header-logo-badge" class="w-8 h-8 rounded-xl bg-cyberVolt/20 border border-cyberVolt/40 text-cyberVolt flex items-center justify-center font-brand font-bold text-xs shadow-glow-volt overflow-hidden shrink-0">
+            RG
           </div>
-          <p class="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">Cyber HUD Pass</p>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span id="header-gym-title" class="font-brand text-xl font-extrabold text-white tracking-tight leading-none">RETRO GYM</span>
+              <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-cyberVolt/15 text-cyberVolt border border-cyberVolt/30 flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-cyberVolt animate-pulse"></span> VIP
+              </span>
+            </div>
+            <p id="header-gym-tagline" class="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">Cyber HUD Pass</p>
+          </div>
         </div>
       </div>
 
@@ -499,12 +615,12 @@
           <!-- Top Card Meta: Brand & VIP Chip -->
           <div class="flex items-center justify-between pb-3 border-b border-white/10">
             <div class="flex items-center gap-2">
-              <div class="w-8 h-8 rounded-xl bg-cyberVolt/20 border border-cyberVolt/40 flex items-center justify-center text-cyberVolt font-brand font-bold text-sm shadow-glow-volt">
+              <div id="pass-logo-badge" class="w-8 h-8 rounded-xl bg-cyberVolt/20 border border-cyberVolt/40 flex items-center justify-center text-cyberVolt font-brand font-bold text-sm shadow-glow-volt overflow-hidden shrink-0">
                 RG
               </div>
               <div>
-                <span class="font-brand text-sm font-extrabold tracking-wider text-white block leading-none">RETRO GYM</span>
-                <span class="text-[9px] font-mono text-zinc-400 uppercase">Holographic Access Key</span>
+                <span id="pass-gym-title" class="font-brand text-sm font-extrabold tracking-wider text-white block leading-none">RETRO GYM</span>
+                <span id="pass-gym-tagline" class="text-[9px] font-mono text-zinc-400 uppercase">Holographic Access Key</span>
               </div>
             </div>
             <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyberVolt/15 border border-cyberVolt/30 text-cyberVolt font-mono text-[10px] font-bold">
@@ -566,6 +682,25 @@
           </div>
 
         </div>
+      </div>
+
+      <!-- INSTANT ONLINE PASS EXTENSION / RENEWAL QUICK BAR -->
+      <div class="p-3 bg-surfaceCard/80 backdrop-blur-xl rounded-2xl border border-moltenGold/30 flex items-center justify-between shadow-glass-card">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-8 h-8 rounded-xl bg-moltenGold/15 border border-moltenGold/30 text-moltenGold flex items-center justify-center font-bold text-sm shrink-0">
+            ⚡
+          </div>
+          <div class="min-w-0">
+            <span class="text-xs font-brand font-bold text-white block truncate leading-tight">EXTEND / RENEW VIP PASS</span>
+            <span class="text-[10px] font-mono text-zinc-400">1-Tap Online UPI Payment</span>
+          </div>
+        </div>
+        <button 
+          onclick="openPassRenewalModal()" 
+          class="px-3.5 py-2 bg-gradient-to-r from-moltenGold to-cyberVolt text-black font-brand font-extrabold text-xs rounded-xl shadow-glow-gold hover:brightness-110 active:scale-95 transition-all uppercase shrink-0 cursor-pointer"
+        >
+          RENEW NOW ↗
+        </button>
       </div>
 
       <!-- ATTENDANCE TELEMETRY & 1-TAP PUNCH DOCK -->
@@ -1605,29 +1740,240 @@
     }
 
     // --------------------------------------------------------
-    // LIVE GYM EMERGENCY STATUS ENGINE
+    // LIVE GYM EMERGENCY & SAAS BRANDING ENGINE
     // --------------------------------------------------------
+    let currentGymConfig = {
+      id: 1,
+      gym_name: "RETRO GYM",
+      gym_tagline: "DIGITAL MEMBER HUD",
+      logo_url: "",
+      upi_id: "gymowner@okhdfcbank",
+      support_phone: "8467895365",
+      plan_1m_price: 1200,
+      plan_3m_price: 3200,
+      plan_6m_price: 5800,
+      plan_12m_price: 10500,
+      status: "OPEN",
+      notice_text: "Regular timings in effect. Stay hydrated and hit your sets!",
+      delayed_time: "5:00 PM",
+      updated_at: new Date().toISOString()
+    };
+
+    let selectedRenewalMonths = 1;
+
     async function fetchLiveGymStatus() {
       try {
-        // Check local cache first for zero-latency UI
-        const cached = localStorage.getItem('retro_gym_status_config');
+        // 1. Instant local cache hydration for sub-millisecond paint
+        const cached = localStorage.getItem('retro_gym_white_label_config') || localStorage.getItem('retro_gym_status_config');
         if (cached) {
           try {
-            renderEmergencyBanner(JSON.parse(cached));
+            const parsed = JSON.parse(cached);
+            currentGymConfig = { ...currentGymConfig, ...parsed };
+            applyGymBrandingToMemberUI();
+            renderEmergencyBanner(currentGymConfig);
           } catch (e) {}
         }
 
+        // 2. Live Supabase sync
         if (db) {
           const { data, error } = await db.from('gym_config').select('*').limit(1);
           if (!error && data && data.length > 0) {
-            const config = data[0];
-            localStorage.setItem('retro_gym_status_config', JSON.stringify(config));
-            renderEmergencyBanner(config);
+            currentGymConfig = { ...currentGymConfig, ...data[0] };
+            localStorage.setItem('retro_gym_white_label_config', JSON.stringify(currentGymConfig));
+            localStorage.setItem('retro_gym_status_config', JSON.stringify(currentGymConfig));
+            applyGymBrandingToMemberUI();
+            renderEmergencyBanner(currentGymConfig);
           }
         }
       } catch (err) {
-        console.warn("Live gym status warning:", err);
+        console.warn("Live gym SaaS status warning:", err);
       }
+    }
+
+    function applyGymBrandingToMemberUI() {
+      const c = currentGymConfig;
+      const gymName = c.gym_name || "RETRO GYM";
+      const tagline = c.gym_tagline || "DIGITAL MEMBER HUD";
+      const initials = gymName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'RG';
+      const logoUrl = (c.logo_url && c.logo_url.startsWith('http')) ? c.logo_url : null;
+      const phone = c.support_phone ? String(c.support_phone).replace(/\D/g, '').slice(-10) : '8467895365';
+
+      // 1. Document Title
+      const titleEl = document.getElementById('page-title');
+      if (titleEl) titleEl.innerText = `${gymName} — Member Cyber HUD`;
+      document.title = `${gymName} — Member Cyber HUD`;
+
+      // 2. Top Header
+      const headerTitle = document.getElementById('header-gym-title');
+      const headerTagline = document.getElementById('header-gym-tagline');
+      const headerLogo = document.getElementById('header-logo-badge');
+      if (headerTitle) headerTitle.innerText = gymName;
+      if (headerTagline) headerTagline.innerText = tagline;
+      if (headerLogo) {
+        if (logoUrl) {
+          headerLogo.innerHTML = `<img src="${logoUrl}" alt="${gymName}" class="w-full h-full object-cover" referrerpolicy="no-referrer" />`;
+        } else {
+          headerLogo.innerText = initials;
+        }
+      }
+
+      // 3. Auth Modal
+      const authTitle = document.getElementById('auth-gym-title');
+      const authTagline = document.getElementById('auth-gym-tagline');
+      const authLogo = document.getElementById('auth-logo-badge');
+      if (authTitle) authTitle.innerText = gymName;
+      if (authTagline) authTagline.innerText = tagline;
+      if (authLogo && logoUrl) {
+        authLogo.innerHTML = `<img src="${logoUrl}" alt="${gymName}" class="w-10 h-10 object-contain rounded-xl" referrerpolicy="no-referrer" />`;
+      }
+
+      // 4. Side Drawer
+      const drawerTitle = document.getElementById('drawer-gym-title');
+      const drawerTagline = document.getElementById('drawer-gym-tagline');
+      const drawerLogo = document.getElementById('drawer-logo-badge');
+      const drawerHelpdesk = document.getElementById('drawer-helpdesk-phone');
+      const drawerWhatsapp = document.getElementById('drawer-whatsapp-btn');
+      if (drawerTitle) drawerTitle.innerText = gymName;
+      if (drawerTagline) drawerTagline.innerText = tagline;
+      if (drawerLogo) {
+        if (logoUrl) {
+          drawerLogo.innerHTML = `<img src="${logoUrl}" alt="${gymName}" class="w-full h-full object-cover" referrerpolicy="no-referrer" />`;
+        } else {
+          drawerLogo.innerText = initials;
+        }
+      }
+      if (drawerHelpdesk) {
+        drawerHelpdesk.href = `tel:+91${phone}`;
+        drawerHelpdesk.innerText = `+91 ${phone}`;
+      }
+      if (drawerWhatsapp) {
+        const athleteName = currentAthlete ? currentAthlete.full_name : 'Athlete';
+        const waMsg = encodeURIComponent(`Hi ${gymName} Support Team, I am ${athleteName} (+91 ${currentAthlete ? currentAthlete.phone : ''}). I need assistance regarding my membership.`);
+        drawerWhatsapp.href = `https://wa.me/91${phone}?text=${waMsg}`;
+      }
+
+      // 5. Pass Card
+      const passTitle = document.getElementById('pass-gym-title');
+      const passLogo = document.getElementById('pass-logo-badge');
+      if (passTitle) passTitle.innerText = gymName;
+      if (passLogo) {
+        if (logoUrl) {
+          passLogo.innerHTML = `<img src="${logoUrl}" alt="${gymName}" class="w-full h-full object-cover" referrerpolicy="no-referrer" />`;
+        } else {
+          passLogo.innerText = initials;
+        }
+      }
+
+      // 6. Renewal Modal Branding & Live Prices
+      const renewModalTitle = document.getElementById('renew-modal-gym-title');
+      if (renewModalTitle) renewModalTitle.innerText = gymName;
+
+      const p1 = document.getElementById('renew-card-price-1');
+      const p3 = document.getElementById('renew-card-price-3');
+      const p6 = document.getElementById('renew-card-price-6');
+      const p12 = document.getElementById('renew-card-price-12');
+      if (p1) p1.innerText = `₹${(c.plan_1m_price || 1200).toLocaleString('en-IN')}`;
+      if (p3) p3.innerText = `₹${(c.plan_3m_price || 3200).toLocaleString('en-IN')}`;
+      if (p6) p6.innerText = `₹${(c.plan_6m_price || 5800).toLocaleString('en-IN')}`;
+      if (p12) p12.innerText = `₹${(c.plan_12m_price || 10500).toLocaleString('en-IN')}`;
+
+      const upiDisplay = document.getElementById('renew-upi-id-display');
+      if (upiDisplay) upiDisplay.innerText = c.upi_id || 'gymowner@okhdfcbank';
+
+      updateRenewalModalPayButtons();
+    }
+
+    // --------------------------------------------------------
+    // VIP PASS ONLINE RENEWAL & UPI ENGINE
+    // --------------------------------------------------------
+    function openPassRenewalModal() {
+      playCyberChime('tap');
+      const modal = document.getElementById('pass-renewal-modal');
+      if (modal) modal.classList.remove('hidden');
+      selectRenewalPlan(selectedRenewalMonths || 1);
+    }
+
+    function closePassRenewalModal() {
+      playCyberChime('tap');
+      const modal = document.getElementById('pass-renewal-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function selectRenewalPlan(months) {
+      playCyberChime('tap');
+      selectedRenewalMonths = months;
+
+      [1, 3, 6, 12].forEach(m => {
+        const btn = document.getElementById(`renew-plan-btn-${m}`);
+        if (!btn) return;
+        if (m === months) {
+          btn.className = "p-3 rounded-2xl border-2 border-cyberVolt bg-cyberVolt/15 text-left transition-all relative overflow-hidden cursor-pointer shadow-glow-volt";
+        } else {
+          btn.className = "p-3 rounded-2xl border border-white/10 bg-surfaceMuted hover:border-white/20 text-left transition-all relative overflow-hidden cursor-pointer";
+        }
+      });
+
+      updateRenewalModalPayButtons();
+    }
+
+    function getSelectedPlanPrice() {
+      const c = currentGymConfig;
+      switch (selectedRenewalMonths) {
+        case 3: return c.plan_3m_price || 3200;
+        case 6: return c.plan_6m_price || 5800;
+        case 12: return c.plan_12m_price || 10500;
+        case 1:
+        default: return c.plan_1m_price || 1200;
+      }
+    }
+
+    function updateRenewalModalPayButtons() {
+      const price = getSelectedPlanPrice();
+      const label = document.getElementById('renew-pay-button-label');
+      if (label) {
+        label.innerText = `PAY ₹${price.toLocaleString('en-IN')} VIA ANY UPI APP`;
+      }
+
+      // Update WhatsApp payment screenshot link
+      const waBtn = document.getElementById('btn-whatsapp-confirm-pay');
+      if (waBtn) {
+        const c = currentGymConfig;
+        const phone = c.support_phone ? String(c.support_phone).replace(/\D/g, '').slice(-10) : '8467895365';
+        const memberName = currentAthlete ? currentAthlete.full_name : 'Athlete';
+        const memberPhone = currentAthlete ? currentAthlete.phone : '';
+        const text = encodeURIComponent(`Hi ${c.gym_name}, I have initiated my ${selectedRenewalMonths} Month(s) Pass renewal payment of ₹${price.toLocaleString('en-IN')} via UPI to ${c.upi_id}.\n\nMember: ${memberName} (+91 ${memberPhone})\nPlease verify and update my VIP pass.`);
+        waBtn.href = `https://wa.me/91${phone}?text=${text}`;
+      }
+    }
+
+    function executeUPIPay() {
+      playCyberChime('tap');
+      const c = currentGymConfig;
+      const price = getSelectedPlanPrice();
+      const upiId = c.upi_id || 'gymowner@okhdfcbank';
+      const gymName = c.gym_name || 'Retro Gym';
+      const memberName = currentAthlete ? currentAthlete.full_name : 'Athlete';
+      
+      const note = encodeURIComponent(`${memberName} ${selectedRenewalMonths}M Pass Renewal`);
+      const upiUri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(gymName)}&am=${price}&cu=INR&tn=${note}`;
+      
+      window.location.href = upiUri;
+      showToast(`Launching UPI payment for ₹${price.toLocaleString('en-IN')}...`, "success");
+    }
+
+    function copyGymUpiId() {
+      playCyberChime('tap');
+      const upiId = currentGymConfig.upi_id || 'gymowner@okhdfcbank';
+      navigator.clipboard.writeText(upiId).then(() => {
+        const feedback = document.getElementById('renew-copy-feedback');
+        if (feedback) feedback.innerText = "Copied!";
+        showToast(`Copied UPI ID: ${upiId} 📋`, "success");
+        setTimeout(() => {
+          if (feedback) feedback.innerText = "Copy ID";
+        }, 2000);
+      }).catch(() => {
+        showToast(`UPI ID: ${upiId}`, "info");
+      });
     }
 
     function renderEmergencyBanner(config) {
