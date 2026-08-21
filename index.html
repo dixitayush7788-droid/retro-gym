@@ -198,13 +198,6 @@
         >
           VERIFY ATHLETE IDENTITY ⚡
         </button>
-
-        <div class="text-center pt-2 border-t border-white/10">
-          <a href="./admin.html" class="font-mono text-[11px] text-zinc-400 hover:text-cyberVolt transition-colors flex items-center justify-center gap-1.5">
-            <span>🛡️ Switch to Super Admin Console</span>
-            <span>→</span>
-          </a>
-        </div>
       </div>
 
       <!-- STEP 2: 4-DIGIT PIN SECURITY CHECK / CREATION -->
@@ -553,19 +546,11 @@
         </div>
       </div>
 
-      <!-- Right: Member Badge & Admin Switch -->
+      <!-- Right: Member Badge -->
       <div class="flex items-center gap-2">
         <div id="top-member-avatar" class="w-9 h-9 rounded-2xl bg-gradient-to-tr from-cyberVolt/20 to-cyanCyber/20 border border-cyberVolt/40 text-cyberVolt font-brand font-bold text-sm flex items-center justify-center shadow-glow-volt">
           A
         </div>
-        <a 
-          href="./admin.html" 
-          class="px-2.5 py-1.5 rounded-xl bg-surfaceCard hover:bg-surfaceMuted border border-white/10 text-zinc-400 hover:text-white font-mono text-[10px] flex items-center gap-1 transition-all"
-          title="Switch to Admin"
-        >
-          <span>Switch</span>
-          <span>✕</span>
-        </a>
       </div>
     </header>
 
@@ -1843,9 +1828,7 @@
     function renderGatekeeperError(title, message, subDetail, type = 'lock') {
       let icon = '🔒';
       let iconBg = 'bg-amber-50 text-amber-600 border-amber-200';
-      let actionBtn = `<a href="./super-admin.html" class="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs tracking-wider uppercase transition-all shadow-md active:scale-95 cursor-pointer">
-        <span>⚡ Nexus Master Console</span>
-      </a>`;
+      let actionBtn = '';
 
       if (type === 'notfound') {
         icon = '🏢';
@@ -1873,9 +1856,10 @@
             <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 text-xs font-mono text-slate-600 break-all">
               ${subDetail}
             </div>` : ''}
+            ${actionBtn ? `
             <div class="pt-2">
               ${actionBtn}
-            </div>
+            </div>` : ''}
           </div>
         </div>
       `;
@@ -2318,8 +2302,8 @@
         localStorage.removeItem('retro_gym_status_config');
         renderGatekeeperError(
           "Access Restricted",
-          "🔒 Access Restricted: No Gym Tenant Specified. Please open your gym's official unique access link.",
-          "Missing URL parameter: ?gym=your-gym-slug",
+          "🔒 Access Restricted: Please open your gym's official unique pass link or scan the reception QR code.",
+          "",
           "lock"
         );
         return;
