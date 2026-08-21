@@ -927,13 +927,13 @@
     });
 
     // ----------------------------------------------------
-    // INITIALIZATION & DIRECT SUPABASE SYNC ONLY
+    // INITIALIZATION & DIRECT SUPABASE SYNC (FLEET ENGINE)
     // ----------------------------------------------------
     async function loadInitialData() {
-      await refreshSupabaseData();
+      await fetchAndRenderFleet();
     }
 
-    async function refreshSupabaseData() {
+    async function fetchAndRenderFleet() {
       if (!db) {
         gymFleet = [];
         allMembersList = [];
@@ -954,23 +954,42 @@
           .order('created_at', { ascending: false });
 
         if (!gErr && gymsList) {
-          gymFleet = gymsList.map(t => ({
-            id: t.id || `gym_${t.slug}`,
-            name: t.name || t.slug,
-            slug: t.slug,
-            owner_phone: t.owner_phone || "",
-            owner_upi: t.owner_upi || "",
-            status: t.status || "ACTIVE",
-            op_status: t.op_status || "OPEN",
-            monthly_fee: Number(t.monthly_fee) || 0,
-            validity_days: t.validity_days || 365,
-            created_at: t.created_at || new Date().toISOString(),
-            expires_at: t.expires_at || new Date().toISOString(),
-            pricing: t.pricing || { p1: 1200, p3: 3200, p6: 5800, p12: 10500 },
-            features: t.features || { workouts: true, nutrition: true, qr_attendance: true, notices: true }
-          }));
+          gymFleet = gymsList.map(t => {
+            const gymName = t.gym_name || t.name || t.slug;
+            const p1 = Number(t.plan_1m_price) || (t.pricing && t.pricing.p1) || 1200;
+            const p3 = Number(t.plan_3m_price) || (t.pricing && t.pricing.p3) || 3200;
+            const p6 = Number(t.plan_6m_price) || (t.pricing && t.pricing.p6) || 5800;
+            const p12 = Number(t.plan_12m_price) || (t.pricing && t.pricing.p12) || 10500;
+            const saasFee = Number(t.saas_fee) || Number(t.monthly_saas_fee) || Number(t.monthly_fee) || 0;
+            const expiresAt = t.subscription_expires_at || t.expires_at || new Date(Date.now() + 365 * 86400000).toISOString();
+            const isActive = t.is_active !== false && t.status !== 'INACTIVE';
+
+            return {
+              id: t.id || `gym_${t.slug}`,
+              name: gymName,
+              gym_name: gymName,
+              slug: t.slug,
+              owner_phone: t.owner_phone || t.phone || "",
+              owner_upi: t.upi_id || t.owner_upi || "",
+              upi_id: t.upi_id || t.owner_upi || "",
+              status: isActive ? "ACTIVE" : "INACTIVE",
+              op_status: t.op_status || "OPEN",
+              monthly_fee: saasFee,
+              saas_fee: saasFee,
+              monthly_saas_fee: saasFee,
+              plan_1m_price: p1,
+              plan_3m_price: p3,
+              plan_6m_price: p6,
+              plan_12m_price: p12,
+              validity_days: t.validity_days || 365,
+              created_at: t.created_at || new Date().toISOString(),
+              expires_at: expiresAt,
+              subscription_expires_at: expiresAt,
+              pricing: t.pricing || { p1, p3, p6, p12 },
+              features: t.features || { workouts: true, nutrition: true, qr_attendance: true, notices: true }
+            };
+          });
         } else {
-          // If error or table empty, strict empty array
           gymFleet = [];
         }
       } catch (err) {
@@ -980,6 +999,10 @@
 
       updateKpis();
       renderGymList();
+    }
+
+    async function refreshSupabaseData() {
+      await fetchAndRenderFleet();
       showToast("Cloud fleet state synced 🔄", "info");
     }
 
@@ -1363,64 +1386,79 @@
     }
 
     async function handleOnboardSubmit() {
-      const name = document.getElementById('form-name').value.trim();
-      const slug = document.getElementById('form-slug').value.trim();
+      const gymName = document.getElementById('form-name').value.trim();
+      const rawSlug = document.getElementById('form-slug').value.trim();
       const phone = document.getElementById('form-phone').value.trim();
       const upi = document.getElementById('form-upi').value.trim();
-      const fee = Number(document.getElementById('form-fee').value) || 2499;
+      const saasFee = document.getElementById('form-fee').value.trim() || 2499;
       const validityDays = Number(document.getElementById('form-validity').value) || 365;
 
-      const p1 = Number(document.getElementById('form-p1').value) || 1200;
-      const p3 = Number(document.getElementById('form-p3').value) || 3200;
-      const p6 = Number(document.getElementById('form-p6').value) || 5800;
-      const p12 = Number(document.getElementById('form-p12').value) || 10500;
+      const p1 = document.getElementById('form-p1').value.trim() || 1200;
+      const p3 = document.getElementById('form-p3').value.trim() || 3200;
+      const p6 = document.getElementById('form-p6').value.trim() || 5800;
+      const p12 = document.getElementById('form-p12').value.trim() || 10500;
 
       const featWorkouts = document.getElementById('form-feat-workouts').checked;
       const featNutrition = document.getElementById('form-feat-nutrition').checked;
       const featQr = document.getElementById('form-feat-qr').checked;
       const featNotices = document.getElementById('form-feat-notices').checked;
 
-      if (!name || !slug || !phone || !upi) {
+      const cleanSlug = rawSlug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+
+      if (!gymName || !cleanSlug || !phone || !upi) {
         showToast("Please fill all required fields", "error");
         return;
       }
 
-      const newGym = {
-        name,
-        slug,
-        owner_phone: phone,
-        owner_upi: upi,
-        status: "ACTIVE",
-        op_status: "OPEN",
-        monthly_fee: fee,
-        validity_days: validityDays,
-        created_at: new Date().toISOString(),
-        expires_at: new Date(Date.now() + validityDays * 86400000).toISOString(),
-        pricing: { p1, p3, p6, p12 },
-        features: {
-          workouts: featWorkouts,
-          nutrition: featNutrition,
-          qr_attendance: featQr,
-          notices: featNotices
-        }
+      const selectedFeatures = {
+        workouts: featWorkouts,
+        nutrition: featNutrition,
+        qr_attendance: featQr,
+        notices: featNotices
       };
 
-      if (db) {
-        try {
-          const { error } = await db.from('gyms').insert([newGym]);
-          if (error) {
-            console.error("Error inserting into gyms table:", error);
-          }
-        } catch (e) {
-          console.warn("Supabase insert note:", e);
-        }
+      const expiryDate = new Date(Date.now() + validityDays * 86400000);
+      const expiryDateISO = expiryDate.toISOString();
+
+      if (!db) {
+        alert("Database Error: Supabase client not initialized.");
+        return;
       }
 
-      await refreshSupabaseData();
+      const { data, error } = await db.from('gyms').insert([{
+        gym_name: gymName,
+        name: gymName,
+        slug: cleanSlug,
+        owner_phone: phone,
+        upi_id: upi,
+        saas_fee: Number(saasFee),
+        monthly_saas_fee: Number(saasFee),
+        plan_1m_price: Number(p1),
+        plan_3m_price: Number(p3),
+        plan_6m_price: Number(p6),
+        plan_12m_price: Number(p12),
+        features: selectedFeatures,
+        is_active: true,
+        subscription_expires_at: expiryDateISO
+      }]).select();
 
+      if (error) {
+        console.error("Supabase insert error:", error);
+        alert("Database Error: " + error.message);
+        return;
+      }
+
+      // Close modal and give sound feedback
       closeOnboardModal();
       playAudioChirp(1200, 0.2);
-      showToast(`🏢 Successfully Deployed Node for "${name}"!`, "success");
+      showToast(`🏢 Successfully Deployed Node for "${gymName}"!`, "success");
+
+      // IMMEDIATELY re-run the fetchAndRenderFleet() function so the new gym card appears on screen instantly
+      await fetchAndRenderFleet();
+
+      // Reset form fields
+      const formEl = document.getElementById('onboard-form');
+      if (formEl) formEl.reset();
     }
 
     // ----------------------------------------------------
