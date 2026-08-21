@@ -177,7 +177,7 @@
 
         if (data?.session) {
           submitBtn.innerText = "SUCCESS! REDIRECTING...";
-          window.location.href = `/admin.html?gym=${encodeURIComponent(gymSlug || 'rahul-fitness')}`;
+          window.location.href = `./admin.html?gym=${encodeURIComponent(gymSlug || 'rahul-fitness')}`;
         } else {
           throw new Error('Could not establish session. Please verify credentials.');
         }

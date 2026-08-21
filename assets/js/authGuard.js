@@ -65,12 +65,12 @@ export async function handleSignOut() {
   cachedUserContext = null;
   localStorage.removeItem('nexus_desk_unlocked');
   await supabase.auth.signOut();
-  window.location.href = '/admin-login.html';
+  window.location.href = './admin-login.html';
 }
 
 function redirectToLogin(gymSlug) {
   const query = gymSlug ? `?gym=${encodeURIComponent(gymSlug)}` : '';
-  window.location.href = `/admin-login.html${query}`;
+  window.location.href = `./admin-login.html${query}`;
 }
 
 function renderForbiddenState(gymSlug) {
@@ -90,7 +90,7 @@ function setupAuthStateListener() {
   supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_OUT' || !session) {
       cachedUserContext = null;
-      window.location.href = '/admin-login.html';
+      window.location.href = './admin-login.html';
     }
   });
 }
