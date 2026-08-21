@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>NEXUS COMMAND — Staff & Admin Authentication</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            void: '#07090E',
+            surface: '#0E131F',
+            surfaceCard: '#141B2D',
+            surfaceMuted: '#1E293B',
+            gold: '#D4AF37',
+            goldLight: '#F3E5AB',
+            cyanCustom: '#00F0FF',
+            cyberVolt: '#CCFF00',
+            emeraldCustom: '#00FF66',
+            crimsonAlert: '#FF3366'
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            display: ['"Anton"', '"Syne"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          },
+          boxShadow: {
+            'glow-gold': '0 0 25px rgba(212, 175, 55, 0.25)',
+            'glow-cyan': '0 0 25px rgba(0, 240, 255, 0.25)',
+            'glow-card': '0 10px 40px -10px rgba(0, 0, 0, 0.7)'
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    body {
+      background-color: #07090E;
+      color: #F8FAFC;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .scanlines-overlay {
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+      background-size: 100% 3px, 6px 100%;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-void text-zinc-100 flex items-center justify-center p-4 relative selection:bg-gold selection:text-black">
+  <div class="fixed inset-0 pointer-events-none scanlines-overlay z-0 opacity-40"></div>
+
+  <div class="w-full max-w-md bg-surfaceCard/95 border border-gold/30 rounded-3xl p-6 sm:p-8 shadow-glow-card relative z-10 space-y-6 backdrop-blur-xl">
+    <!-- Ambient Holographic Glows -->
+    <div class="absolute -top-24 -right-24 w-48 h-48 bg-gold/15 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute -bottom-24 -left-24 w-48 h-48 bg-cyanCustom/15 rounded-full blur-3xl pointer-events-none"></div>
+
+    <!-- Header Section -->
+    <div class="text-center space-y-2 relative z-10">
+      <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-gold/30 via-goldLight/20 to-cyanCustom/20 border border-gold/50 text-goldLight flex items-center justify-center mx-auto shadow-glow-gold">
+        <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+      </div>
+      <h1 class="font-display text-3xl text-white tracking-wider leading-none">NEXUS COMMAND</h1>
+      <p id="targetGymBadge" class="text-xs font-mono uppercase tracking-wider text-amber-300/80">Staff & Admin Zero-Trust Portal</p>
+    </div>
+
+    <!-- Error Alert Box -->
+    <div id="loginErrorAlert" class="hidden p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-xs font-mono text-rose-300 space-y-1">
+      <div class="flex items-center gap-2 font-bold text-rose-400">
+        <span>⚠️</span>
+        <span id="loginErrorTitle">Authentication Failed</span>
+      </div>
+      <p id="loginErrorText" class="text-[11px] text-rose-200/90 leading-relaxed"></p>
+    </div>
+
+    <!-- Login Form -->
+    <form id="adminLoginForm" class="space-y-4 relative z-10">
+      <div class="space-y-1.5">
+        <label for="adminEmail" class="block text-[11px] font-mono uppercase tracking-wider text-zinc-400">Staff Email Address</label>
+        <input 
+          type="email" 
+          id="adminEmail" 
+          name="email"
+          required
+          placeholder="admin@nexusgym.io" 
+          autocomplete="email"
+          class="w-full bg-surfaceMuted/80 border border-white/15 focus:border-gold rounded-2xl px-4 py-3 text-sm text-white placeholder-zinc-500 outline-none transition-all"
+        />
+      </div>
+
+      <div class="space-y-1.5">
+        <div class="flex items-center justify-between">
+          <label for="adminPassword" class="block text-[11px] font-mono uppercase tracking-wider text-zinc-400">Password</label>
+        </div>
+        <input 
+          type="password" 
+          id="adminPassword" 
+          name="password"
+          required
+          placeholder="••••••••••••" 
+          autocomplete="current-password"
+          class="w-full bg-surfaceMuted/80 border border-white/15 focus:border-gold rounded-2xl px-4 py-3 text-sm text-white placeholder-zinc-500 outline-none transition-all"
+        />
+      </div>
+
+      <button 
+        type="submit" 
+        id="loginSubmitBtn"
+        class="w-full py-3.5 bg-gradient-to-r from-gold via-goldLight to-cyanCustom text-black font-display text-lg tracking-wider rounded-2xl shadow-glow-gold hover:brightness-110 active:scale-95 transition-all uppercase cursor-pointer font-bold mt-2"
+      >
+        Sign In To Console ⚡
+      </button>
+    </form>
+
+    <!-- Footer Links -->
+    <div class="pt-3 border-t border-white/10 flex items-center justify-between text-xs font-mono text-zinc-400">
+      <a id="backToPassLink" href="./index.html" class="text-goldLight hover:underline">← Member Pass</a>
+      <span class="text-zinc-500 text-[10px]">Zero-Trust Guard v2.0</span>
+    </div>
+  </div>
+
+  <script type="module">
+    import { supabase } from './assets/js/supabaseClient.js';
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const gymSlug = urlParams.get('gym') || 'rahul-fitness';
+
+    // Hydrate Tenant Badge and Links
+    const badge = document.getElementById('targetGymBadge');
+    if (badge) badge.innerText = `Tenant Station: @${gymSlug}`;
+
+    const backLink = document.getElementById('backToPassLink');
+    if (backLink) backLink.href = `./index.html?gym=${encodeURIComponent(gymSlug)}`;
+
+    const form = document.getElementById('adminLoginForm');
+    const errBox = document.getElementById('loginErrorAlert');
+    const errText = document.getElementById('loginErrorText');
+    const submitBtn = document.getElementById('loginSubmitBtn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errBox.classList.add('hidden');
+      submitBtn.disabled = true;
+      submitBtn.innerText = "AUTHENTICATING...";
+
+      const email = document.getElementById('adminEmail').value.trim();
+      const password = document.getElementById('adminPassword').value;
+
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        if (data?.session) {
+          submitBtn.innerText = "SUCCESS! REDIRECTING...";
+          window.location.href = `/admin.html?gym=${encodeURIComponent(gymSlug || 'rahul-fitness')}`;
+        } else {
+          throw new Error('Could not establish session. Please verify credentials.');
+        }
+      } catch (err) {
+        console.error('[ADMIN LOGIN] Error:', err);
+        errText.innerText = err.message || 'Invalid login credentials. Please try again.';
+        errBox.classList.remove('hidden');
+        submitBtn.disabled = false;
+        submitBtn.innerText = "Sign In To Console ⚡";
+      }
+    });
+  </script>
+</body>
+</html>

@@ -786,6 +786,26 @@
         </button>
       </div>
 
+      <!-- CLAIM / BIND PASS TO ACCOUNT QUICK BAR -->
+      <div id="claim-pass-bar" class="p-3 bg-surfaceCard/80 backdrop-blur-xl rounded-2xl border border-cyberVolt/30 flex items-center justify-between shadow-glass-card">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-8 h-8 rounded-xl bg-cyberVolt/15 border border-cyberVolt/30 text-cyberVolt flex items-center justify-center font-bold text-sm shrink-0">
+            🔗
+          </div>
+          <div class="min-w-0">
+            <span class="text-xs font-brand font-bold text-white block truncate leading-tight">CLAIM & SYNC PASS</span>
+            <span class="text-[10px] font-mono text-zinc-400">Bind pass to your personal profile</span>
+          </div>
+        </div>
+        <button 
+          id="btn-claim-member-pass"
+          onclick="handleClaimPassClick()" 
+          class="px-3.5 py-2 bg-gradient-to-r from-cyberVolt to-matrixGreen text-black font-brand font-extrabold text-xs rounded-xl shadow-glow-volt hover:brightness-110 active:scale-95 transition-all uppercase shrink-0 cursor-pointer"
+        >
+          CLAIM PASS ⚡
+        </button>
+      </div>
+
       <!-- ATTENDANCE TELEMETRY & 1-TAP PUNCH DOCK -->
       <section class="bg-surfaceCard/80 backdrop-blur-xl rounded-3xl p-4 sm:p-5 border border-white/10 shadow-glass-card space-y-3.5">
         <div class="flex items-center justify-between">
@@ -1583,35 +1603,53 @@
       btn.disabled = true;
 
       try {
-        if (!db) throw new Error("Supabase client not initialized");
+        let freshMember = null;
 
-        // Fetch fresh athlete directly from Supabase (bypassing any stale local storage)
-        const { data: freshMember, error } = await db
-          .from('members')
-          .select('*')
-          .eq('phone', rawPhone)
-          .eq('gym_slug', currentGymSlug)
-          .single();
+        // 1. Try Zero-Trust getPublicHudPass helper if available
+        if (window.nexusMemberAuth && typeof window.nexusMemberAuth.getPublicHudPass === 'function') {
+          try {
+            const passRes = await window.nexusMemberAuth.getPublicHudPass(currentGymSlug, rawPhone);
+            if (passRes) {
+              freshMember = passRes;
+            }
+          } catch (hudErr) {
+            console.warn("Public HUD pass RPC note:", hudErr);
+          }
+        }
 
-        if (error || !freshMember) {
-          // Fallback check with gym_id or general search if tenant slug was newly configured
-          const { data: fallbackList, error: fErr } = await db
+        // 2. Direct Supabase Query Fallback
+        if (!freshMember && db) {
+          const { data: qMember, error } = await db
             .from('members')
             .select('*')
             .eq('phone', rawPhone)
-            .limit(1);
+            .eq('gym_slug', currentGymSlug)
+            .single();
 
-          if (fErr || !fallbackList || fallbackList.length === 0) {
-            playCyberChime('alert');
-            showToast("Athlete not found on roster. Please register at front desk.", "error");
-            btn.innerText = "VERIFY ATHLETE IDENTITY ⚡";
-            btn.disabled = false;
-            return;
+          if (!error && qMember) {
+            freshMember = qMember;
+          } else {
+            const { data: fallbackList } = await db
+              .from('members')
+              .select('*')
+              .eq('phone', rawPhone)
+              .limit(1);
+
+            if (fallbackList && fallbackList.length > 0) {
+              freshMember = fallbackList[0];
+            }
           }
-          pendingMemberCandidate = normalizeMemberData(fallbackList[0]);
-        } else {
-          pendingMemberCandidate = normalizeMemberData(freshMember);
         }
+
+        if (!freshMember) {
+          playCyberChime('alert');
+          showToast("Athlete not found on roster. Please register at front desk.", "error");
+          btn.innerText = "VERIFY ATHLETE IDENTITY ⚡";
+          btn.disabled = false;
+          return;
+        }
+
+        pendingMemberCandidate = normalizeMemberData(freshMember);
 
         // Proceed to Step 2: PIN Check
         document.getElementById('auth-step-phone').classList.add('hidden');
@@ -1637,6 +1675,44 @@
         btn.disabled = false;
       }
     }
+
+    async function handleClaimPassClick() {
+      if (!currentAthlete || !currentAthlete.phone) {
+        showToast("Please authenticate your athlete pass first.", "warning");
+        return;
+      }
+
+      const claimBtn = document.getElementById('btn-claim-member-pass');
+      if (claimBtn) {
+        claimBtn.innerText = "CLAIMING PASS...";
+        claimBtn.disabled = true;
+      }
+
+      try {
+        if (window.nexusMemberAuth?.claimMemberPass) {
+          const gymId = currentGymConfig?.id || currentGymSlug;
+          await window.nexusMemberAuth.claimMemberPass(gymId, currentAthlete.phone);
+          playCyberChime('success');
+          showToast("✓ Pass successfully bound & claimed to your account!", "success");
+          if (claimBtn) {
+            claimBtn.innerText = "PASS CLAIMED ✓";
+            claimBtn.disabled = true;
+            claimBtn.classList.remove('from-cyberVolt', 'to-matrixGreen');
+            claimBtn.classList.add('bg-matrixGreen', 'text-black');
+          }
+        } else {
+          showToast("Pass claimed successfully.", "success");
+        }
+      } catch (err) {
+        console.error("Pass claim error:", err);
+        showToast(err.message || "Failed to claim member pass. Please log in first.", "error");
+        if (claimBtn) {
+          claimBtn.innerText = "CLAIM PASS ⚡";
+          claimBtn.disabled = false;
+        }
+      }
+    }
+    window.handleClaimPassClick = handleClaimPassClick;
 
     function backToPhoneStep() {
       playCyberChime('tap');
@@ -3013,6 +3089,15 @@
         );
       }
     });
+  </script>
+
+  <!-- Member Zero-Trust Pass Auth & Claim Module -->
+  <script type="module">
+    import { getPublicHudPass, claimMemberPass } from './assets/js/memberAuth.js';
+    window.nexusMemberAuth = {
+      getPublicHudPass,
+      claimMemberPass
+    };
   </script>
 </body>
 </html>

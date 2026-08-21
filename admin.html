@@ -221,6 +221,10 @@
             <span class="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-emeraldCustom/20 text-emeraldCustom border border-emeraldCustom/40 flex items-center gap-1">
               <span class="w-1.5 h-1.5 rounded-full bg-emeraldCustom animate-pulse"></span> CYBER COMMAND DESK
             </span>
+            <div id="admin-staff-info-badge" class="hidden text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-surfaceMuted/90 border border-white/15 text-zinc-300 flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-emeraldCustom"></span>
+              <span id="admin-staff-name-role">Staff</span>
+            </div>
           </div>
           <p id="admin-gym-header-tagline" class="text-xs font-mono text-zinc-400">Old School Iron • 360° Athlete Dossiers & Lifecycle Hub</p>
         </div>
@@ -228,6 +232,14 @@
 
       <!-- Quick Action Control Bar -->
       <div class="flex flex-wrap items-center gap-2">
+        <button 
+          id="deskQuickPinBtn"
+          class="px-3.5 py-2.5 bg-surfaceCard hover:bg-surfaceMuted text-amber-300 font-mono text-xs rounded-2xl border border-amber-400/30 flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-glow-gold"
+          title="Staff Quick-PIN Terminal Unlock"
+        >
+          <span>🔑 Quick-PIN</span>
+        </button>
+
         <button 
           onclick="openAddMemberDrawer()"
           class="px-4 py-2.5 bg-gradient-to-r from-gold via-goldLight to-cyanCustom text-black font-display text-base tracking-wider rounded-2xl shadow-glow-gold hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer uppercase font-bold"
@@ -277,9 +289,18 @@
 
         <button 
           onclick="lockAdminConsole()"
-          class="px-3.5 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-mono text-xs rounded-2xl border border-rose-500/30 transition-all cursor-pointer active:scale-95"
+          class="px-3.5 py-2.5 bg-surfaceCard hover:bg-surfaceMuted text-zinc-300 font-mono text-xs rounded-2xl border border-white/10 transition-all cursor-pointer active:scale-95"
+          title="Lock Screen"
         >
           🔒 Lock
+        </button>
+
+        <button 
+          id="adminSignOutBtn"
+          class="px-3.5 py-2.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 font-mono text-xs rounded-2xl border border-rose-500/40 flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+          title="Sign Out of Admin Console"
+        >
+          <span>🚪 Sign Out</span>
         </button>
       </div>
 
@@ -3213,6 +3234,35 @@ _Old School Iron • Modern Discipline_`;
     window.addEventListener('DOMContentLoaded', () => {
       initAdminGatekeeper();
     });
+  </script>
+
+  <!-- Zero-Trust Auth Guard & Session Wiring -->
+  <script type="module">
+    import { initAdminConsole } from './assets/js/adminAuth.js';
+    import { handleSignOut, getCurrentContext } from './assets/js/authGuard.js';
+
+    window.handleNexusSignOut = handleSignOut;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        await initAdminConsole();
+        const ctx = getCurrentContext();
+        if (ctx) {
+          const staffBadge = document.getElementById('admin-staff-info-badge');
+          const staffText = document.getElementById('admin-staff-name-role');
+          if (staffBadge && staffText) {
+            const userEmail = ctx.email || 'Admin Staff';
+            const userRole = ctx.is_super_admin ? 'SUPER ADMIN' : (ctx.roles?.[0]?.role || 'STAFF');
+            staffText.innerText = `${userEmail} (${userRole})`;
+            staffBadge.classList.remove('hidden');
+          }
+        }
+      } catch (e) {
+        console.warn('[ADMIN AUTH INITIALIZATION]', e);
+      }
+    });
+
+    document.getElementById('adminSignOutBtn')?.addEventListener('click', handleSignOut);
   </script>
 </body>
 </html>
