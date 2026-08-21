@@ -2577,73 +2577,37 @@
       const collectedAmount = parseFloat(document.getElementById('feeAmountInput')?.value) || selectedFee || 1200;
 
       const isReferred = document.getElementById('ref-type-referred')?.checked;
-      const selectedValue = isReferred ? (document.getElementById('new-member-referrer')?.value || '') : '';
-      const cleanRefPhone = selectedValue.replace(/\D/g, '').slice(-10);
+      const selectedReferrerValue = isReferred ? (document.getElementById('new-member-referrer')?.value || '') : '';
+      const cleanRefPhone = (selectedReferrerValue || '').replace(/\D/g, '').slice(-10);
 
       const btn = document.getElementById('btn-submit-member');
       btn.innerText = "Registering Athlete to Cloud...";
       btn.disabled = true;
 
       try {
-        let success = false;
-        let rpcError = null;
+        const calculatedExpiryDate = new Date();
+        calculatedExpiryDate.setMonth(calculatedExpiryDate.getMonth() + selectedPlanMonths);
+        const calculatedExpiryISO = calculatedExpiryDate.toISOString();
 
-        // 1. Primary path: Supabase RPC register_member_with_referral
-        if (db) {
-          try {
-            const { data, error } = await db.rpc('register_member_with_referral', {
-              p_gym_slug: currentGymSlug,
-              p_name: fullName,
-              p_phone: cleanPhone,
-              p_age: parseInt(age, 10) || null,
-              p_address: address,
-              p_photo_url: newMemberPhotoBase64 || '',
-              p_plan_months: selectedPlanMonths,
-              p_fees_paid: collectedAmount,
-              p_referrer_phone: cleanRefPhone || ''
-            });
+        const { error } = await db.from('members').insert([{
+          gym_slug: currentGymSlug,
+          gym_id: currentGymSlug,
+          name: fullName,
+          full_name: fullName,
+          phone: cleanPhone,
+          age: parseInt(age, 10) || null,
+          address: address,
+          photo_url: newMemberPhotoBase64 || '',
+          plan_months: parseInt(selectedPlanMonths, 10) || 1,
+          fees_paid: parseFloat(collectedAmount) || 0,
+          valid_until: calculatedExpiryISO,
+          referred_by: cleanRefPhone || null,
+          referred_by_phone: cleanRefPhone || null,
+          joining_date: new Date().toISOString().split('T')[0],
+          is_active: true
+        }]);
 
-            if (!error && (!data || data.success !== false)) {
-              success = true;
-            } else {
-              rpcError = error || (data && data.error);
-              console.warn("RPC register_member_with_referral notice:", rpcError);
-            }
-          } catch (rpcEx) {
-            console.warn("RPC invocation exception:", rpcEx);
-          }
-        }
-
-        // 2. Defensive fallback: Direct table insert if RPC is unavailable
-        if (!success && db) {
-          const calculatedExpiryDate = new Date();
-          calculatedExpiryDate.setMonth(calculatedExpiryDate.getMonth() + selectedPlanMonths);
-          const isoExpiry = calculatedExpiryDate.toISOString();
-
-          const newMemberPayload = {
-            full_name: fullName,
-            name: fullName,
-            phone: cleanPhone,
-            gym_id: currentGymSlug,
-            gym_slug: currentGymSlug,
-            valid_until: isoExpiry,
-            expiry_date: isoExpiry,
-            plan_duration_months: selectedPlanMonths,
-            fees_paid: collectedAmount,
-            age: parseInt(age, 10) || null,
-            address: address,
-            photo_url: newMemberPhotoBase64 || null,
-            referred_by: cleanRefPhone || null,
-            referrer_phone: cleanRefPhone || null,
-            referred_by_phone: cleanRefPhone || null,
-            streak_count: 0,
-            password: null
-          };
-
-          const { error: insertErr } = await db.from('members').insert([newMemberPayload]);
-          if (insertErr) throw insertErr;
-          success = true;
-        }
+        if (error) throw error;
 
         playAudioChirp(880, 0.15);
         showToast(`Athlete ${fullName} registered to [${currentGymConfig.gym_name}]! ⚡`, "success");
