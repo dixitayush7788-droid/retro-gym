@@ -1043,9 +1043,9 @@
 
     const db = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
-    // Parse URL parameter for multi-tenant isolation (?gym=slug)
+    // Parse URL parameter for multi-tenant isolation (?gym=slug) — STRICT: ZERO DEFAULT FALLBACKS
     const urlParams = new URLSearchParams(window.location.search);
-    const currentGymSlug = (urlParams.get('gym') || 'retro-gym').toLowerCase().trim();
+    const currentGymSlug = (urlParams.get('gym') || '').toLowerCase().trim();
 
     let allMembers = [];
     let allAttendanceLogs = [];
@@ -1053,11 +1053,12 @@
     let selectedMonths = 1;
     let selectedFee = 1200;
     let activeDossierMember = null;
+    let verifiedGymTenant = null;
     let currentGymConfig = {
       id: 1,
       slug: currentGymSlug,
-      gym_name: currentGymSlug === 'retro-gym' ? "RETRO GYM" : currentGymSlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
-      gym_tagline: "DIGITAL MEMBER HUD",
+      gym_name: "CYBER GYM",
+      gym_tagline: "DIGITAL COMMAND DESK",
       logo_url: "",
       upi_id: "gymowner@okhdfcbank",
       support_phone: "8467895365",
@@ -1068,8 +1069,53 @@
       status: "OPEN",
       notice_text: "Regular timings in effect. Stay hydrated and hit your sets!",
       delayed_time: "5:00 PM",
+      features: { workouts: true, nutrition: true, qr_attendance: true, notices: true },
       updated_at: new Date().toISOString()
     };
+
+    // ----------------------------------------------------
+    // LIGHT LUXE GATEKEEPER UI & TENANT VERIFICATION ENGINE
+    // ----------------------------------------------------
+    function renderGatekeeperError(title, message, subDetail, type = 'lock') {
+      let icon = '🔒';
+      let iconBg = 'bg-amber-50 text-amber-600 border-amber-200';
+      let actionBtn = `<a href="./super-admin.html" class="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs tracking-wider uppercase transition-all shadow-md active:scale-95 cursor-pointer">
+        <span>⚡ Nexus Master Console</span>
+      </a>`;
+
+      if (type === 'notfound') {
+        icon = '🏢';
+        iconBg = 'bg-rose-50 text-rose-600 border-rose-200';
+      } else if (type === 'suspended') {
+        icon = '⚠️';
+        iconBg = 'bg-amber-50 text-amber-600 border-amber-200';
+        actionBtn = `<a href="tel:8467895365" class="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs tracking-wider uppercase transition-all shadow-md active:scale-95 cursor-pointer">
+          <span>📞 Contact Administration</span>
+        </a>`;
+      }
+
+      document.body.className = "h-full bg-slate-900 flex items-center justify-center p-4 font-sans antialiased";
+      document.body.innerHTML = `
+        <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-2xl flex items-center justify-center p-4 z-50">
+          <div class="w-full max-w-md bg-white rounded-3xl p-8 sm:p-9 shadow-2xl border border-slate-100 text-center space-y-6 animate-fade-in">
+            <div class="w-16 h-16 rounded-2xl ${iconBg} border flex items-center justify-center text-3xl mx-auto shadow-sm">
+              ${icon}
+            </div>
+            <div class="space-y-2">
+              <h2 class="text-2xl font-black text-slate-900 tracking-tight">${title}</h2>
+              <p class="text-sm text-slate-600 font-medium leading-relaxed">${message}</p>
+            </div>
+            ${subDetail ? `
+            <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 text-xs font-mono text-slate-600 break-all">
+              ${subDetail}
+            </div>` : ''}
+            <div class="pt-2">
+              ${actionBtn}
+            </div>
+          </div>
+        </div>
+      `;
+    }
 
     // ----------------------------------------------------
     // AUDIO SYNTHESIZER CHIRP
@@ -1269,6 +1315,7 @@
     // FETCH ALL DATA (STRICT MULTI-TENANT ISOLATION)
     // ----------------------------------------------------
     async function fetchAllData(showFeedback = false) {
+      if (!currentGymSlug) return;
       if (!db) {
         showToast("Supabase client not initialized", "error");
         return;
@@ -1280,25 +1327,18 @@
         // 1. Fetch Members strictly for currentGymSlug
         let rawMembers = [];
         try {
-          // Attempt query with gym_id / gym_slug filter
-          let query = db.from('members').select('*');
-          if (currentGymSlug === 'retro-gym') {
-            query = query.or('gym_id.eq.retro-gym,gym_id.is.null,gym_slug.eq.retro-gym');
-          } else {
-            query = query.or(`gym_id.eq.${currentGymSlug},gym_slug.eq.${currentGymSlug}`);
-          }
-          const { data, error } = await query;
+          const { data, error } = await db
+            .from('members')
+            .select('*')
+            .or(`gym_id.eq.${currentGymSlug},gym_slug.eq.${currentGymSlug}`);
+
           if (error) throw error;
           rawMembers = data || [];
         } catch (filterErr) {
-          // Fallback to fetch all and filter in memory defensively
+          console.warn("Direct tenant query note:", filterErr);
           const { data: allData, error: allErr } = await db.from('members').select('*');
           if (allErr) throw allErr;
-          if (currentGymSlug === 'retro-gym') {
-            rawMembers = (allData || []).filter(m => !m.gym_id && !m.gym_slug || m.gym_id === 'retro-gym' || m.gym_slug === 'retro-gym');
-          } else {
-            rawMembers = (allData || []).filter(m => m.gym_id === currentGymSlug || m.gym_slug === currentGymSlug);
-          }
+          rawMembers = (allData || []).filter(m => m.gym_id === currentGymSlug || m.gym_slug === currentGymSlug);
         }
         
         // Defensive normalization
@@ -1312,24 +1352,18 @@
         const todayStr = new Date().toISOString().split('T')[0];
         let logs = [];
         try {
-          let logQuery = db.from('attendance_logs').select('*');
-          if (currentGymSlug === 'retro-gym') {
-            logQuery = logQuery.or('gym_id.eq.retro-gym,gym_id.is.null,gym_slug.eq.retro-gym');
-          } else {
-            logQuery = logQuery.or(`gym_id.eq.${currentGymSlug},gym_slug.eq.${currentGymSlug}`);
-          }
-          const { data: logData, error: lErr } = await logQuery
+          const { data: logData, error: lErr } = await db
+            .from('attendance_logs')
+            .select('*')
+            .or(`gym_id.eq.${currentGymSlug},gym_slug.eq.${currentGymSlug}`)
             .order('checkin_time', { ascending: false })
             .limit(50);
+
           if (lErr) throw lErr;
           logs = logData || [];
         } catch (lErr) {
           const { data: allLogs } = await db.from('attendance_logs').select('*').order('checkin_time', { ascending: false }).limit(50);
-          if (currentGymSlug === 'retro-gym') {
-            logs = (allLogs || []).filter(l => !l.gym_id && !l.gym_slug || l.gym_id === 'retro-gym' || l.gym_slug === 'retro-gym');
-          } else {
-            logs = (allLogs || []).filter(l => l.gym_id === currentGymSlug || l.gym_slug === currentGymSlug);
-          }
+          logs = (allLogs || []).filter(l => l.gym_id === currentGymSlug || l.gym_slug === currentGymSlug);
         }
         allAttendanceLogs = logs || [];
 
@@ -1412,6 +1446,17 @@
       const container = document.getElementById('members-cards-container');
       const now = new Date();
 
+      if (allMembers.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full p-12 text-center border border-white/10 bg-surfaceCard rounded-3xl space-y-3">
+            <div class="text-4xl">🏢</div>
+            <p class="text-base font-bold text-white tracking-tight">No Athletes Registered Yet</p>
+            <p class="text-xs font-mono text-zinc-400 max-w-sm mx-auto">Tap <span class="text-gold font-bold">+ REGISTER ATHLETE</span> above to enroll your first gym member.</p>
+          </div>
+        `;
+        return;
+      }
+
       const filtered = allMembers.filter(m => {
         const name = m.fullName.toLowerCase();
         const phone = m.phone.toLowerCase();
@@ -1430,7 +1475,7 @@
       if (filtered.length === 0) {
         container.innerHTML = `
           <div class="col-span-full p-10 text-center text-zinc-500 font-mono text-xs border border-white/5 bg-surfaceCard rounded-3xl">
-            No matching athlete records found in database.
+            No matching athlete records found for query "${search}".
           </div>
         `;
         return;
@@ -2035,8 +2080,9 @@
     }
 
     function populateGymSettingsForm() {
-      document.getElementById('config-gym-name').value = currentGymConfig.gym_name || (currentGymSlug === 'retro-gym' ? 'RETRO GYM' : currentGymSlug.toUpperCase());
-      document.getElementById('config-gym-tagline').value = currentGymConfig.gym_tagline || 'DIGITAL MEMBER HUD';
+      const defaultName = currentGymSlug ? currentGymSlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : 'CYBER GYM';
+      document.getElementById('config-gym-name').value = currentGymConfig.gym_name || defaultName;
+      document.getElementById('config-gym-tagline').value = currentGymConfig.gym_tagline || 'DIGITAL COMMAND DESK';
       document.getElementById('config-logo-url').value = currentGymConfig.logo_url || '';
       document.getElementById('config-upi-id').value = currentGymConfig.upi_id || 'gymowner@okhdfcbank';
       document.getElementById('config-support-phone').value = currentGymConfig.support_phone || '8467895365';
@@ -2058,8 +2104,9 @@
     }
 
     async function saveGymBrandingSettings() {
-      const name = document.getElementById('config-gym-name').value.trim() || 'RETRO GYM';
-      const tagline = document.getElementById('config-gym-tagline').value.trim() || 'DIGITAL MEMBER HUD';
+      const defaultName = currentGymSlug ? currentGymSlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : 'CYBER GYM';
+      const name = document.getElementById('config-gym-name').value.trim() || defaultName;
+      const tagline = document.getElementById('config-gym-tagline').value.trim() || 'DIGITAL COMMAND DESK';
       const logoUrl = document.getElementById('config-logo-url').value.trim();
       const upiId = document.getElementById('config-upi-id').value.trim() || 'gymowner@okhdfcbank';
       const supportPhone = document.getElementById('config-support-phone').value.trim().replace(/\D/g, '') || '8467895365';
@@ -2073,14 +2120,18 @@
       btn.disabled = true;
 
       const updatedPayload = {
-        id: currentGymSlug === 'retro-gym' ? 1 : undefined,
         slug: currentGymSlug,
         gym_id: currentGymSlug,
+        name: name,
         gym_name: name,
+        tagline: tagline,
         gym_tagline: tagline,
         logo_url: logoUrl,
         upi_id: upiId,
+        owner_upi: upiId,
+        phone: supportPhone,
         support_phone: supportPhone,
+        owner_phone: supportPhone,
         plan_1m_price: plan1m,
         plan_3m_price: plan3m,
         plan_6m_price: plan6m,
@@ -2095,13 +2146,15 @@
 
       // Cache locally immediately per tenant
       localStorage.setItem(`retro_gym_config_${currentGymSlug}`, JSON.stringify(currentGymConfig));
-      localStorage.setItem('retro_gym_white_label_config', JSON.stringify(currentGymConfig));
 
       applyGymBrandingToAdminUI(currentGymConfig);
 
       try {
         if (db) {
-          // 1. Update gym_config if exists
+          // Update gyms table
+          await db.from('gyms').update(updatedPayload).eq('slug', currentGymSlug);
+
+          // Update gym_config if exists
           try {
             await db.from('gym_config').upsert({
               id: 1,
@@ -2109,7 +2162,7 @@
             });
           } catch (e) {}
 
-          // 2. Also sync to gym_tenants if present
+          // Also sync to gym_tenants if present
           try {
             await db.from('gym_tenants').update({
               name: name,
@@ -2134,21 +2187,22 @@
     function applyGymBrandingToAdminUI(config) {
       if (!config) return;
       
+      const gymDisplayName = config.gym_name || (currentGymSlug ? currentGymSlug.toUpperCase() : 'CYBER GYM');
       // Update Header
       const headerTitle = document.getElementById('admin-gym-header-title');
       const headerTagline = document.getElementById('admin-gym-header-tagline');
       const logoBadge = document.getElementById('admin-gym-logo-badge');
       const memberAppLink = document.getElementById('admin-member-app-link');
       
-      if (headerTitle) headerTitle.innerText = config.gym_name || (currentGymSlug === 'retro-gym' ? 'RETRO GYM' : currentGymSlug.toUpperCase());
-      if (headerTagline) headerTagline.innerText = config.gym_tagline ? `${config.gym_name} • ${config.gym_tagline}` : '360° Athlete Dossiers & Lifecycle Hub';
+      if (headerTitle) headerTitle.innerText = gymDisplayName;
+      if (headerTagline) headerTagline.innerText = config.gym_tagline ? `${gymDisplayName} • ${config.gym_tagline}` : `${gymDisplayName} • 360° Athlete Dossiers & Lifecycle Hub`;
       if (memberAppLink) memberAppLink.href = `./index.html?gym=${encodeURIComponent(currentGymSlug)}`;
       
       if (logoBadge) {
         if (config.logo_url && config.logo_url.startsWith('http')) {
-          logoBadge.innerHTML = `<img src="${config.logo_url}" class="w-full h-full object-cover" onerror="this.parentElement.innerText='${(config.gym_name || 'RG').slice(0, 2).toUpperCase()}'" />`;
+          logoBadge.innerHTML = `<img src="${config.logo_url}" class="w-full h-full object-cover" onerror="this.parentElement.innerText='${gymDisplayName.slice(0, 2).toUpperCase()}'" />`;
         } else {
-          const initials = (config.gym_name || 'RETRO GYM').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'RG';
+          const initials = gymDisplayName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'CG';
           logoBadge.innerText = initials;
         }
       }
@@ -2287,70 +2341,45 @@
       }
     }
 
+    function hydrateVerifiedGym(gym) {
+      if (!gym) return;
+      verifiedGymTenant = gym;
+      currentGymConfig = {
+        ...currentGymConfig,
+        id: gym.id || 1,
+        slug: gym.slug,
+        gym_name: gym.name || gym.gym_name || (currentGymSlug ? currentGymSlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : "CYBER GYM"),
+        gym_tagline: gym.tagline || `${gym.name || 'CYBER GYM'} • DIGITAL COMMAND DESK`,
+        logo_url: gym.logo_url || "",
+        upi_id: gym.upi_id || gym.owner_upi || "gymowner@okhdfcbank",
+        support_phone: gym.phone || gym.owner_phone || "8467895365",
+        plan_1m_price: gym.plan_1m_price || 1200,
+        plan_3m_price: gym.plan_3m_price || 3200,
+        plan_6m_price: gym.plan_6m_price || 5800,
+        plan_12m_price: gym.plan_12m_price || 10500,
+        status: gym.status || "OPEN",
+        notice_text: gym.notice_text || "Regular timings in effect. Stay hydrated and hit your sets!",
+        delayed_time: gym.delayed_time || "5:00 PM",
+        features: gym.features || { workouts: true, nutrition: true, qr_attendance: true, notices: true },
+        updated_at: gym.updated_at || new Date().toISOString()
+      };
+
+      localStorage.setItem(`retro_gym_config_${currentGymSlug}`, JSON.stringify(currentGymConfig));
+      applyGymConfigToUI(currentGymConfig);
+      applyGymBrandingToAdminUI(currentGymConfig);
+    }
+
     async function fetchGymConfig() {
+      if (!currentGymSlug || !db) return;
       try {
-        // 1. Try local storage first for instant rendering
-        const localSaved = localStorage.getItem(`retro_gym_config_${currentGymSlug}`) || localStorage.getItem('retro_gym_white_label_config');
-        if (localSaved) {
-          const parsed = JSON.parse(localSaved);
-          if (parsed.slug === currentGymSlug || currentGymSlug === 'retro-gym') {
-            currentGymConfig = { ...currentGymConfig, ...parsed };
-            applyGymConfigToUI(currentGymConfig);
-            applyGymBrandingToAdminUI(currentGymConfig);
-          }
-        }
+        const { data: gymData, error } = await db
+          .from('gyms')
+          .select('*')
+          .eq('slug', currentGymSlug)
+          .maybeSingle();
 
-        if (db) {
-          // 2. Fetch from gym_tenants if created via super-admin
-          try {
-            const { data: tenantData, error: tErr } = await db
-              .from('gym_tenants')
-              .select('*')
-              .eq('slug', currentGymSlug)
-              .limit(1);
-
-            if (!tErr && tenantData && tenantData.length > 0) {
-              const t = tenantData[0];
-              currentGymConfig = {
-                ...currentGymConfig,
-                gym_name: t.name || currentGymConfig.gym_name,
-                gym_tagline: `${t.name} • DIGITAL COMMAND DESK`,
-                upi_id: t.owner_upi || currentGymConfig.upi_id,
-                support_phone: t.owner_phone || currentGymConfig.support_phone,
-                slug: currentGymSlug
-              };
-            }
-          } catch (e) {}
-
-          // 3. Fetch from gym_config
-          try {
-            const { data, error } = await db.from('gym_config').select('*').limit(1);
-            if (!error && data && data.length > 0) {
-              const remoteConfig = data[0];
-              if (currentGymSlug === 'retro-gym' || remoteConfig.slug === currentGymSlug) {
-                currentGymConfig = {
-                  ...currentGymConfig,
-                  gym_name: remoteConfig.gym_name || currentGymConfig.gym_name,
-                  gym_tagline: remoteConfig.gym_tagline || currentGymConfig.gym_tagline,
-                  logo_url: remoteConfig.logo_url || '',
-                  upi_id: remoteConfig.upi_id || currentGymConfig.upi_id,
-                  support_phone: remoteConfig.support_phone || currentGymConfig.support_phone,
-                  plan_1m_price: remoteConfig.plan_1m_price || currentGymConfig.plan_1m_price,
-                  plan_3m_price: remoteConfig.plan_3m_price || currentGymConfig.plan_3m_price,
-                  plan_6m_price: remoteConfig.plan_6m_price || currentGymConfig.plan_6m_price,
-                  plan_12m_price: remoteConfig.plan_12m_price || currentGymConfig.plan_12m_price,
-                  status: remoteConfig.status || 'OPEN',
-                  notice_text: remoteConfig.notice_text || '',
-                  delayed_time: remoteConfig.delayed_time || '5:00 PM',
-                  updated_at: remoteConfig.updated_at || new Date().toISOString()
-                };
-              }
-            }
-          } catch (e) {}
-
-          localStorage.setItem(`retro_gym_config_${currentGymSlug}`, JSON.stringify(currentGymConfig));
-          applyGymConfigToUI(currentGymConfig);
-          applyGymBrandingToAdminUI(currentGymConfig);
+        if (!error && gymData) {
+          hydrateVerifiedGym(gymData);
         }
       } catch (e) {
         console.warn("Gym config sync warning:", e);
@@ -2400,32 +2429,41 @@
 
       // Save locally immediately
       localStorage.setItem(`retro_gym_config_${currentGymSlug}`, JSON.stringify(currentGymConfig));
-      localStorage.setItem('retro_gym_status_config', JSON.stringify(currentGymConfig));
 
       btn.innerText = "Syncing to Cloud...";
       btn.disabled = true;
 
       try {
         if (db) {
-          // Direct upsert with primary key id: 1 or tenant update
-          await db.from('gym_config').upsert({
-            id: 1,
-            slug: currentGymSlug,
-            gym_id: currentGymSlug,
-            gym_name: currentGymConfig.gym_name,
-            gym_tagline: currentGymConfig.gym_tagline,
-            logo_url: currentGymConfig.logo_url,
-            upi_id: currentGymConfig.upi_id,
-            support_phone: currentGymConfig.support_phone,
-            plan_1m_price: currentGymConfig.plan_1m_price,
-            plan_3m_price: currentGymConfig.plan_3m_price,
-            plan_6m_price: currentGymConfig.plan_6m_price,
-            plan_12m_price: currentGymConfig.plan_12m_price,
+          // Update gyms table
+          await db.from('gyms').update({
             status: status,
-            delayed_time: delayedTime || '',
             notice_text: notice || '',
+            delayed_time: delayedTime || '',
             updated_at: currentGymConfig.updated_at
-          });
+          }).eq('slug', currentGymSlug);
+
+          // Direct upsert to gym_config for backwards compatibility
+          try {
+            await db.from('gym_config').upsert({
+              id: 1,
+              slug: currentGymSlug,
+              gym_id: currentGymSlug,
+              gym_name: currentGymConfig.gym_name,
+              gym_tagline: currentGymConfig.gym_tagline,
+              logo_url: currentGymConfig.logo_url,
+              upi_id: currentGymConfig.upi_id,
+              support_phone: currentGymConfig.support_phone,
+              plan_1m_price: currentGymConfig.plan_1m_price,
+              plan_3m_price: currentGymConfig.plan_3m_price,
+              plan_6m_price: currentGymConfig.plan_6m_price,
+              plan_12m_price: currentGymConfig.plan_12m_price,
+              status: status,
+              delayed_time: delayedTime || '',
+              notice_text: notice || '',
+              updated_at: currentGymConfig.updated_at
+            });
+          } catch (e) {}
 
           try {
             await db.from('gym_tenants').update({
@@ -2448,7 +2486,7 @@
     }
 
     function shareNoticeWhatsApp() {
-      const gymName = currentGymConfig.gym_name || (currentGymSlug === 'retro-gym' ? 'RETRO GYM' : currentGymSlug.toUpperCase());
+      const gymName = currentGymConfig.gym_name || (currentGymSlug ? currentGymSlug.toUpperCase() : 'CYBER GYM');
       const status = currentGymConfig.status;
       const notice = document.getElementById('gym-notice-input').value.trim() || currentGymConfig.notice_text;
       const delayedTime = document.getElementById('gym-delayed-time-input').value.trim() || currentGymConfig.delayed_time;
@@ -2487,13 +2525,105 @@ _Old School Iron • Modern Discipline_`;
     }
 
     // ----------------------------------------------------
-    // INITIALIZATION
+    // INITIALIZATION & GATEKEEPER BOOTSTRAP
     // ----------------------------------------------------
+    async function initAdminGatekeeper() {
+      // 1. Check if gym parameter exists in URL
+      if (!currentGymSlug) {
+        sessionStorage.removeItem('retrogym_admin_auth');
+        renderGatekeeperError(
+          "Access Restricted",
+          "🔒 Access Restricted: No Gym Tenant Specified. Please open your gym's official unique access link.",
+          "Missing URL parameter: ?gym=your-gym-slug",
+          "lock"
+        );
+        return;
+      }
+
+      if (!db) {
+        renderGatekeeperError(
+          "System Configuration Error",
+          "Unable to connect to Supabase Cloud Gateway. Please check network connectivity.",
+          "Supabase client unavailable",
+          "lock"
+        );
+        return;
+      }
+
+      try {
+        // 2. Query Supabase gyms table
+        const { data: gymData, error } = await db
+          .from('gyms')
+          .select('*')
+          .eq('slug', currentGymSlug)
+          .maybeSingle();
+
+        if (error || !gymData) {
+          renderGatekeeperError(
+            "Gym Station Not Found",
+            "🏢 Gym Station Not Found. This gym is not registered on the platform or has been decommissioned.",
+            `Station ID: ${currentGymSlug}`,
+            "notfound"
+          );
+          return;
+        }
+
+        // 3. Verify Active Status
+        if (gymData.is_active === false || gymData.status === 'INACTIVE' || gymData.status === 'SUSPENDED') {
+          renderGatekeeperError(
+            "Service Suspended",
+            "⚠️ Service Suspended. Please contact gym administration.",
+            `Station [${gymData.name || currentGymSlug}] is currently deactivated.`,
+            "suspended"
+          );
+          return;
+        }
+
+        // 4. Hydrate Verified Gym
+        hydrateVerifiedGym(gymData);
+
+        // 5. Subscribe to real-time changes on gyms table for this slug
+        try {
+          db.channel(`admin-gym-${currentGymSlug}`)
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'gyms', filter: `slug=eq.${currentGymSlug}` }, (payload) => {
+              if (payload.new) {
+                if (payload.new.is_active === false || payload.new.status === 'INACTIVE' || payload.new.status === 'SUSPENDED') {
+                  renderGatekeeperError(
+                    "Service Suspended",
+                    "⚠️ Service Suspended. Please contact gym administration.",
+                    `Station [${payload.new.name || currentGymSlug}] has been deactivated.`,
+                    "suspended"
+                  );
+                } else {
+                  hydrateVerifiedGym(payload.new);
+                  showToast("Gym settings synced in real-time ⚡", "success");
+                }
+              }
+            })
+            .subscribe();
+        } catch (subErr) {
+          console.warn("Real-time subscription note:", subErr);
+        }
+
+        // 6. Check Admin Session and Load Data
+        checkAdminSession();
+
+        // 7. Auto-refresh attendance feed every 30 seconds
+        setInterval(() => fetchAttendanceFeed(false), 30000);
+
+      } catch (err) {
+        console.error("Gatekeeper verification error:", err);
+        renderGatekeeperError(
+          "Verification Error",
+          "An unexpected error occurred during tenant verification.",
+          err.message || String(err),
+          "lock"
+        );
+      }
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
-      checkAdminSession();
-      fetchGymConfig();
-      // Auto-refresh attendance feed every 30 seconds
-      setInterval(() => fetchAttendanceFeed(false), 30000);
+      initAdminGatekeeper();
     });
   </script>
 </body>
