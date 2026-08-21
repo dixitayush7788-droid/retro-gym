@@ -116,6 +116,15 @@
         display: none !important;
       }
     }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px); }
+      40%, 80% { transform: translateX(8px); }
+    }
+    .animate-shake {
+      animation: shake 0.4s ease-in-out;
+    }
   </style>
 </head>
 <body class="h-full bg-obsidian text-zinc-100 font-sans antialiased selection:bg-gold selection:text-black overflow-x-hidden">
@@ -124,62 +133,71 @@
   <div id="toast-container" class="fixed top-4 right-4 z-50 pointer-events-none flex flex-col gap-2 max-w-sm w-11/12"></div>
 
   <!-- ======================================================== -->
-  <!-- 1. MASTER SECURITY TERMINAL GATEWAY (PIN: 7788) -->
+  <!-- 1. DYNAMIC GYM ADMIN SECURITY TERMINAL GATEWAY           -->
   <!-- ======================================================== -->
   <div id="admin-lock-modal" class="fixed inset-0 z-50 bg-black/95 backdrop-blur-2xl flex items-center justify-center p-4">
-    <div class="w-full max-w-sm bg-surface rounded-3xl border border-gold/30 p-6 shadow-glow-card relative overflow-hidden space-y-5 text-center">
+    <div id="admin-pin-card-box" class="w-full max-w-sm bg-surface rounded-3xl border border-gold/30 p-6 shadow-glow-card relative overflow-hidden space-y-5 text-center transition-all">
       
       <!-- Ambient Cyber Glows -->
       <div class="absolute -top-12 -right-12 w-40 h-40 bg-gold/20 rounded-full blur-3xl pointer-events-none"></div>
       <div class="absolute -bottom-10 -left-10 w-36 h-36 bg-cyanCustom/20 rounded-full blur-3xl pointer-events-none"></div>
 
       <div class="space-y-1.5 relative z-10">
-        <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-gold/30 via-goldLight/20 to-cyanCustom/20 border border-gold/40 text-goldLight flex items-center justify-center mx-auto mb-2 shadow-glow-gold">
+        <div id="admin-pin-icon-badge" class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-gold/30 via-goldLight/20 to-cyanCustom/20 border border-gold/40 text-goldLight flex items-center justify-center mx-auto mb-2 shadow-glow-gold">
           <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
           </svg>
         </div>
-        <h1 class="font-display text-3xl text-white tracking-widest leading-none">RETRO COMMAND</h1>
-        <p class="text-xs font-mono uppercase tracking-wider text-amber-300/80">Cyber Master Security Terminal</p>
+        <h1 id="admin-pin-modal-title" class="font-display text-2xl sm:text-3xl text-white tracking-wider leading-none">SECURITY COMMAND</h1>
+        <p id="admin-pin-modal-subtitle" class="text-xs font-mono uppercase tracking-wider text-amber-300/80">Cyber Master Security Terminal</p>
       </div>
 
       <div class="space-y-3 relative z-10">
-        <label class="block text-[11px] font-mono uppercase tracking-wider text-zinc-400">Enter Master Security Passkey</label>
+        <label id="admin-pin-modal-label" class="block text-[11px] font-mono uppercase tracking-wider text-zinc-400">Enter Admin Security PIN</label>
+        
+        <!-- 4-Digit Indicator Boxes -->
         <div class="flex justify-center gap-2.5">
-          <input type="password" maxlength="1" class="admin-pin-box w-12 h-14 bg-surfaceCard border border-white/15 focus:border-gold rounded-2xl text-center text-2xl font-bold font-mono text-white outline-none" data-idx="0" inputmode="numeric" autofocus />
-          <input type="password" maxlength="1" class="admin-pin-box w-12 h-14 bg-surfaceCard border border-white/15 focus:border-gold rounded-2xl text-center text-2xl font-bold font-mono text-white outline-none" data-idx="1" inputmode="numeric" />
-          <input type="password" maxlength="1" class="admin-pin-box w-12 h-14 bg-surfaceCard border border-white/15 focus:border-gold rounded-2xl text-center text-2xl font-bold font-mono text-white outline-none" data-idx="2" inputmode="numeric" />
-          <input type="password" maxlength="1" class="admin-pin-box w-12 h-14 bg-surfaceCard border border-white/15 focus:border-gold rounded-2xl text-center text-2xl font-bold font-mono text-white outline-none" data-idx="3" inputmode="numeric" />
+          <input type="password" maxlength="1" class="admin-pin-box w-12 h-14 bg-surfaceCard border border-white/15 focus:border-gold rounded-2xl text-center text-2xl font-bold font-mono text-white outline-none" data-idx="0" inputmode="numeric" autofocus readonly />
+          <input type="password" maxlength="1" class="admin-pin-box w-12 h-14 bg-surfaceCard border border-white/15 focus:border-gold rounded-2xl text-center text-2xl font-bold font-mono text-white outline-none" data-idx="1" inputmode="numeric" readonly />
+          <input type="password" maxlength="1" class="admin-pin-box w-12 h-14 bg-surfaceCard border border-white/15 focus:border-gold rounded-2xl text-center text-2xl font-bold font-mono text-white outline-none" data-idx="2" inputmode="numeric" readonly />
+          <input type="password" maxlength="1" class="admin-pin-box w-12 h-14 bg-surfaceCard border border-white/15 focus:border-gold rounded-2xl text-center text-2xl font-bold font-mono text-white outline-none" data-idx="3" inputmode="numeric" readonly />
+        </div>
+
+        <!-- Error Message Alert -->
+        <div id="admin-pin-error-msg" class="hidden text-xs font-mono text-rose-400 bg-rose-500/10 border border-rose-500/30 rounded-xl py-1.5 px-3">
+          Invalid Security PIN. Access Denied.
         </div>
       </div>
 
       <!-- Quick Tactile Keypad (0-9 + Clear + Enter) -->
       <div class="grid grid-cols-3 gap-2 relative z-10 pt-1">
-        <button onclick="pressPinKey('1')" class="py-3 rounded-2xl bg-surfaceCard hover:bg-surfaceMuted border border-white/5 font-mono text-lg font-bold active:scale-95 transition-all text-white cursor-pointer">1</button>
-        <button onclick="pressPinKey('2')" class="py-3 rounded-2xl bg-surfaceCard hover:bg-surfaceMuted border border-white/5 font-mono text-lg font-bold active:scale-95 transition-all text-white cursor-pointer">2</button>
-        <button onclick="pressPinKey('3')" class="py-3 rounded-2xl bg-surfaceCard hover:bg-surfaceMuted border border-white/5 font-mono text-lg font-bold active:scale-95 transition-all text-white cursor-pointer">3</button>
-        <button onclick="pressPinKey('4')" class="py-3 rounded-2xl bg-surfaceCard hover:bg-surfaceMuted border border-white/5 font-mono text-lg font-bold active:scale-95 transition-all text-white cursor-pointer">4</button>
-        <button onclick="pressPinKey('5')" class="py-3 rounded-2xl bg-surfaceCard hover:bg-surfaceMuted border border-white/5 font-mono text-lg font-bold active:scale-95 transition-all text-white cursor-pointer">5</button>
-        <button onclick="pressPinKey('6')" class="py-3 rounded-2xl bg-surfaceCard hover:bg-surfaceMuted border border-white/5 font-mono text-lg font-bold active:scale-95 transition-all text-white cursor-pointer">6</button>
-        <button onclick="pressPinKey('7')" class="py-3 rounded-2xl bg-surfaceCard hover:bg-surfaceMuted border border-white/5 font-mono text-lg font-bold active:scale-95 transition-all text-white cursor-pointer">7</button>
-        <button onclick="pressPinKey('8')" class="py-3 rounded-2xl bg-surfaceCard hover:bg-surfaceMuted border border-white/5 font-mono text-lg font-bold active:scale-95 transition-all text-white cursor-pointer">8</button>
-        <button onclick="pressPinKey('9')" class="py-3 rounded-2xl bg-surfaceCard hover:bg-surfaceMuted border border-white/5 font-mono text-lg font-bold active:scale-95 transition-all text-white cursor-pointer">9</button>
-        <button onclick="clearPinKey()" class="py-3 rounded-2xl bg-surfaceCard hover:bg-rose-500/20 text-rose-300 border border-white/5 font-mono text-sm font-bold active:scale-95 transition-all cursor-pointer">CLR</button>
-        <button onclick="pressPinKey('0')" class="py-3 rounded-2xl bg-surfaceCard hover:bg-surfaceMuted border border-white/5 font-mono text-lg font-bold active:scale-95 transition-all text-white cursor-pointer">0</button>
-        <button onclick="verifyAdminPin()" class="py-3 rounded-2xl bg-gold text-black border border-gold font-mono text-sm font-bold active:scale-95 transition-all shadow-glow-gold cursor-pointer">GO ⚡</button>
+        <button type="button" onclick="pressPinKey('1')" class="py-3 rounded-2xl bg-surfaceCard hover:bg-surfaceMuted border border-white/5 font-mono text-lg font-bold active:scale-95 transition-all text-white cursor-pointer">1</button>
+        <button type="button" onclick="pressPinKey('2')" class="py-3 rounded-2xl bg-surfaceCard hover:bg-surfaceMuted border border-white/5 font-mono text-lg font-bold active:scale-95 transition-all text-white cursor-pointer">2</button>
+        <button type="button" onclick="pressPinKey('3')" class="py-3 rounded-2xl bg-surfaceCard hover:bg-surfaceMuted border border-white/5 font-mono text-lg font-bold active:scale-95 transition-all text-white cursor-pointer">3</button>
+        <button type="button" onclick="pressPinKey('4')" class="py-3 rounded-2xl bg-surfaceCard hover:bg-surfaceMuted border border-white/5 font-mono text-lg font-bold active:scale-95 transition-all text-white cursor-pointer">4</button>
+        <button type="button" onclick="pressPinKey('5')" class="py-3 rounded-2xl bg-surfaceCard hover:bg-surfaceMuted border border-white/5 font-mono text-lg font-bold active:scale-95 transition-all text-white cursor-pointer">5</button>
+        <button type="button" onclick="pressPinKey('6')" class="py-3 rounded-2xl bg-surfaceCard hover:bg-surfaceMuted border border-white/5 font-mono text-lg font-bold active:scale-95 transition-all text-white cursor-pointer">6</button>
+        <button type="button" onclick="pressPinKey('7')" class="py-3 rounded-2xl bg-surfaceCard hover:bg-surfaceMuted border border-white/5 font-mono text-lg font-bold active:scale-95 transition-all text-white cursor-pointer">7</button>
+        <button type="button" onclick="pressPinKey('8')" class="py-3 rounded-2xl bg-surfaceCard hover:bg-surfaceMuted border border-white/5 font-mono text-lg font-bold active:scale-95 transition-all text-white cursor-pointer">8</button>
+        <button type="button" onclick="pressPinKey('9')" class="py-3 rounded-2xl bg-surfaceCard hover:bg-surfaceMuted border border-white/5 font-mono text-lg font-bold active:scale-95 transition-all text-white cursor-pointer">9</button>
+        <button type="button" onclick="clearPinKey()" class="py-3 rounded-2xl bg-surfaceCard hover:bg-rose-500/20 text-rose-300 border border-white/5 font-mono text-sm font-bold active:scale-95 transition-all cursor-pointer">CLR</button>
+        <button type="button" onclick="pressPinKey('0')" class="py-3 rounded-2xl bg-surfaceCard hover:bg-surfaceMuted border border-white/5 font-mono text-lg font-bold active:scale-95 transition-all text-white cursor-pointer">0</button>
+        <button type="button" onclick="deletePinKey()" class="py-3 rounded-2xl bg-surfaceCard hover:bg-surfaceMuted text-zinc-300 border border-white/5 font-mono text-base font-bold active:scale-95 transition-all cursor-pointer">⌫</button>
       </div>
 
       <button 
-        onclick="verifyAdminPin()"
+        type="button"
+        id="btn-unlock-console"
+        onclick="handleAdminPinSubmit()"
         class="w-full py-3.5 bg-gradient-to-r from-gold via-goldLight to-cyanCustom text-black font-display text-lg tracking-wider rounded-2xl shadow-glow-gold hover:brightness-110 active:scale-95 transition-all uppercase cursor-pointer font-bold"
       >
         Unlock Control Console ⚡
       </button>
 
-      <div class="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] font-mono text-zinc-500">
-        <span>Default PIN: <strong class="text-zinc-400">7788</strong></span>
-        <a href="./index.html" class="text-goldLight hover:underline">← Member Portal</a>
+      <div id="admin-pin-footer-status" class="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] font-mono text-zinc-500">
+        <span id="admin-pin-status-text">Security: 256-BIT ENCRYPTED</span>
+        <a id="admin-pin-back-link" href="./index.html" class="text-goldLight hover:underline">← Member Pass</a>
       </div>
 
     </div>
@@ -1050,13 +1068,17 @@
     // ----------------------------------------------------
     const SUPABASE_URL = "https://zfvkvrhuovvbfbrutpph.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpmdmt2cmh1b3Z2YmZicnV0cHBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMzIyODQsImV4cCI6MjEwMjcwODI4NH0.M-WK1bgZDLXcuMTldMSwptx5XRpRnLAi-BxMFEoph4U";
-    const ADMIN_SECURITY_PIN = "7788";
 
     const db = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
     // Parse URL parameter for multi-tenant isolation (?gym=slug) — STRICT: ZERO DEFAULT FALLBACKS
     const urlParams = new URLSearchParams(window.location.search);
     const currentGymSlug = (urlParams.get('gym') || '').toLowerCase().trim();
+
+    let currentGymAdminPin = null;
+    let adminPinMode = 'loading'; // 'loading', 'unlock', 'setup-enter', 'setup-confirm'
+    let adminPinBuffer = "";
+    let adminPinFirstTry = "";
 
     let allMembers = [];
     let allAttendanceLogs = [];
@@ -1174,68 +1196,230 @@
     }
 
     // ----------------------------------------------------
-    // ADMIN GATEWAY PIN VERIFICATION & TACTILE KEYPAD
+    // DYNAMIC ADMIN GATEWAY PIN ENGINE & TACTILE KEYPAD
     // ----------------------------------------------------
-    document.querySelectorAll('.admin-pin-box').forEach((box) => {
-      box.addEventListener('input', (e) => {
-        if (e.target.value.length === 1) {
-          const nextIdx = parseInt(e.target.dataset.idx) + 1;
-          const nextBox = document.querySelector(`.admin-pin-box[data-idx="${nextIdx}"]`);
-          if (nextBox) nextBox.focus();
+    function updatePinDisplay() {
+      const boxes = document.querySelectorAll('.admin-pin-box');
+      boxes.forEach((b, i) => {
+        b.value = adminPinBuffer[i] ? "●" : "";
+        if (adminPinBuffer[i]) {
+          b.classList.add('border-gold', 'bg-gold/10');
+          b.classList.remove('border-white/15');
+        } else {
+          b.classList.remove('border-gold', 'bg-gold/10');
+          b.classList.add('border-white/15');
         }
       });
-      box.addEventListener('keydown', (e) => {
-        if (e.key === 'Backspace' && !e.target.value) {
-          const prevIdx = parseInt(e.target.dataset.idx) - 1;
-          const prevBox = document.querySelector(`.admin-pin-box[data-idx="${prevIdx}"]`);
-          if (prevBox) prevBox.focus();
+    }
+
+    function setAdminPinMode(mode) {
+      adminPinMode = mode;
+      adminPinBuffer = "";
+      updatePinDisplay();
+
+      const errorEl = document.getElementById('admin-pin-error-msg');
+      if (errorEl) errorEl.classList.add('hidden');
+
+      const gymDisplayName = currentGymConfig.gym_name || (currentGymSlug ? currentGymSlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : 'CYBER GYM');
+      const titleEl = document.getElementById('admin-pin-modal-title');
+      const subEl = document.getElementById('admin-pin-modal-subtitle');
+      const labelEl = document.getElementById('admin-pin-modal-label');
+      const btnEl = document.getElementById('btn-unlock-console');
+      const statusEl = document.getElementById('admin-pin-status-text');
+      const iconBadge = document.getElementById('admin-pin-icon-badge');
+      const backLink = document.getElementById('admin-pin-back-link');
+      if (backLink) backLink.href = `./index.html?gym=${encodeURIComponent(currentGymSlug)}`;
+
+      if (mode === 'setup-enter') {
+        if (titleEl) titleEl.innerText = "🔐 SET ADMIN SECURITY PIN";
+        if (subEl) subEl.innerText = `${gymDisplayName.toUpperCase()} • FIRST-TIME ACCESS`;
+        if (labelEl) labelEl.innerText = "Create a private 4-digit PIN for your gym management";
+        if (btnEl) btnEl.innerText = "Continue to Confirm PIN →";
+        if (statusEl) statusEl.innerText = "Step 1/2: Create Private PIN";
+        if (iconBadge) {
+          iconBadge.className = "w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500/30 via-goldLight/20 to-emeraldCustom/20 border border-gold/40 text-goldLight flex items-center justify-center mx-auto mb-2 shadow-glow-gold";
         }
-      });
-    });
+      } else if (mode === 'setup-confirm') {
+        if (titleEl) titleEl.innerText = "🔐 CONFIRM SECURITY PIN";
+        if (subEl) subEl.innerText = `${gymDisplayName.toUpperCase()} • FIRST-TIME ACCESS`;
+        if (labelEl) labelEl.innerText = "Re-enter the 4-digit PIN to confirm & secure console";
+        if (btnEl) btnEl.innerText = "Confirm & Deploy Security PIN ⚡";
+        if (statusEl) statusEl.innerText = "Step 2/2: Confirm Matching PIN";
+        if (iconBadge) {
+          iconBadge.className = "w-16 h-16 rounded-2xl bg-gradient-to-tr from-emeraldCustom/30 via-goldLight/20 to-cyanCustom/20 border border-emeraldCustom/40 text-emeraldCustom flex items-center justify-center mx-auto mb-2 shadow-glow-emerald";
+        }
+      } else {
+        // 'unlock'
+        if (titleEl) titleEl.innerText = `${gymDisplayName.toUpperCase()} SECURITY COMMAND`;
+        if (subEl) subEl.innerText = "Cyber Master Security Terminal";
+        if (labelEl) labelEl.innerText = "Enter 4-Digit Admin Security PIN";
+        if (btnEl) btnEl.innerText = "Unlock Control Console ⚡";
+        if (statusEl) statusEl.innerText = "Security: 256-BIT ENCRYPTED";
+        if (iconBadge) {
+          iconBadge.className = "w-16 h-16 rounded-2xl bg-gradient-to-tr from-gold/30 via-goldLight/20 to-cyanCustom/20 border border-gold/40 text-goldLight flex items-center justify-center mx-auto mb-2 shadow-glow-gold";
+        }
+      }
+    }
 
     function pressPinKey(num) {
       playAudioChirp(520, 0.05);
-      const boxes = document.querySelectorAll('.admin-pin-box');
-      for (let i = 0; i < boxes.length; i++) {
-        if (!boxes[i].value) {
-          boxes[i].value = num;
-          if (i + 1 < boxes.length) boxes[i + 1].focus();
-          break;
+      const errorEl = document.getElementById('admin-pin-error-msg');
+      if (errorEl) errorEl.classList.add('hidden');
+
+      if (adminPinBuffer.length < 4) {
+        adminPinBuffer += String(num);
+        updatePinDisplay();
+        if (adminPinBuffer.length === 4) {
+          setTimeout(() => {
+            handleAdminPinSubmit();
+          }, 120);
         }
+      }
+    }
+
+    function deletePinKey() {
+      playAudioChirp(400, 0.05);
+      const errorEl = document.getElementById('admin-pin-error-msg');
+      if (errorEl) errorEl.classList.add('hidden');
+      if (adminPinBuffer.length > 0) {
+        adminPinBuffer = adminPinBuffer.slice(0, -1);
+        updatePinDisplay();
       }
     }
 
     function clearPinKey() {
       playAudioChirp(300, 0.05);
-      const boxes = document.querySelectorAll('.admin-pin-box');
-      boxes.forEach(b => b.value = '');
-      const first = document.querySelector('.admin-pin-box[data-idx="0"]');
-      if (first) first.focus();
+      const errorEl = document.getElementById('admin-pin-error-msg');
+      if (errorEl) errorEl.classList.add('hidden');
+      adminPinBuffer = "";
+      updatePinDisplay();
     }
 
-    function verifyAdminPin() {
-      let pin = "";
-      document.querySelectorAll('.admin-pin-box').forEach(b => pin += b.value);
+    function triggerPinCardShake(errorText = "Invalid Admin PIN. Access Denied.") {
+      const card = document.getElementById('admin-pin-card-box');
+      const errorEl = document.getElementById('admin-pin-error-msg');
+      if (errorEl) {
+        errorEl.innerText = errorText;
+        errorEl.classList.remove('hidden');
+      }
+      if (card) {
+        card.classList.add('animate-shake', 'border-rose-500/60');
+        setTimeout(() => {
+          card.classList.remove('animate-shake', 'border-rose-500/60');
+        }, 500);
+      }
+    }
 
-      if (pin === ADMIN_SECURITY_PIN) {
+    async function handleAdminPinSubmit() {
+      const gymDisplayName = currentGymConfig.gym_name || (currentGymSlug ? currentGymSlug.toUpperCase() : 'CYBER GYM');
+
+      if (adminPinBuffer.length < 4) {
+        playAudioChirp(220, 0.2);
+        triggerPinCardShake("Please enter a complete 4-digit PIN");
+        return;
+      }
+
+      if (adminPinMode === 'setup-enter') {
+        playAudioChirp(700, 0.08);
+        adminPinFirstTry = adminPinBuffer;
+        setAdminPinMode('setup-confirm');
+        showToast("Please re-enter PIN to confirm", "info");
+        return;
+      }
+
+      if (adminPinMode === 'setup-confirm') {
+        if (adminPinBuffer !== adminPinFirstTry) {
+          playAudioChirp(220, 0.3);
+          triggerPinCardShake("PINs do not match. Please try again.");
+          setTimeout(() => {
+            setAdminPinMode('setup-enter');
+          }, 900);
+          return;
+        }
+
+        const newPin = adminPinBuffer;
+        const btn = document.getElementById('btn-unlock-console');
+        if (btn) {
+          btn.innerText = "Deploying PIN to Cloud...";
+          btn.disabled = true;
+        }
+
+        try {
+          if (db) {
+            const { error } = await db
+              .from('gyms')
+              .update({ admin_pin: newPin })
+              .eq('slug', currentGymSlug);
+
+            if (error) throw error;
+          }
+
+          currentGymAdminPin = newPin;
+          sessionStorage.setItem(`retrogym_admin_auth_${currentGymSlug}`, 'true');
+          sessionStorage.setItem('retrogym_admin_auth', 'true');
+          sessionStorage.setItem('retrogym_admin_pin', newPin);
+
+          playAudioChirp(980, 0.25);
+          showToast(`✓ Admin PIN Set Successfully for [${gymDisplayName}]! ⚡`, "success");
+          document.getElementById('admin-lock-modal').classList.add('hidden');
+          fetchAllData();
+        } catch (err) {
+          console.error("Failed to save gym admin PIN:", err);
+          triggerPinCardShake(`Failed to save PIN: ${err.message || err}`);
+        } finally {
+          if (btn) {
+            btn.disabled = false;
+          }
+        }
+        return;
+      }
+
+      // mode === 'unlock'
+      if (adminPinBuffer === currentGymAdminPin) {
         playAudioChirp(880, 0.2);
+        sessionStorage.setItem(`retrogym_admin_auth_${currentGymSlug}`, 'true');
         sessionStorage.setItem('retrogym_admin_auth', 'true');
+        sessionStorage.setItem('retrogym_admin_pin', adminPinBuffer);
         document.getElementById('admin-lock-modal').classList.add('hidden');
-        showToast("Super Admin Console Unlocked ⚡", "success");
+        showToast(`✓ Welcome to ${gymDisplayName} Security Command ⚡`, "success");
         fetchAllData();
       } else {
         playAudioChirp(220, 0.3);
-        showToast("Invalid Master Security PIN", "error");
-        clearPinKey();
+        triggerPinCardShake("Invalid Admin PIN. Access Denied.");
+        adminPinBuffer = "";
+        updatePinDisplay();
       }
     }
 
     function lockAdminConsole() {
+      sessionStorage.removeItem(`retrogym_admin_auth_${currentGymSlug}`);
       sessionStorage.removeItem('retrogym_admin_auth');
+      sessionStorage.removeItem('retrogym_admin_pin');
       clearPinKey();
+      if (!currentGymAdminPin) {
+        setAdminPinMode('setup-enter');
+      } else {
+        setAdminPinMode('unlock');
+      }
       document.getElementById('admin-lock-modal').classList.remove('hidden');
       showToast("Admin Console Locked", "info");
     }
+
+    // Physical Keyboard Support
+    window.addEventListener('keydown', (e) => {
+      const modal = document.getElementById('admin-lock-modal');
+      if (!modal || modal.classList.contains('hidden')) return;
+
+      if (e.key >= '0' && e.key <= '9') {
+        pressPinKey(e.key);
+      } else if (e.key === 'Backspace') {
+        deletePinKey();
+      } else if (e.key === 'Enter') {
+        handleAdminPinSubmit();
+      } else if (e.key === 'Escape') {
+        clearPinKey();
+      }
+    });
 
     // ----------------------------------------------------
     // DESK QR STANDEE ENGINE (MULTI-TENANT ENCODED)
@@ -1278,11 +1462,18 @@
     }
 
     function checkAdminSession() {
-      if (sessionStorage.getItem('retrogym_admin_auth') === 'true') {
+      const isAuth = sessionStorage.getItem(`retrogym_admin_auth_${currentGymSlug}`) === 'true' || sessionStorage.getItem('retrogym_admin_auth') === 'true';
+      if (!currentGymAdminPin) {
+        setAdminPinMode('setup-enter');
+        document.getElementById('admin-lock-modal').classList.remove('hidden');
+        clearPinKey();
+      } else if (isAuth) {
         document.getElementById('admin-lock-modal').classList.add('hidden');
         fetchAllData();
       } else {
+        setAdminPinMode('unlock');
         document.getElementById('admin-lock-modal').classList.remove('hidden');
+        clearPinKey();
       }
     }
 
@@ -1844,12 +2035,14 @@
       const memberId = member.id || (member.raw && member.raw.id) || member.phone;
       const numberOfDays = months === 1 ? 30 : months === 3 ? 90 : months === 6 ? 180 : months * 30;
 
+      const activeAdminPin = currentGymAdminPin || sessionStorage.getItem('retrogym_admin_pin') || '';
+
       try {
         const { data, error } = await db.rpc('secure_renew_pass', {
           target_member_id: memberId,
           target_gym_slug: currentGymSlug,
           days_to_add: numberOfDays,
-          entered_pin: '7788'
+          entered_pin: activeAdminPin
         });
 
         if (error || !data || data.success === false) {
@@ -2388,6 +2581,14 @@
       };
 
       localStorage.setItem(`retro_gym_config_${currentGymSlug}`, JSON.stringify(currentGymConfig));
+      currentGymAdminPin = gym.admin_pin || null;
+
+      if (!currentGymAdminPin) {
+        setAdminPinMode('setup-enter');
+      } else {
+        setAdminPinMode('unlock');
+      }
+
       applyGymConfigToUI(currentGymConfig);
       applyGymBrandingToAdminUI(currentGymConfig);
     }

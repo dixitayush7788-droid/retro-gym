@@ -545,6 +545,15 @@
           <span>Print Reception QR Standee</span>
         </button>
 
+        <!-- RESET GYM ADMIN PIN BUTTON -->
+        <button 
+          onclick="resetActiveGymAdminPin()" 
+          class="w-full py-2.5 px-4 rounded-xl bg-amberSoft hover:bg-amber-100 text-amberSunrise text-xs font-bold border border-amber-200 shadow-ios-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
+        >
+          <span>🔑</span>
+          <span>Reset Gym Admin PIN</span>
+        </button>
+
         <!-- KILL-SWITCH BUTTON -->
         <button 
           id="btn-drawer-kill-switch"
@@ -1431,6 +1440,45 @@
       }
 
       showToast(`Feature [${featureKey}] ${isChecked ? 'Enabled' : 'Disabled'} for ${targetSlug}`, "info");
+    }
+
+    async function resetActiveGymAdminPin() {
+      if (!selectedGymForTelemetry) return;
+      const gymName = selectedGymForTelemetry.name || selectedGymForTelemetry.gym_name || selectedGymForTelemetry.slug;
+      
+      if (!confirm(`Reset Admin PIN for ${gymName}? Owner will be forced to create a fresh PIN on next login.`)) {
+        return;
+      }
+
+      playAudioChirp(550, 0.1);
+      const targetSlug = selectedGymForTelemetry.slug;
+
+      if (db) {
+        try {
+          const { error } = await db
+            .from('gyms')
+            .update({ admin_pin: null })
+            .eq('slug', targetSlug);
+
+          if (error) {
+            console.error("Error resetting gym admin PIN:", error);
+            showToast(`Failed to reset PIN: ${error.message}`, "error");
+            return;
+          }
+        } catch (err) {
+          console.error("Exception resetting gym admin PIN:", err);
+          showToast(`Error: ${err.message || err}`, "error");
+          return;
+        }
+      }
+
+      // Update local object
+      selectedGymForTelemetry.admin_pin = null;
+      const foundInFleet = gymFleet.find(g => g.slug === targetSlug);
+      if (foundInFleet) foundInFleet.admin_pin = null;
+
+      playAudioChirp(1100, 0.2);
+      showToast(`✓ Admin PIN reset successfully for ${gymName}`, "success");
     }
 
     async function toggleActiveGymKillSwitch() {

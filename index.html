@@ -288,10 +288,6 @@
           <span>📊</span>
           <span>Live Check-In Stream</span>
         </button>
-        <a id="drawer-admin-console-link" href="./admin.html" class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl bg-moltenGold/10 hover:bg-moltenGold/20 border border-moltenGold/30 text-moltenGold transition-all text-left">
-          <span>🛡️</span>
-          <span>Gym Admin Desk</span>
-        </a>
       </nav>
     </div>
 
@@ -1970,17 +1966,15 @@
         authLogo.innerHTML = `<img src="${logoUrl}" alt="${gymName}" class="w-10 h-10 object-contain rounded-xl" referrerpolicy="no-referrer" />`;
       }
 
-      // 4. Side Drawer & Admin Link
+      // 4. Side Drawer
       const drawerTitle = document.getElementById('drawer-gym-title');
       const drawerTagline = document.getElementById('drawer-gym-tagline');
       const drawerLogo = document.getElementById('drawer-logo-badge');
       const drawerHelpdesk = document.getElementById('drawer-helpdesk-phone');
       const drawerWhatsapp = document.getElementById('drawer-whatsapp-btn');
-      const drawerAdminLink = document.getElementById('drawer-admin-console-link');
 
       if (drawerTitle) drawerTitle.innerText = gymName;
       if (drawerTagline) drawerTagline.innerText = tagline;
-      if (drawerAdminLink) drawerAdminLink.href = `./admin.html?gym=${encodeURIComponent(currentGymSlug)}`;
 
       if (drawerLogo) {
         if (logoUrl) {
