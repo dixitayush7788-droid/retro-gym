@@ -100,119 +100,137 @@ export async function onboardGymNode({
   const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
   const finalPassword = password || generateInitialPassword(phone);
   const finalPin = String(adminPin || '1234').padStart(4, '0').slice(-4);
-  const expiryDate = new Date(Date.now() + validityDays * 86400000).toISOString();
-
-  // 1. Create Auth User using Isolated Supabase Client (Preserves Super Admin active session)
-  let authUserId = null;
-  let authNotice = null;
-
-  try {
-    const isoClient = createIsolatedAuthClient();
-    const { data: signUpData, error: signUpErr } = await isoClient.auth.signUp({
-      email: email,
-      password: finalPassword,
-      options: {
-        data: {
-          role: 'GYM_OWNER',
-          gym_slug: cleanSlug,
-          gym_name: gymName,
-          phone: phone,
-          full_name: `${gymName} Owner`,
-          is_owner: true
-        }
-      }
-    });
-
-    if (signUpErr) {
-      console.warn('[ONBOARDING] Isolated Auth signUp notice:', signUpErr.message);
-      authNotice = signUpErr.message;
-    } else if (signUpData?.user) {
-      authUserId = signUpData.user.id;
-    }
-  } catch (authEx) {
-    console.warn('[ONBOARDING] Isolated Auth signUp exception:', authEx);
-    authNotice = authEx.message;
-  }
-
-  // Fallback to RPC if direct isolated signUp encountered a client restriction
-  if (!authUserId) {
-    try {
-      const { data: rpcRes, error: rpcErr } = await supabase.rpc('rpc_create_gym_owner', {
-        p_email: email,
-        p_password: finalPassword,
-        p_gym_slug: cleanSlug,
-        p_gym_name: gymName,
-        p_phone: phone,
-        p_admin_pin: finalPin
-      });
-
-      if (!rpcErr && rpcRes) {
-        authUserId = rpcRes.user_id || rpcRes.id || rpcRes;
-      }
-    } catch (rpcEx) {
-      console.warn('[ONBOARDING] RPC fallback note:', rpcEx);
-    }
-  }
-
-  // 2. Insert new gym node into public.gyms table
-  const gymPayload = {
-    gym_name: gymName,
-    name: gymName,
-    slug: cleanSlug,
-    admin_pin: finalPin,
-    owner_phone: phone,
-    owner_email: email,
-    owner_upi_id: upi,
-    upi_id: upi,
-    saas_fee: Number(saasFee),
-    monthly_saas_fee: Number(saasFee),
+  const pricingPayload = {
     plan_1m_price: Number(p1),
     plan_3m_price: Number(p3),
     plan_6m_price: Number(p6),
-    plan_12m_price: Number(p12),
-    features: features,
-    is_active: true,
-    subscription_expires_at: expiryDate
+    plan_12m_price: Number(p12)
   };
 
-  const { data: gymData, error: gymError } = await supabase
-    .from('gyms')
-    .insert([gymPayload])
-    .select();
+  let authUserId = null;
+  let createdGym = null;
+  let gymId = cleanSlug;
+  let authNotice = null;
 
-  if (gymError) {
-    console.error('[ONBOARDING] Gym table insertion error:', gymError);
-    throw new Error(`Database error creating gym: ${gymError.message}`);
+  // 1. Try Atomic RPC: rpc_create_gym_with_owner
+  try {
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc('rpc_create_gym_with_owner', {
+      p_gym_name: gymName,
+      p_slug: cleanSlug,
+      p_owner_phone: phone,
+      p_owner_email: email,
+      p_owner_password: finalPassword,
+      p_admin_pin: finalPin,
+      p_owner_upi_id: upi,
+      p_saas_fee: Number(saasFee),
+      p_validity_days: Number(validityDays),
+      p_pricing: pricingPayload,
+      p_feature_gates: features
+    });
+
+    if (!rpcErr && rpcRes) {
+      createdGym = rpcRes.gym || rpcRes;
+      gymId = createdGym.id || rpcRes.gym_id || cleanSlug;
+      authUserId = rpcRes.user_id || rpcRes.auth_user_id || (rpcRes.user && rpcRes.user.id) || null;
+    } else if (rpcErr) {
+      console.warn('[ONBOARDING] Atomic RPC note (falling back to direct client execution):', rpcErr.message);
+    }
+  } catch (rpcEx) {
+    console.warn('[ONBOARDING] Atomic RPC exception note:', rpcEx);
   }
 
-  const createdGym = gymData?.[0] || gymPayload;
-  const gymId = createdGym.id || cleanSlug;
+  // 2. Fallback execution if RPC not present in Supabase instance
+  if (!createdGym) {
+    // 2a. Isolated Auth Client (Preserves Super Admin active session)
+    try {
+      const isoClient = createIsolatedAuthClient();
+      const { data: signUpData, error: signUpErr } = await isoClient.auth.signUp({
+        email: email,
+        password: finalPassword,
+        options: {
+          data: {
+            role: 'GYM_OWNER',
+            gym_slug: cleanSlug,
+            gym_name: gymName,
+            phone: phone,
+            full_name: `${gymName} Owner`,
+            is_owner: true
+          }
+        }
+      });
 
-  // 3. Insert into public.user_roles linking user_id and gym_id with role: 'GYM_OWNER'
-  try {
-    await supabase.from('user_roles').insert([{
-      user_id: authUserId || null,
-      gym_id: gymId,
-      gym_slug: cleanSlug,
-      role: 'GYM_OWNER',
-      email: email
-    }]);
-  } catch (roleErr) {
-    console.warn('[ONBOARDING] user_roles table insertion note:', roleErr);
+      if (signUpErr) {
+        console.warn('[ONBOARDING] Isolated Auth signUp notice:', signUpErr.message);
+        authNotice = signUpErr.message;
+      } else if (signUpData?.user) {
+        authUserId = signUpData.user.id;
+      }
+    } catch (authEx) {
+      console.warn('[ONBOARDING] Isolated Auth signUp exception:', authEx);
+      authNotice = authEx.message;
+    }
+
+    // 2b. Insert gym node into public.gyms table
+    const expiryDate = new Date(Date.now() + validityDays * 86400000).toISOString();
+    const gymPayload = {
+      gym_name: gymName,
+      name: gymName,
+      slug: cleanSlug,
+      admin_pin: finalPin,
+      owner_phone: phone,
+      owner_email: email,
+      owner_upi_id: upi,
+      upi_id: upi,
+      saas_fee: Number(saasFee),
+      monthly_saas_fee: Number(saasFee),
+      plan_1m_price: Number(p1),
+      plan_3m_price: Number(p3),
+      plan_6m_price: Number(p6),
+      plan_12m_price: Number(p12),
+      features: features,
+      is_active: true,
+      subscription_expires_at: expiryDate
+    };
+
+    const { data: gymData, error: gymError } = await supabase
+      .from('gyms')
+      .insert([gymPayload])
+      .select();
+
+    if (gymError) {
+      console.error('[ONBOARDING] Gym table insertion error:', gymError);
+      throw new Error(`Database error creating gym: ${gymError.message}`);
+    }
+
+    createdGym = gymData?.[0] || gymPayload;
+    gymId = createdGym.id || cleanSlug;
+
+    // 2c. Link GYM_OWNER role in public.user_roles
+    try {
+      await supabase.from('user_roles').insert([{
+        user_id: authUserId || null,
+        gym_id: gymId,
+        gym_slug: cleanSlug,
+        role: 'GYM_OWNER',
+        email: email
+      }]);
+    } catch (roleErr) {
+      console.warn('[ONBOARDING] user_roles table insertion note:', roleErr);
+    }
+
+    // Defensively insert into gym_staff table
+    try {
+      await supabase.from('gym_staff').insert([{
+        user_id: authUserId || null,
+        gym_id: gymId,
+        gym_slug: cleanSlug,
+        email: email,
+        phone: phone,
+        role: 'GYM_OWNER',
+        is_active: true
+      }]);
+    } catch (staffErr) {}
   }
-
-  // Defensively insert into gym_staff table
-  try {
-    await supabase.from('gym_staff').insert([{
-      user_id: authUserId || null,
-      gym_id: gymId,
-      gym_slug: cleanSlug,
-      email: email,
-      phone: phone,
-      role: 'GYM_OWNER',
-      is_active: true
-    }]);
-  } catch (staffErr) {}
 
   return {
     success: true,

@@ -1571,7 +1571,7 @@
 
       // Show Drawer
       const overlay = document.getElementById('telemetry-drawer-overlay');
-      overlay.classList.remove('hidden');
+      if (overlay) overlay.classList.remove('hidden');
     }
 
     function closeTelemetryDrawer() {
@@ -1725,26 +1725,29 @@
       if (badgeEl) badgeEl.innerText = g.name.slice(0, 2).toUpperCase();
 
       const target = document.getElementById('standee-qrcode-target');
-      target.innerHTML = '';
+      if (target) {
+        target.innerHTML = '';
+        const qrToken = `AUTH_DESK_QR_${g.slug}_2026`;
 
-      const qrToken = `AUTH_DESK_QR_${g.slug}_2026`;
-
-      if (window.QRCode) {
-        new QRCode(target, {
-          text: qrToken,
-          width: 200,
-          height: 200,
-          colorDark: "#0F172A",
-          colorLight: "#FFFFFF",
-          correctLevel: QRCode.CorrectLevel.H
-        });
+        if (window.QRCode) {
+          new QRCode(target, {
+            text: qrToken,
+            width: 200,
+            height: 200,
+            colorDark: "#0F172A",
+            colorLight: "#FFFFFF",
+            correctLevel: QRCode.CorrectLevel.H
+          });
+        }
       }
 
-      document.getElementById('standee-modal').classList.remove('hidden');
+      const standeeModal = document.getElementById('standee-modal');
+      if (standeeModal) standeeModal.classList.remove('hidden');
     }
 
     function closeStandeeModal() {
-      document.getElementById('standee-modal').classList.add('hidden');
+      const standeeModal = document.getElementById('standee-modal');
+      if (standeeModal) standeeModal.classList.add('hidden');
     }
 
     // ----------------------------------------------------
@@ -1763,25 +1766,35 @@
       const pwdInput = document.getElementById('form-password');
       if (pwdInput) pwdInput.value = 'Nexus@2026!';
 
-      document.getElementById('onboard-modal').classList.remove('hidden');
+      const onboardModal = document.getElementById('onboard-modal');
+      if (onboardModal) onboardModal.classList.remove('hidden');
     }
 
     function closeOnboardModal() {
-      document.getElementById('onboard-modal').classList.add('hidden');
+      const onboardModal = document.getElementById('onboard-modal');
+      if (onboardModal) onboardModal.classList.add('hidden');
     }
 
     function openOnboardSuccessModal(details) {
       lastGeneratedCredentials = details;
 
-      document.getElementById('success-gym-name').innerText = details.gymName || '--';
-      document.getElementById('success-gym-slug').innerText = `@${details.slug || '--'}`;
-      document.getElementById('success-station-sub').innerText = `${details.gymName} (@${details.slug}) Node Active`;
+      const nameEl = document.getElementById('success-gym-name');
+      if (nameEl) nameEl.innerText = details.gymName || '--';
+      const slugEl = document.getElementById('success-gym-slug');
+      if (slugEl) slugEl.innerText = `@${details.slug || '--'}`;
+      const subEl = document.getElementById('success-station-sub');
+      if (subEl) subEl.innerText = `${details.gymName} (@${details.slug}) Node Active`;
 
-      document.getElementById('success-login-url').value = details.adminLoginUrl || '';
-      document.getElementById('success-owner-email').value = details.email || '';
-      document.getElementById('success-owner-password').value = details.password || '';
-      document.getElementById('success-admin-pin').innerText = details.adminPin || '1234';
-      document.getElementById('success-owner-phone').innerText = `+91 ${details.phone || '--'}`;
+      const loginUrlEl = document.getElementById('success-login-url');
+      if (loginUrlEl) loginUrlEl.value = details.adminLoginUrl || '';
+      const emailEl = document.getElementById('success-owner-email');
+      if (emailEl) emailEl.value = details.email || '';
+      const pwdEl = document.getElementById('success-owner-password');
+      if (pwdEl) pwdEl.value = details.password || '';
+      const pinEl = document.getElementById('success-admin-pin');
+      if (pinEl) pinEl.innerText = details.adminPin || '1234';
+      const phoneEl = document.getElementById('success-owner-phone');
+      if (phoneEl) phoneEl.innerText = `+91 ${details.phone || '--'}`;
 
       // Set WhatsApp action link
       const waBtn = document.getElementById('success-whatsapp-btn');
@@ -1795,12 +1808,14 @@
         adminLink.href = details.adminConsoleUrl || `./admin.html?gym=${encodeURIComponent(details.slug)}`;
       }
 
-      document.getElementById('onboard-success-modal').classList.remove('hidden');
+      const successModal = document.getElementById('onboard-success-modal');
+      if (successModal) successModal.classList.remove('hidden');
       playAudioChirp(1200, 0.25);
     }
 
     function closeOnboardSuccessModal() {
-      document.getElementById('onboard-success-modal').classList.add('hidden');
+      const successModal = document.getElementById('onboard-success-modal');
+      if (successModal) successModal.classList.add('hidden');
     }
 
     function generateGymSlug(name = '', phone = '') {
@@ -1989,120 +2004,155 @@ _Keep these credentials secure._`;
           submitBtn.innerText = "DEPLOYING GYM NODE... ⚡";
         }
 
-        // 1. Create Auth User with Isolated Supabase Client (Preserves Super Admin active session)
+        // 1. Try Atomic RPC: rpc_create_gym_with_owner
         let authUserId = null;
-        if (window.supabase) {
-          try {
-            const isolatedClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-              auth: {
-                persistSession: false,
-                autoRefreshToken: false,
-                detectSessionInUrl: false
-              }
-            });
+        let createdGym = null;
+        let gymId = cleanSlug;
 
-            const { data: signUpData, error: signUpErr } = await isolatedClient.auth.signUp({
-              email: email,
-              password: password,
-              options: {
-                data: {
-                  role: 'GYM_OWNER',
-                  gym_slug: cleanSlug,
-                  gym_name: gymName,
-                  phone: phone,
-                  full_name: `${gymName} Owner`,
-                  is_owner: true
-                }
-              }
-            });
-
-            if (signUpErr) {
-              console.warn("Isolated auth signUp note:", signUpErr.message);
-            } else if (signUpData?.user) {
-              authUserId = signUpData.user.id;
-            }
-          } catch (signUpEx) {
-            console.warn("Isolated auth creation note:", signUpEx);
-          }
-        }
-
-        // Fallback: RPC create gym owner
-        if (!authUserId) {
-          try {
-            const { data: rpcRes, error: rpcErr } = await db.rpc('rpc_create_gym_owner', {
-              p_email: email,
-              p_password: password,
-              p_gym_slug: cleanSlug,
-              p_gym_name: gymName,
-              p_phone: phone,
-              p_admin_pin: adminPin
-            });
-            if (!rpcErr && rpcRes) {
-              authUserId = rpcRes.user_id || rpcRes.id || rpcRes;
-            }
-          } catch (rpcEx) {
-            console.warn("RPC create owner note:", rpcEx);
-          }
-        }
-
-        // 2. Insert into public.gyms table with admin_pin & owner details
-        const gymPayload = {
-          gym_name: gymName,
-          name: gymName,
-          slug: cleanSlug,
-          owner_phone: phone,
-          owner_email: email,
-          owner_upi_id: upi,
-          upi_id: upi,
-          admin_pin: adminPin,
-          saas_fee: Number(saasFee),
-          monthly_saas_fee: Number(saasFee),
+        const pricingPayload = {
           plan_1m_price: Number(p1),
           plan_3m_price: Number(p3),
           plan_6m_price: Number(p6),
-          plan_12m_price: Number(p12),
-          features: selectedFeatures,
-          is_active: true,
-          subscription_expires_at: expiryDateISO
+          plan_12m_price: Number(p12)
         };
 
-        const { data: gymData, error: gymError } = await db
-          .from('gyms')
-          .insert([gymPayload])
-          .select();
+        try {
+          const { data: rpcRes, error: rpcErr } = await db.rpc('rpc_create_gym_with_owner', {
+            p_gym_name: gymName,
+            p_slug: cleanSlug,
+            p_owner_phone: phone,
+            p_owner_email: email,
+            p_owner_password: password,
+            p_admin_pin: adminPin,
+            p_owner_upi_id: upi,
+            p_saas_fee: Number(saasFee),
+            p_validity_days: Number(validityDays),
+            p_pricing: pricingPayload,
+            p_feature_gates: selectedFeatures
+          });
 
-        if (gymError) {
-          throw new Error("Gym creation failed: " + gymError.message);
+          if (!rpcErr && rpcRes) {
+            createdGym = rpcRes.gym || rpcRes;
+            gymId = createdGym.id || rpcRes.gym_id || cleanSlug;
+            authUserId = rpcRes.user_id || rpcRes.auth_user_id || (rpcRes.user && rpcRes.user.id) || null;
+          } else if (rpcErr) {
+            console.warn("Atomic RPC note (falling back to direct client execution):", rpcErr.message);
+          }
+        } catch (rpcEx) {
+          console.warn("Atomic RPC exception note:", rpcEx);
         }
 
-        const createdGym = gymData?.[0] || gymPayload;
-        const gymId = createdGym.id || cleanSlug;
+        // Fallback: Client-side creation flow if atomic RPC not deployed
+        if (!createdGym) {
+          if (window.supabase) {
+            try {
+              const isolatedClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+                auth: {
+                  persistSession: false,
+                  autoRefreshToken: false,
+                  detectSessionInUrl: false
+                }
+              });
 
-        // 3. Assign GYM_OWNER role in public.user_roles linked to this gym
-        try {
-          await db.from('user_roles').insert([{
-            user_id: authUserId || null,
-            gym_id: gymId,
-            gym_slug: cleanSlug,
-            role: 'GYM_OWNER',
-            email: email
-          }]);
-        } catch (rErr) {
-          console.warn("user_roles insert note:", rErr);
+              const { data: signUpData, error: signUpErr } = await isolatedClient.auth.signUp({
+                email: email,
+                password: password,
+                options: {
+                  data: {
+                    role: 'GYM_OWNER',
+                    gym_slug: cleanSlug,
+                    gym_name: gymName,
+                    phone: phone,
+                    full_name: `${gymName} Owner`,
+                    is_owner: true
+                  }
+                }
+              });
+
+              if (signUpErr) {
+                console.warn("Isolated auth signUp note:", signUpErr.message);
+              } else if (signUpData?.user) {
+                authUserId = signUpData.user.id;
+              }
+            } catch (signUpEx) {
+              console.warn("Isolated auth creation note:", signUpEx);
+            }
+          }
+
+          if (!authUserId) {
+            try {
+              const { data: rpcRes, error: rpcErr } = await db.rpc('rpc_create_gym_owner', {
+                p_email: email,
+                p_password: password,
+                p_gym_slug: cleanSlug,
+                p_gym_name: gymName,
+                p_phone: phone,
+                p_admin_pin: adminPin
+              });
+              if (!rpcErr && rpcRes) {
+                authUserId = rpcRes.user_id || rpcRes.id || rpcRes;
+              }
+            } catch (rpcEx) {
+              console.warn("RPC create owner note:", rpcEx);
+            }
+          }
+
+          const gymPayload = {
+            gym_name: gymName,
+            name: gymName,
+            slug: cleanSlug,
+            owner_phone: phone,
+            owner_email: email,
+            owner_upi_id: upi,
+            upi_id: upi,
+            admin_pin: adminPin,
+            saas_fee: Number(saasFee),
+            monthly_saas_fee: Number(saasFee),
+            plan_1m_price: Number(p1),
+            plan_3m_price: Number(p3),
+            plan_6m_price: Number(p6),
+            plan_12m_price: Number(p12),
+            features: selectedFeatures,
+            is_active: true,
+            subscription_expires_at: expiryDateISO
+          };
+
+          const { data: gymData, error: gymError } = await db
+            .from('gyms')
+            .insert([gymPayload])
+            .select();
+
+          if (gymError) {
+            throw new Error("Gym creation failed: " + gymError.message);
+          }
+
+          createdGym = gymData?.[0] || gymPayload;
+          gymId = createdGym.id || cleanSlug;
+
+          try {
+            await db.from('user_roles').insert([{
+              user_id: authUserId || null,
+              gym_id: gymId,
+              gym_slug: cleanSlug,
+              role: 'GYM_OWNER',
+              email: email
+            }]);
+          } catch (rErr) {
+            console.warn("user_roles insert note:", rErr);
+          }
+
+          try {
+            await db.from('gym_staff').insert([{
+              user_id: authUserId || null,
+              gym_id: gymId,
+              gym_slug: cleanSlug,
+              email: email,
+              phone: phone,
+              role: 'GYM_OWNER',
+              is_active: true
+            }]);
+          } catch (sErr) {}
         }
-
-        // Defensively insert into gym_staff table if present
-        try {
-          await db.from('gym_staff').insert([{
-            user_id: authUserId || null,
-            gym_id: gymId,
-            gym_slug: cleanSlug,
-            email: email,
-            phone: phone,
-            role: 'GYM_OWNER',
-            is_active: true
-          }]);
-        } catch (sErr) {}
 
         // Close onboarding modal and give audio feedback
         closeOnboardModal();

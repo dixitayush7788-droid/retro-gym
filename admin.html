@@ -1554,7 +1554,8 @@
 
           playAudioChirp(980, 0.25);
           showToast(`✓ Admin PIN Set Successfully for [${gymDisplayName}]! ⚡`, "success");
-          document.getElementById('admin-lock-modal').classList.add('hidden');
+          const lockModal = document.getElementById('admin-lock-modal');
+          if (lockModal) lockModal.classList.add('hidden');
           fetchAllData();
         } catch (err) {
           console.error("Failed to save gym admin PIN:", err);
@@ -1573,7 +1574,8 @@
         sessionStorage.setItem(`retrogym_admin_auth_${currentGymSlug}`, 'true');
         sessionStorage.setItem('retrogym_admin_auth', 'true');
         sessionStorage.setItem('retrogym_admin_pin', adminPinBuffer);
-        document.getElementById('admin-lock-modal').classList.add('hidden');
+        const lockModal = document.getElementById('admin-lock-modal');
+        if (lockModal) lockModal.classList.add('hidden');
         showToast(`✓ Welcome to ${gymDisplayName} Security Command ⚡`, "success");
         fetchAllData();
       } else {
@@ -1594,7 +1596,8 @@
       } else {
         setAdminPinMode('unlock');
       }
-      document.getElementById('admin-lock-modal').classList.remove('hidden');
+      const lockModal = document.getElementById('admin-lock-modal');
+      if (lockModal) lockModal.classList.remove('hidden');
       showToast("Admin Console Locked", "info");
     }
 
@@ -1624,9 +1627,10 @@
     function openDeskQRModal() {
       playAudioChirp(720, 0.1);
       const modal = document.getElementById('desk-qr-modal');
-      modal.classList.remove('hidden');
+      if (modal) modal.classList.remove('hidden');
       
       const container = document.getElementById('desk-qrcode-container');
+      if (!container) return;
       container.innerHTML = '';
       
       const qrToken = getDeskQrToken();
@@ -1646,7 +1650,8 @@
 
     function closeDeskQRModal() {
       playAudioChirp(440, 0.08);
-      document.getElementById('desk-qr-modal').classList.add('hidden');
+      const modal = document.getElementById('desk-qr-modal');
+      if (modal) modal.classList.add('hidden');
     }
 
     function printDeskStandee() {
@@ -1656,16 +1661,17 @@
 
     function checkAdminSession() {
       const isAuth = sessionStorage.getItem(`retrogym_admin_auth_${currentGymSlug}`) === 'true' || sessionStorage.getItem('retrogym_admin_auth') === 'true';
+      const lockModal = document.getElementById('admin-lock-modal');
       if (!currentGymAdminPin) {
         setAdminPinMode('setup-enter');
-        document.getElementById('admin-lock-modal').classList.remove('hidden');
+        if (lockModal) lockModal.classList.remove('hidden');
         clearPinKey();
       } else if (isAuth) {
-        document.getElementById('admin-lock-modal').classList.add('hidden');
+        if (lockModal) lockModal.classList.add('hidden');
         fetchAllData();
       } else {
         setAdminPinMode('unlock');
-        document.getElementById('admin-lock-modal').classList.remove('hidden');
+        if (lockModal) lockModal.classList.remove('hidden');
         clearPinKey();
       }
     }
@@ -2712,25 +2718,36 @@
     // ----------------------------------------------------
     function openGymSettingsModal() {
       populateGymSettingsForm();
-      document.getElementById('gym-settings-modal').classList.remove('hidden');
+      const modal = document.getElementById('gym-settings-modal');
+      if (modal) modal.classList.remove('hidden');
       playAudioChirp(800, 0.08);
     }
 
     function closeGymSettingsModal() {
-      document.getElementById('gym-settings-modal').classList.add('hidden');
+      const modal = document.getElementById('gym-settings-modal');
+      if (modal) modal.classList.add('hidden');
     }
 
     function populateGymSettingsForm() {
       const defaultName = currentGymSlug ? currentGymSlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : 'CYBER GYM';
-      document.getElementById('config-gym-name').value = currentGymConfig.gym_name || defaultName;
-      document.getElementById('config-gym-tagline').value = currentGymConfig.gym_tagline || 'DIGITAL COMMAND DESK';
-      document.getElementById('config-logo-url').value = currentGymConfig.logo_url || '';
-      document.getElementById('config-upi-id').value = currentGymConfig.upi_id || 'gymowner@okhdfcbank';
-      document.getElementById('config-support-phone').value = currentGymConfig.support_phone || '8467895365';
-      document.getElementById('config-plan-1m').value = currentGymConfig.plan_1m_price || 1200;
-      document.getElementById('config-plan-3m').value = currentGymConfig.plan_3m_price || 3200;
-      document.getElementById('config-plan-6m').value = currentGymConfig.plan_6m_price || 5800;
-      document.getElementById('config-plan-12m').value = currentGymConfig.plan_12m_price || 10500;
+      const nameEl = document.getElementById('config-gym-name');
+      if (nameEl) nameEl.value = currentGymConfig.gym_name || defaultName;
+      const taglineEl = document.getElementById('config-gym-tagline');
+      if (taglineEl) taglineEl.value = currentGymConfig.gym_tagline || 'DIGITAL COMMAND DESK';
+      const logoEl = document.getElementById('config-logo-url');
+      if (logoEl) logoEl.value = currentGymConfig.logo_url || '';
+      const upiEl = document.getElementById('config-upi-id');
+      if (upiEl) upiEl.value = currentGymConfig.upi_id || 'gymowner@okhdfcbank';
+      const phoneEl = document.getElementById('config-support-phone');
+      if (phoneEl) phoneEl.value = currentGymConfig.support_phone || '8467895365';
+      const p1El = document.getElementById('config-plan-1m');
+      if (p1El) p1El.value = currentGymConfig.plan_1m_price || 1200;
+      const p3El = document.getElementById('config-plan-3m');
+      if (p3El) p3El.value = currentGymConfig.plan_3m_price || 3200;
+      const p6El = document.getElementById('config-plan-6m');
+      if (p6El) p6El.value = currentGymConfig.plan_6m_price || 5800;
+      const p12El = document.getElementById('config-plan-12m');
+      if (p12El) p12El.value = currentGymConfig.plan_12m_price || 10500;
       previewLogoUrl(currentGymConfig.logo_url || '');
     }
 
