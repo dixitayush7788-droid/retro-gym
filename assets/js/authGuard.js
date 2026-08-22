@@ -26,9 +26,22 @@ export async function requireAuth(allowedRoles = [], requestedGymSlug = null, re
     cachedUserContext = context;
 
     // Super Admin has global cross-tenant platform authorization
+    const user = session?.user;
     const isSuperAdmin = context.is_super_admin === true ||
-      context.role === 'SUPER_ADMIN' ||
-      (Array.isArray(context.roles) && context.roles.some(r => r.role === 'SUPER_ADMIN'));
+      context.is_admin === true ||
+      (context.role && String(context.role).toUpperCase() === 'SUPER_ADMIN') ||
+      (user?.app_metadata?.role && String(user.app_metadata.role).toUpperCase() === 'SUPER_ADMIN') ||
+      (user?.user_metadata?.role && String(user.user_metadata.role).toUpperCase() === 'SUPER_ADMIN') ||
+      (user?.app_metadata?.is_super_admin === true) ||
+      (user?.user_metadata?.is_super_admin === true) ||
+      (Array.isArray(context.roles) && context.roles.some(r => {
+        if (typeof r === 'string') return r.toUpperCase() === 'SUPER_ADMIN';
+        if (typeof r === 'object' && r !== null) {
+          const roleStr = r.role || r.role_name || r.name;
+          return roleStr && String(roleStr).toUpperCase() === 'SUPER_ADMIN';
+        }
+        return false;
+      }));
 
     if (isSuperAdmin) {
       setupAuthStateListener(redirectTarget);

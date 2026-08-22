@@ -163,24 +163,61 @@
     const errText = document.getElementById('loginErrorText');
     const submitBtn = document.getElementById('loginSubmitBtn');
 
+    // Check if user object/context represents a SUPER_ADMIN
+    function isSuperAdminUser(user, context) {
+      if (context) {
+        if (context.is_super_admin === true || context.is_admin === true) return true;
+        if (context.role && String(context.role).toUpperCase() === 'SUPER_ADMIN') return true;
+        if (Array.isArray(context.roles)) {
+          const hasRole = context.roles.some(r => {
+            if (typeof r === 'string') return r.toUpperCase() === 'SUPER_ADMIN';
+            if (typeof r === 'object' && r !== null) {
+              const roleStr = r.role || r.role_name || r.name;
+              return roleStr && String(roleStr).toUpperCase() === 'SUPER_ADMIN';
+            }
+            return false;
+          });
+          if (hasRole) return true;
+        }
+      }
+      if (user) {
+        const appMeta = user.app_metadata || {};
+        const userMeta = user.user_metadata || {};
+        if (appMeta.is_super_admin === true || userMeta.is_super_admin === true) return true;
+        if (appMeta.role && String(appMeta.role).toUpperCase() === 'SUPER_ADMIN') return true;
+        if (userMeta.role && String(userMeta.role).toUpperCase() === 'SUPER_ADMIN') return true;
+        if (Array.isArray(appMeta.roles) && appMeta.roles.some(r => String(r).toUpperCase() === 'SUPER_ADMIN')) return true;
+        if (Array.isArray(userMeta.roles) && userMeta.roles.some(r => String(r).toUpperCase() === 'SUPER_ADMIN')) return true;
+      }
+      return false;
+    }
+
     // Check if user already has an authenticated session
     async function checkExistingSession() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          const { data: context } = await supabase.rpc('rpc_get_current_user_context');
-          if (context && context.authenticated) {
-            const isSuperAdmin = context.is_super_admin === true ||
-              context.role === 'SUPER_ADMIN' ||
-              (Array.isArray(context.roles) && context.roles.some(r => r.role === 'SUPER_ADMIN'));
+        if (session && session.user) {
+          let context = null;
+          try {
+            const { data: rpcContext } = await supabase.rpc('rpc_get_current_user_context');
+            context = rpcContext;
+          } catch (e) {}
 
-            if (isSuperAdmin || redirectParam === 'super-admin.html') {
-              window.location.href = './super-admin.html';
-            } else if (redirectParam) {
-              window.location.href = `./${redirectParam}`;
-            } else {
-              window.location.href = `./admin.html?gym=${encodeURIComponent(gymSlug || 'rahul-fitness')}`;
-            }
+          let isSuperAdmin = isSuperAdminUser(session.user, context);
+
+          if (!isSuperAdmin) {
+            try {
+              const { data: rows } = await supabase.from('super_admins').select('id').or(`user_id.eq.${session.user.id},email.eq.${session.user.email}`).limit(1);
+              if (rows && rows.length > 0) isSuperAdmin = true;
+            } catch (e) {}
+          }
+
+          if (isSuperAdmin || redirectParam === 'super-admin.html') {
+            window.location.href = './super-admin.html';
+          } else if (redirectParam) {
+            window.location.href = `./${redirectParam}`;
+          } else if (context && context.authenticated) {
+            window.location.href = `./admin.html?gym=${encodeURIComponent(gymSlug || 'rahul-fitness')}`;
           }
         }
       } catch (e) {
@@ -208,27 +245,29 @@
           throw error;
         }
 
-        if (data?.session) {
+        if (data?.session && data?.user) {
           submitBtn.innerText = "SUCCESS! REDIRECTING...";
 
           // Resolve User Context & Role Privileges
           let isSuperAdmin = false;
+          let context = null;
           try {
-            const { data: context } = await supabase.rpc('rpc_get_current_user_context');
-            if (context) {
-              if (
-                context.is_super_admin === true ||
-                context.role === 'SUPER_ADMIN' ||
-                (Array.isArray(context.roles) && context.roles.some(r => r.role === 'SUPER_ADMIN'))
-              ) {
-                isSuperAdmin = true;
-              }
-            }
+            const { data: rpcContext } = await supabase.rpc('rpc_get_current_user_context');
+            context = rpcContext;
           } catch (ctxErr) {
             console.warn('Context role resolution note:', ctxErr);
           }
 
-          // If user is SUPER_ADMIN or requested super-admin, redirect to super-admin.html
+          isSuperAdmin = isSuperAdminUser(data.user, context);
+
+          if (!isSuperAdmin) {
+            try {
+              const { data: saRows } = await supabase.from('super_admins').select('id').or(`user_id.eq.${data.user.id},email.eq.${data.user.email}`).limit(1);
+              if (saRows && saRows.length > 0) isSuperAdmin = true;
+            } catch (e) {}
+          }
+
+          // If user is SUPER_ADMIN, redirect directly to super-admin.html without tenant param
           if (isSuperAdmin || redirectParam === 'super-admin.html') {
             window.location.href = './super-admin.html';
           } else if (redirectParam) {
