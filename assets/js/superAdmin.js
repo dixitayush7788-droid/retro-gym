@@ -31,4 +31,29 @@ export async function initSuperAdmin() {
   }
 }
 
+/**
+ * Automatically generates a unique gym slug from business name and owner phone.
+ * Appends last 4 digits of phone if available (e.g. manish-fitness-6456).
+ */
+export function generateGymSlug(name = '', phone = '') {
+  const cleanName = (name || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  const cleanPhone = (phone || '').replace(/\D/g, '');
+  const last4 = cleanPhone.length >= 4 ? cleanPhone.slice(-4) : (cleanPhone.length > 0 ? cleanPhone : '');
+
+  if (!cleanName) {
+    return last4 ? `gym-${last4}` : '';
+  }
+
+  if (last4) {
+    return `${cleanName}-${last4}`;
+  }
+
+  return cleanName;
+}
+
 export { handleSignOut, getCurrentContext };

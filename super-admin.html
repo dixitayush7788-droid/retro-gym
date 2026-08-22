@@ -615,8 +615,8 @@
           <input 
             type="text" 
             id="form-name" 
-            placeholder="e.g. Retro Gym" 
-            oninput="handleSlugAutoGenerate(this.value)"
+            placeholder="e.g. MANISH FITNESS" 
+            oninput="handleSlugAutoGenerate()"
             class="w-full bg-surfaceMuted border border-borderLight focus:border-skyPrimary rounded-xl p-2.5 text-charcoal outline-none font-semibold text-xs"
             required
           />
@@ -630,11 +630,12 @@
             <input 
               type="text" 
               id="form-slug" 
-              placeholder="retro-gym" 
+              placeholder="manish-fitness-6456" 
               class="w-full bg-surfaceMuted border border-borderLight focus:border-skyPrimary rounded-xl pl-7 pr-3 py-2.5 text-skyPrimary font-mono font-bold outline-none text-xs"
               required
             />
           </div>
+          <p class="text-[10px] text-charcoalSubtle mt-1 font-mono">Auto-generated with last 4 digits of phone for inherent uniqueness across multi-tenants.</p>
         </div>
 
         <!-- Phone & UPI ID -->
@@ -644,8 +645,9 @@
             <input 
               type="tel" 
               id="form-phone" 
-              placeholder="8467895365" 
+              placeholder="8467896456" 
               maxlength="10"
+              oninput="handleSlugAutoGenerate()"
               class="w-full bg-surfaceMuted border border-borderLight focus:border-skyPrimary rounded-xl p-2.5 text-charcoal font-mono outline-none text-xs"
               required
             />
@@ -1586,10 +1588,35 @@
       document.getElementById('onboard-modal').classList.add('hidden');
     }
 
-    function handleSlugAutoGenerate(name) {
+    function generateGymSlug(name = '', phone = '') {
+      const cleanName = (name || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+
+      const cleanPhone = (phone || '').replace(/\D/g, '');
+      const last4 = cleanPhone.length >= 4 ? cleanPhone.slice(-4) : (cleanPhone.length > 0 ? cleanPhone : '');
+
+      if (!cleanName) {
+        return last4 ? `gym-${last4}` : '';
+      }
+
+      if (last4) {
+        return `${cleanName}-${last4}`;
+      }
+
+      return cleanName;
+    }
+
+    function handleSlugAutoGenerate() {
+      const nameInput = document.getElementById('form-name');
+      const phoneInput = document.getElementById('form-phone');
       const slugInput = document.getElementById('form-slug');
       if (slugInput) {
-        slugInput.value = name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+        const name = nameInput ? nameInput.value : '';
+        const phone = phoneInput ? phoneInput.value : '';
+        slugInput.value = generateGymSlug(name, phone);
       }
     }
 
@@ -1611,7 +1638,10 @@
       const featQr = document.getElementById('form-feat-qr').checked;
       const featNotices = document.getElementById('form-feat-notices').checked;
 
-      const cleanSlug = rawSlug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+      let cleanSlug = rawSlug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+      if (!cleanSlug) {
+        cleanSlug = generateGymSlug(gymName, phone);
+      }
 
       if (!gymName || !cleanSlug || !phone || !upi) {
         showToast("Please fill all required fields", "error");

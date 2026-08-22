@@ -2095,17 +2095,28 @@
       historyContainer.innerHTML = `<div class="text-center py-4 text-xs font-mono text-zinc-500">Querying attendance intelligence...</div>`;
 
       try {
-        if (!db) return;
-        const { data: logs, error } = await db
-          .from('attendance_logs')
-          .select('*')
-          .eq('phone', phone)
-          .order('checkin_time', { ascending: false })
-          .limit(15);
+        if (!db || !currentGymSlug) return;
+        let punches = [];
+        try {
+          const { data: logs, error } = await db
+            .from('attendance_logs')
+            .select('*')
+            .eq('phone', phone)
+            .or(`gym_id.eq.${currentGymSlug},gym_slug.eq.${currentGymSlug}`)
+            .order('checkin_time', { ascending: false })
+            .limit(15);
 
-        if (error) throw error;
-
-        const punches = logs || [];
+          if (error) throw error;
+          punches = logs || [];
+        } catch (queryErr) {
+          const { data: allLogs } = await db
+            .from('attendance_logs')
+            .select('*')
+            .eq('phone', phone)
+            .order('checkin_time', { ascending: false })
+            .limit(15);
+          punches = (allLogs || []).filter(l => l.gym_id === currentGymSlug || l.gym_slug === currentGymSlug);
+        }
         const now = new Date();
         const curMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
         
@@ -2192,7 +2203,8 @@
             valid_until: newExpiryIso,
             expiry_date: newExpiryIso 
           })
-          .eq('phone', member.phone);
+          .eq('phone', member.phone)
+          .or(`gym_id.eq.${currentGymSlug},gym_slug.eq.${currentGymSlug}`);
 
         if (error) throw error;
 
@@ -2223,7 +2235,8 @@
             valid_until: pastIso,
             expiry_date: pastIso 
           })
-          .eq('phone', member.phone);
+          .eq('phone', member.phone)
+          .or(`gym_id.eq.${currentGymSlug},gym_slug.eq.${currentGymSlug}`);
 
         if (error) throw error;
 
@@ -2302,7 +2315,8 @@
         const { error } = await db
           .from('members')
           .update({ password: null })
-          .eq('phone', phone);
+          .eq('phone', phone)
+          .or(`gym_id.eq.${currentGymSlug},gym_slug.eq.${currentGymSlug}`);
 
         if (error) throw error;
 
@@ -2319,22 +2333,33 @@
     // ATTENDANCE STREAM RENDERING & TIME FORMATTER
     // ----------------------------------------------------
     async function fetchAttendanceFeed(showToastFeedback = false) {
-      if (!db) return;
+      if (!db || !currentGymSlug) return;
       try {
-        const { data, error } = await db
-          .from('attendance_logs')
-          .select('*')
-          .order('checkin_time', { ascending: false })
-          .limit(40);
+        let logs = [];
+        try {
+          const { data, error } = await db
+            .from('attendance_logs')
+            .select('*')
+            .or(`gym_id.eq.${currentGymSlug},gym_slug.eq.${currentGymSlug}`)
+            .order('checkin_time', { ascending: false })
+            .limit(40);
 
-        if (error) throw error;
-        allAttendanceLogs = data || [];
+          if (error) throw error;
+          logs = data || [];
+        } catch (lErr) {
+          const { data: allLogs } = await db.from('attendance_logs').select('*').order('checkin_time', { ascending: false }).limit(40);
+          logs = (allLogs || []).filter(l => l.gym_id === currentGymSlug || l.gym_slug === currentGymSlug);
+        }
+
+        allAttendanceLogs = logs || [];
         renderAttendanceFeed();
         if (showToastFeedback) {
           playAudioChirp(750, 0.05);
           showToast("Telemetry stream refreshed ⟳", "info");
         }
-      } catch (e) {}
+      } catch (e) {
+        console.warn("Telemetry feed note:", e);
+      }
     }
 
     function timeAgo(date) {
@@ -2653,16 +2678,17 @@
     }
 
     // ----------------------------------------------------
-    // EXPORT CSV UTILITY
+    // EXPORT CSV UTILITY (STRICT DATA ISOLATION)
     // ----------------------------------------------------
     function exportMembersCSV() {
-      if (allMembers.length === 0) {
-        showToast("No records to export", "error");
+      const tenantMembers = allMembers.filter(m => !m.gymId || m.gymId === currentGymSlug || m.gym_id === currentGymSlug || m.gym_slug === currentGymSlug);
+      if (tenantMembers.length === 0) {
+        showToast("No athlete records found to export for this gym station", "error");
         return;
       }
 
-      let csv = "Full Name,Phone,Gym Tenant,Valid Until,Plan Duration (Months),Fees Paid,Streak Count,PIN Status\n";
-      allMembers.forEach(m => {
+      let csv = "Full Name,Phone,Gym ID / Tenant,Valid Until,Plan Duration (Months),Fees Paid,Streak Count,PIN Status\n";
+      tenantMembers.forEach(m => {
         csv += `"${m.fullName}","${m.phone}","${currentGymSlug}","${m.validUntil}",${m.planDuration},${m.feesPaid},${m.streak},"${m.hasPin ? 'PIN ACTIVE' : 'NO PIN'}"\n`;
       });
 
