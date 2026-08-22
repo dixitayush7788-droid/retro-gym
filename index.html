@@ -2571,38 +2571,52 @@
       const message = document.getElementById('gym-emergency-message');
       const timeEl = document.getElementById('gym-emergency-time');
 
-      timeEl.innerText = `Updated ${updatedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      if (timeEl) {
+        timeEl.innerText = `Updated ${updatedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      }
 
       if (status === 'DELAYED') {
         banner.className = "rounded-3xl p-4 transition-all duration-300 relative overflow-hidden shadow-2xl bg-gradient-to-r from-amber-950/80 via-amber-900/60 to-black border-2 border-moltenGold/80";
-        iconBg.className = "w-10 h-10 rounded-2xl flex items-center justify-center font-brand text-xl shrink-0 shadow-lg bg-moltenGold/20 text-moltenGold border border-moltenGold/40";
-        icon.innerText = "⏳";
-        tag.className = "text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-moltenGold/20 text-moltenGold border border-moltenGold/40";
-        tag.innerText = "LATE OPENING";
-        ping.className = "w-1.5 h-1.5 rounded-full animate-ping bg-moltenGold";
-        headline.innerText = `OPENING DELAYED — OPENS AT ${delayedTime}`;
-        headline.className = "font-brand text-base tracking-wide text-moltenGold leading-tight";
-        message.innerText = notice || `Gym opening delayed today. Doors open at ${delayedTime}.`;
+        if (iconBg) iconBg.className = "w-10 h-10 rounded-2xl flex items-center justify-center font-brand text-xl shrink-0 shadow-lg bg-moltenGold/20 text-moltenGold border border-moltenGold/40";
+        if (icon) icon.innerText = "⏳";
+        if (tag) {
+          tag.className = "text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-moltenGold/20 text-moltenGold border border-moltenGold/40";
+          tag.innerText = "LATE OPENING";
+        }
+        if (ping) ping.className = "w-1.5 h-1.5 rounded-full animate-ping bg-moltenGold";
+        if (headline) {
+          headline.innerText = `OPENING DELAYED — OPENS AT ${delayedTime}`;
+          headline.className = "font-brand text-base tracking-wide text-moltenGold leading-tight";
+        }
+        if (message) message.innerText = notice || `Gym opening delayed today. Doors open at ${delayedTime}.`;
       } else if (status === 'CLOSED') {
         banner.className = "rounded-3xl p-4 transition-all duration-300 relative overflow-hidden shadow-2xl bg-gradient-to-r from-rose-950/80 via-rose-900/60 to-black border-2 border-crimsonAlert/80";
-        iconBg.className = "w-10 h-10 rounded-2xl flex items-center justify-center font-brand text-xl shrink-0 shadow-lg bg-crimsonAlert/20 text-crimsonAlert border border-crimsonAlert/40";
-        icon.innerText = "🚫";
-        tag.className = "text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-crimsonAlert/20 text-crimsonAlert border border-crimsonAlert/40";
-        tag.innerText = "CLOSED TODAY";
-        ping.className = "w-1.5 h-1.5 rounded-full animate-ping bg-crimsonAlert";
-        headline.innerText = "GYM IS CLOSED TODAY";
-        headline.className = "font-brand text-base tracking-wide text-crimsonAlert leading-tight";
-        message.innerText = notice || "Gym is closed today for unscheduled facility maintenance. See you tomorrow with full power!";
+        if (iconBg) iconBg.className = "w-10 h-10 rounded-2xl flex items-center justify-center font-brand text-xl shrink-0 shadow-lg bg-crimsonAlert/20 text-crimsonAlert border border-crimsonAlert/40";
+        if (icon) icon.innerText = "🚫";
+        if (tag) {
+          tag.className = "text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-crimsonAlert/20 text-crimsonAlert border border-crimsonAlert/40";
+          tag.innerText = "CLOSED TODAY";
+        }
+        if (ping) ping.className = "w-1.5 h-1.5 rounded-full animate-ping bg-crimsonAlert";
+        if (headline) {
+          headline.innerText = "GYM IS CLOSED TODAY";
+          headline.className = "font-brand text-base tracking-wide text-crimsonAlert leading-tight";
+        }
+        if (message) message.innerText = notice || "Gym is closed today for unscheduled facility maintenance. See you tomorrow with full power!";
       } else if (status === 'HOLIDAY') {
         banner.className = "rounded-3xl p-4 transition-all duration-300 relative overflow-hidden shadow-2xl bg-gradient-to-r from-sky-950/80 via-cyan-900/60 to-black border-2 border-cyanCyber/80";
-        iconBg.className = "w-10 h-10 rounded-2xl flex items-center justify-center font-brand text-xl shrink-0 shadow-lg bg-cyanCyber/20 text-cyanCyber border border-cyanCyber/40";
-        icon.innerText = "🎉";
-        tag.className = "text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-cyanCyber/20 text-cyanCyber border border-cyanCyber/40";
-        tag.innerText = "FESTIVAL HOLIDAY";
-        ping.className = "w-1.5 h-1.5 rounded-full animate-ping bg-cyanCyber";
-        headline.innerText = "HOLIDAY — GYM CLOSED";
-        headline.className = "font-brand text-base tracking-wide text-cyanCyber leading-tight";
-        message.innerText = notice || "Happy festival holidays to all Retro Gym athletes! Normal schedule resumes tomorrow.";
+        if (iconBg) iconBg.className = "w-10 h-10 rounded-2xl flex items-center justify-center font-brand text-xl shrink-0 shadow-lg bg-cyanCyber/20 text-cyanCyber border border-cyanCyber/40";
+        if (icon) icon.innerText = "🎉";
+        if (tag) {
+          tag.className = "text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-cyanCyber/20 text-cyanCyber border border-cyanCyber/40";
+          tag.innerText = "FESTIVAL HOLIDAY";
+        }
+        if (ping) ping.className = "w-1.5 h-1.5 rounded-full animate-ping bg-cyanCyber";
+        if (headline) {
+          headline.innerText = "HOLIDAY — GYM CLOSED";
+          headline.className = "font-brand text-base tracking-wide text-cyanCyber leading-tight";
+        }
+        if (message) message.innerText = notice || "Happy festival holidays to all Retro Gym athletes! Normal schedule resumes tomorrow.";
       }
     }
 

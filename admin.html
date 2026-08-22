@@ -2070,11 +2070,13 @@
       // Open Modal
       const modal = document.getElementById('athlete-dossier-modal');
       const card = document.getElementById('athlete-dossier-card');
-      modal.classList.remove('hidden');
-      if (animate) {
-        setTimeout(() => card.classList.remove('translate-y-full'), 20);
-      } else {
-        card.classList.remove('translate-y-full');
+      if (modal) modal.classList.remove('hidden');
+      if (card) {
+        if (animate) {
+          setTimeout(() => card && card.classList.remove('translate-y-full'), 20);
+        } else {
+          card.classList.remove('translate-y-full');
+        }
       }
 
       // Fetch Individual Attendance Intelligence for this athlete
@@ -2083,9 +2085,10 @@
 
     function closeAthleteDossier() {
       const card = document.getElementById('athlete-dossier-card');
-      card.classList.add('translate-y-full');
+      const modal = document.getElementById('athlete-dossier-modal');
+      if (card) card.classList.add('translate-y-full');
       setTimeout(() => {
-        document.getElementById('athlete-dossier-modal').classList.add('hidden');
+        if (modal) modal.classList.add('hidden');
         activeDossierMember = null;
       }, 250);
     }
@@ -2569,15 +2572,18 @@
 
       const drawer = document.getElementById('add-member-drawer');
       const card = document.getElementById('add-member-card');
-      drawer.classList.remove('hidden');
-      setTimeout(() => card.classList.remove('translate-y-full'), 20);
+      if (drawer) drawer.classList.remove('hidden');
+      if (card) setTimeout(() => card && card.classList.remove('translate-y-full'), 20);
       playAudioChirp(700, 0.08);
     }
 
     function closeAddMemberDrawer() {
       const card = document.getElementById('add-member-card');
-      card.classList.add('translate-y-full');
-      setTimeout(() => document.getElementById('add-member-drawer').classList.add('hidden'), 250);
+      const drawer = document.getElementById('add-member-drawer');
+      if (card) card.classList.add('translate-y-full');
+      setTimeout(() => {
+        if (drawer) drawer.classList.add('hidden');
+      }, 250);
     }
 
     function selectNewPlan(months, customFee = null) {
@@ -2922,35 +2928,41 @@
       const noticeContainer = document.getElementById('notice-text-container');
       const noticeInput = document.getElementById('gym-notice-input');
 
-      // Update card visual styles
+      // Update card visual styles with null checks
       const statuses = ['OPEN', 'DELAYED', 'CLOSED', 'HOLIDAY'];
       statuses.forEach(s => {
         const card = document.getElementById(`status-card-${s}`);
-        if (s === status) {
-          if (s === 'OPEN') card.className = "cursor-pointer relative flex items-center gap-2.5 p-3 rounded-2xl border border-emeraldCustom bg-emeraldCustom/15 text-white transition-all";
-          else if (s === 'DELAYED') card.className = "cursor-pointer relative flex items-center gap-2.5 p-3 rounded-2xl border border-amber-400 bg-amber-400/15 text-white transition-all";
-          else if (s === 'CLOSED') card.className = "cursor-pointer relative flex items-center gap-2.5 p-3 rounded-2xl border border-rose-500 bg-rose-500/15 text-white transition-all";
-          else if (s === 'HOLIDAY') card.className = "cursor-pointer relative flex items-center gap-2.5 p-3 rounded-2xl border border-cyanCustom bg-cyanCustom/15 text-white transition-all";
-        } else {
-          card.className = "cursor-pointer relative flex items-center gap-2.5 p-3 rounded-2xl border border-white/10 bg-surfaceCard text-zinc-300 transition-all";
+        if (card) {
+          if (s === status) {
+            if (s === 'OPEN') card.className = "cursor-pointer relative flex items-center gap-2.5 p-3 rounded-2xl border border-emeraldCustom bg-emeraldCustom/15 text-white transition-all";
+            else if (s === 'DELAYED') card.className = "cursor-pointer relative flex items-center gap-2.5 p-3 rounded-2xl border border-amber-400 bg-amber-400/15 text-white transition-all";
+            else if (s === 'CLOSED') card.className = "cursor-pointer relative flex items-center gap-2.5 p-3 rounded-2xl border border-rose-500 bg-rose-500/15 text-white transition-all";
+            else if (s === 'HOLIDAY') card.className = "cursor-pointer relative flex items-center gap-2.5 p-3 rounded-2xl border border-cyanCustom bg-cyanCustom/15 text-white transition-all";
+          } else {
+            card.className = "cursor-pointer relative flex items-center gap-2.5 p-3 rounded-2xl border border-white/10 bg-surfaceCard text-zinc-300 transition-all";
+          }
         }
       });
 
       if (status === 'DELAYED') {
-        timeContainer.classList.remove('hidden');
-        noticeContainer.className = "space-y-1 sm:col-span-2";
-        if (!noticeInput.value || noticeInput.value.includes('Regular') || noticeInput.value.includes('Closed') || noticeInput.value.includes('Holiday')) {
-          noticeInput.value = `Gym opening delayed today due to routine maintenance. Doors open at ${document.getElementById('gym-delayed-time-input').value || '5:00 PM'}.`;
+        if (timeContainer) timeContainer.classList.remove('hidden');
+        if (noticeContainer) noticeContainer.className = "space-y-1 sm:col-span-2";
+        if (noticeInput && (!noticeInput.value || noticeInput.value.includes('Regular') || noticeInput.value.includes('Closed') || noticeInput.value.includes('Holiday'))) {
+          const delayedTimeInput = document.getElementById('gym-delayed-time-input');
+          const delayedTime = delayedTimeInput ? delayedTimeInput.value : '5:00 PM';
+          noticeInput.value = `Gym opening delayed today due to routine maintenance. Doors open at ${delayedTime || '5:00 PM'}.`;
         }
       } else {
-        timeContainer.classList.add('hidden');
-        noticeContainer.className = "space-y-1 sm:col-span-3";
-        if (status === 'OPEN') {
-          noticeInput.value = "Regular timings in effect (5:30 AM - 10:30 PM). Stay hydrated and crush your workout!";
-        } else if (status === 'CLOSED') {
-          noticeInput.value = "Gym is CLOSED today for unscheduled facility maintenance. See you tomorrow with full power!";
-        } else if (status === 'HOLIDAY') {
-          noticeInput.value = "Gym is CLOSED today on account of Festival Holiday. Happy celebrations to all athletes!";
+        if (timeContainer) timeContainer.classList.add('hidden');
+        if (noticeContainer) noticeContainer.className = "space-y-1 sm:col-span-3";
+        if (noticeInput) {
+          if (status === 'OPEN') {
+            noticeInput.value = "Regular timings in effect (5:30 AM - 10:30 PM). Stay hydrated and crush your workout!";
+          } else if (status === 'CLOSED') {
+            noticeInput.value = "Gym is CLOSED today for unscheduled facility maintenance. See you tomorrow with full power!";
+          } else if (status === 'HOLIDAY') {
+            noticeInput.value = "Gym is CLOSED today on account of Festival Holiday. Happy celebrations to all athletes!";
+          }
         }
       }
 
@@ -3265,9 +3277,13 @@ _Old School Iron • Modern Discipline_`;
       }
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', () => {
+        initAdminGatekeeper();
+      });
+    } else {
       initAdminGatekeeper();
-    });
+    }
   </script>
 
   <!-- Zero-Trust Auth Guard & Session Wiring -->
