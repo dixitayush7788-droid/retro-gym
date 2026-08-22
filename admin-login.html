@@ -217,7 +217,8 @@
           } else if (redirectParam) {
             window.location.href = `./${redirectParam}`;
           } else if (context && context.authenticated) {
-            window.location.href = `./admin.html?gym=${encodeURIComponent(gymSlug || 'rahul-fitness')}`;
+            let targetGym = gymSlug || session.user.user_metadata?.gym_slug || session.user.app_metadata?.gym_slug || context?.gym_slug;
+            window.location.href = `./admin.html?gym=${encodeURIComponent(targetGym || 'rahul-fitness')}`;
           }
         }
       } catch (e) {
@@ -273,7 +274,14 @@
           } else if (redirectParam) {
             window.location.href = `./${redirectParam}`;
           } else {
-            window.location.href = `./admin.html?gym=${encodeURIComponent(gymSlug || 'rahul-fitness')}`;
+            let targetGym = gymSlug || data.user.user_metadata?.gym_slug || data.user.app_metadata?.gym_slug || context?.gym_slug;
+            if (!targetGym) {
+              try {
+                const { data: userRole } = await supabase.from('user_roles').select('gym_slug').eq('user_id', data.user.id).limit(1).maybeSingle();
+                if (userRole && userRole.gym_slug) targetGym = userRole.gym_slug;
+              } catch (e) {}
+            }
+            window.location.href = `./admin.html?gym=${encodeURIComponent(targetGym || 'rahul-fitness')}`;
           }
         } else {
           throw new Error('Could not establish session. Please verify credentials.');

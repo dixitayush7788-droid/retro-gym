@@ -631,6 +631,7 @@
               type="text" 
               id="form-slug" 
               placeholder="manish-fitness-6456" 
+              oninput="handleManualSlugChange()"
               class="w-full bg-surfaceMuted border border-borderLight focus:border-skyPrimary rounded-xl pl-7 pr-3 py-2.5 text-skyPrimary font-mono font-bold outline-none text-xs"
               required
             />
@@ -638,7 +639,7 @@
           <p class="text-[10px] text-charcoalSubtle mt-1 font-mono">Auto-generated with last 4 digits of phone for inherent uniqueness across multi-tenants.</p>
         </div>
 
-        <!-- Phone & UPI ID -->
+        <!-- Phone & Owner Email -->
         <div class="grid grid-cols-2 gap-2.5">
           <div>
             <label class="block font-bold text-charcoal mb-1">Owner Phone (10 Digits) *</label>
@@ -653,15 +654,66 @@
             />
           </div>
           <div>
-            <label class="block font-bold text-charcoal mb-1">Owner UPI ID *</label>
+            <label class="block font-bold text-charcoal mb-1">Owner Email (Auth Login) *</label>
             <input 
-              type="text" 
-              id="form-upi" 
-              placeholder="gym@okhdfc" 
-              class="w-full bg-surfaceMuted border border-borderLight focus:border-skyPrimary rounded-xl p-2.5 text-emeraldMint font-mono font-semibold outline-none text-xs"
+              type="email" 
+              id="form-email" 
+              placeholder="owner@manish-fitness.nexusgym.io" 
+              class="w-full bg-surfaceMuted border border-borderLight focus:border-skyPrimary rounded-xl p-2.5 text-charcoal font-mono outline-none text-xs font-semibold"
               required
             />
           </div>
+        </div>
+
+        <!-- Initial Admin PIN & Initial Password -->
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label class="block font-bold text-charcoal mb-1">Initial Desk PIN (4 Digits) *</label>
+            <input 
+              type="text" 
+              id="form-admin-pin" 
+              value="1234"
+              maxlength="4"
+              pattern="[0-9]{4}"
+              placeholder="1234" 
+              class="w-full bg-surfaceMuted border border-borderLight focus:border-skyPrimary rounded-xl p-2.5 text-amber-600 font-mono font-bold outline-none text-xs tracking-widest text-center"
+              required
+            />
+            <span class="text-[10px] text-charcoalSubtle font-mono mt-0.5 block">Reception Quick-PIN (Default: 1234)</span>
+          </div>
+          <div>
+            <label class="block font-bold text-charcoal mb-1">Owner Initial Password *</label>
+            <div class="relative">
+              <input 
+                type="text" 
+                id="form-password" 
+                value="Nexus@2026!" 
+                class="w-full bg-surfaceMuted border border-borderLight focus:border-skyPrimary rounded-xl p-2.5 text-charcoal font-mono font-semibold outline-none text-xs pr-8"
+                required
+              />
+              <button 
+                type="button" 
+                onclick="regenerateFormPassword()" 
+                title="Regenerate secure password"
+                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-charcoalSubtle hover:text-skyPrimary text-xs cursor-pointer"
+              >
+                🔄
+              </button>
+            </div>
+            <span class="text-[10px] text-charcoalSubtle font-mono mt-0.5 block">Auto-created for Supabase Auth</span>
+          </div>
+        </div>
+
+        <!-- Owner UPI ID -->
+        <div>
+          <label class="block font-bold text-charcoal mb-1">Owner UPI ID (Fee Collections) *</label>
+          <input 
+            type="text" 
+            id="form-upi" 
+            placeholder="gym@okhdfc" 
+            class="w-full bg-surfaceMuted border border-borderLight focus:border-skyPrimary rounded-xl p-2.5 text-emeraldMint font-mono font-semibold outline-none text-xs"
+            required
+          />
         </div>
 
         <!-- Monthly SaaS Fee & Duration -->
@@ -738,6 +790,7 @@
         <div class="flex items-center gap-2 pt-2">
           <button 
             type="submit" 
+            id="onboard-submit-btn"
             class="flex-1 py-3 bg-skyPrimary hover:bg-skyHover text-white font-bold rounded-xl shadow-ios-sm active:scale-95 transition-all text-xs cursor-pointer"
           >
             Deploy New Gym Node
@@ -752,6 +805,124 @@
         </div>
 
       </form>
+
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- 4B. GYM ONBOARDING SUCCESS SUMMARY MODAL                 -->
+  <!-- ======================================================== -->
+  <div id="onboard-success-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white rounded-3xl shadow-ios-float border border-borderLight p-6 space-y-4">
+      
+      <div class="flex items-center justify-between pb-3 border-b border-borderLight">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-emeraldSoft text-emeraldMint flex items-center justify-center text-xl font-bold border border-emerald-200 shadow-ios-sm">
+            🚀
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold text-charcoal">Gym Node Deployed!</h3>
+            <p id="success-station-sub" class="text-xs text-charcoalSubtle">Credentials & Access Links</p>
+          </div>
+        </div>
+        <button onclick="closeOnboardSuccessModal()" class="w-7 h-7 rounded-full bg-surfaceMuted hover:bg-slate-200 text-charcoalSubtle flex items-center justify-center text-xs font-bold cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <!-- Credentials Detail Box -->
+      <div class="bg-surfaceMuted p-4 rounded-2xl border border-borderLight space-y-3 font-mono text-xs">
+        
+        <!-- Gym & Slug -->
+        <div>
+          <span class="text-[10px] uppercase font-bold text-charcoalSubtle block">Gym Station & Handle</span>
+          <div class="flex items-center justify-between mt-0.5">
+            <span id="success-gym-name" class="font-bold text-charcoal text-sm">--</span>
+            <span id="success-gym-slug" class="text-skyPrimary font-bold">@--</span>
+          </div>
+        </div>
+
+        <div class="border-t border-borderLight/60 pt-2">
+          <span class="text-[10px] uppercase font-bold text-charcoalSubtle block">Admin Login Portal URL</span>
+          <div class="flex items-center gap-1.5 mt-1">
+            <input type="text" id="success-login-url" readonly class="flex-1 bg-white border border-borderLight rounded-lg px-2.5 py-1.5 text-[11px] text-charcoal truncate select-all outline-none" />
+            <button onclick="copyFieldText('success-login-url', 'Login URL copied!')" class="px-2.5 py-1.5 bg-white hover:bg-slate-100 border border-borderLight rounded-lg text-charcoal font-bold text-[10px] cursor-pointer active:scale-95">Copy</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 border-t border-borderLight/60 pt-2">
+          <div>
+            <span class="text-[10px] uppercase font-bold text-charcoalSubtle block">Owner Email</span>
+            <div class="flex items-center gap-1 mt-1">
+              <input type="text" id="success-owner-email" readonly class="w-full bg-white border border-borderLight rounded-lg px-2 py-1 text-[10.5px] text-charcoal font-semibold truncate outline-none select-all" />
+              <button onclick="copyFieldText('success-owner-email', 'Email copied!')" title="Copy Email" class="px-1.5 py-1 bg-white hover:bg-slate-100 border border-borderLight rounded-lg text-[10px] cursor-pointer">📋</button>
+            </div>
+          </div>
+          <div>
+            <span class="text-[10px] uppercase font-bold text-charcoalSubtle block">Initial Password</span>
+            <div class="flex items-center gap-1 mt-1">
+              <input type="text" id="success-owner-password" readonly class="w-full bg-white border border-borderLight rounded-lg px-2 py-1 text-[10.5px] text-charcoal font-bold truncate outline-none select-all" />
+              <button onclick="copyFieldText('success-owner-password', 'Password copied!')" title="Copy Password" class="px-1.5 py-1 bg-white hover:bg-slate-100 border border-borderLight rounded-lg text-[10px] cursor-pointer">📋</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 border-t border-borderLight/60 pt-2">
+          <div>
+            <span class="text-[10px] uppercase font-bold text-charcoalSubtle block">Desk Security PIN</span>
+            <div class="mt-1 flex items-center gap-1">
+              <span id="success-admin-pin" class="font-extrabold text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg text-xs tracking-wider">1234</span>
+            </div>
+          </div>
+          <div>
+            <span class="text-[10px] uppercase font-bold text-charcoalSubtle block">Owner Phone</span>
+            <div class="mt-1">
+              <span id="success-owner-phone" class="font-bold text-charcoal text-xs">+91 --</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="space-y-2 pt-1">
+        <!-- WhatsApp Share Button -->
+        <a 
+          id="success-whatsapp-btn" 
+          href="#" 
+          target="_blank"
+          class="w-full py-3 bg-[#25D366] hover:bg-[#20ba59] text-white font-bold rounded-xl shadow-ios-sm active:scale-95 transition-all text-xs flex items-center justify-center gap-2 cursor-pointer"
+        >
+          <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.312.045-.694.076-1.924-.44-1.393-.585-2.285-2.008-2.355-2.102-.07-.094-.567-.754-.567-1.438 0-.684.356-1.02.482-1.157.126-.137.275-.171.368-.171.093 0 .187.002.268.006.086.004.202-.033.315.24.118.283.405.99.44 1.062.036.072.06.157.012.253-.048.096-.073.156-.145.24-.072.085-.152.19-.217.255-.072.072-.148.151-.064.296.084.144.373.616.8 1 .552.496 1.018.65 1.162.723.144.072.228.06.313-.036.084-.096.36-.42.456-.564.096-.144.192-.12.324-.072.132.048.84.396.984.468.144.072.24.108.276.168.036.06.036.348-.108.753z"/></svg>
+          <span>Share Credentials via WhatsApp</span>
+        </a>
+
+        <div class="flex items-center gap-2">
+          <button 
+            type="button" 
+            onclick="copyAllCredentialsToClipboard()" 
+            class="flex-1 py-2.5 bg-white border border-borderLight hover:bg-slate-50 text-charcoal font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+          >
+            📋 <span>Copy All</span>
+          </button>
+          <a 
+            id="success-open-admin-link" 
+            href="#" 
+            target="_blank"
+            class="flex-1 py-2.5 bg-skyPrimary hover:bg-skyHover text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+          >
+            ⚡ <span>Open Admin Console</span>
+          </a>
+        </div>
+
+        <button 
+          type="button" 
+          onclick="closeOnboardSuccessModal()" 
+          class="w-full py-2 text-charcoalSubtle hover:text-charcoal text-xs font-semibold cursor-pointer"
+        >
+          Dismiss
+        </button>
+      </div>
 
     </div>
   </div>
@@ -1577,15 +1748,59 @@
     }
 
     // ----------------------------------------------------
-    // ONBOARD NEW GYM FORM LOGIC
+    // ONBOARD NEW GYM FORM LOGIC & OWNER AUTH AUTOMATION
     // ----------------------------------------------------
+    let lastGeneratedCredentials = null;
+
     function openOnboardModal() {
       playAudioChirp(700, 0.05);
+      const formEl = document.getElementById('onboard-form');
+      if (formEl) formEl.reset();
+      
+      const pinInput = document.getElementById('form-admin-pin');
+      if (pinInput) pinInput.value = '1234';
+
+      const pwdInput = document.getElementById('form-password');
+      if (pwdInput) pwdInput.value = 'Nexus@2026!';
+
       document.getElementById('onboard-modal').classList.remove('hidden');
     }
 
     function closeOnboardModal() {
       document.getElementById('onboard-modal').classList.add('hidden');
+    }
+
+    function openOnboardSuccessModal(details) {
+      lastGeneratedCredentials = details;
+
+      document.getElementById('success-gym-name').innerText = details.gymName || '--';
+      document.getElementById('success-gym-slug').innerText = `@${details.slug || '--'}`;
+      document.getElementById('success-station-sub').innerText = `${details.gymName} (@${details.slug}) Node Active`;
+
+      document.getElementById('success-login-url').value = details.adminLoginUrl || '';
+      document.getElementById('success-owner-email').value = details.email || '';
+      document.getElementById('success-owner-password').value = details.password || '';
+      document.getElementById('success-admin-pin').innerText = details.adminPin || '1234';
+      document.getElementById('success-owner-phone').innerText = `+91 ${details.phone || '--'}`;
+
+      // Set WhatsApp action link
+      const waBtn = document.getElementById('success-whatsapp-btn');
+      if (waBtn) {
+        waBtn.href = details.whatsappUrl || '#';
+      }
+
+      // Set Open Admin Console link
+      const adminLink = document.getElementById('success-open-admin-link');
+      if (adminLink) {
+        adminLink.href = details.adminConsoleUrl || `./admin.html?gym=${encodeURIComponent(details.slug)}`;
+      }
+
+      document.getElementById('onboard-success-modal').classList.remove('hidden');
+      playAudioChirp(1200, 0.25);
+    }
+
+    function closeOnboardSuccessModal() {
+      document.getElementById('onboard-success-modal').classList.add('hidden');
     }
 
     function generateGymSlug(name = '', phone = '') {
@@ -1609,21 +1824,126 @@
       return cleanName;
     }
 
+    function generateInitialPassword(phone = '') {
+      const cleanPhone = (phone || '').replace(/\D/g, '');
+      const last4 = cleanPhone.length >= 4 ? cleanPhone.slice(-4) : '2026';
+      return `Nexus@${last4}!`;
+    }
+
+    function generateDefaultEmail(slug = '', phone = '') {
+      const cleanSlug = (slug || '').trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+      if (cleanSlug) {
+        return `owner@${cleanSlug}.nexusgym.io`;
+      }
+      const cleanPhone = (phone || '').replace(/\D/g, '');
+      if (cleanPhone) {
+        return `owner.${cleanPhone.slice(-4)}@nexusgym.io`;
+      }
+      return 'owner@gym.nexusgym.io';
+    }
+
     function handleSlugAutoGenerate() {
       const nameInput = document.getElementById('form-name');
       const phoneInput = document.getElementById('form-phone');
       const slugInput = document.getElementById('form-slug');
+      const emailInput = document.getElementById('form-email');
+      const passwordInput = document.getElementById('form-password');
+
+      const name = nameInput ? nameInput.value : '';
+      const phone = phoneInput ? phoneInput.value : '';
+      const generatedSlug = generateGymSlug(name, phone);
+
       if (slugInput) {
-        const name = nameInput ? nameInput.value : '';
-        const phone = phoneInput ? phoneInput.value : '';
-        slugInput.value = generateGymSlug(name, phone);
+        slugInput.value = generatedSlug;
+      }
+
+      if (emailInput && (!emailInput.dataset.manualEdited || emailInput.value === '')) {
+        emailInput.value = generateDefaultEmail(generatedSlug, phone);
+      }
+
+      if (passwordInput && (!passwordInput.dataset.manualEdited || passwordInput.value === 'Nexus@2026!')) {
+        passwordInput.value = generateInitialPassword(phone);
       }
     }
 
+    function handleManualSlugChange() {
+      const slugInput = document.getElementById('form-slug');
+      const emailInput = document.getElementById('form-email');
+      const phoneInput = document.getElementById('form-phone');
+      if (slugInput && emailInput && !emailInput.dataset.manualEdited) {
+        const phone = phoneInput ? phoneInput.value : '';
+        emailInput.value = generateDefaultEmail(slugInput.value, phone);
+      }
+    }
+
+    function regenerateFormPassword() {
+      const phoneInput = document.getElementById('form-phone');
+      const passwordInput = document.getElementById('form-password');
+      if (passwordInput) {
+        const phone = phoneInput ? phoneInput.value : '';
+        const randomSalt = Math.floor(1000 + Math.random() * 9000);
+        passwordInput.value = `Nexus@${randomSalt}!`;
+        passwordInput.dataset.manualEdited = 'true';
+        showToast("Generated new secure password 🔒", "info");
+      }
+    }
+
+    function copyFieldText(elementId, toastMsg = "Copied to clipboard!") {
+      const inputEl = document.getElementById(elementId);
+      if (inputEl) {
+        inputEl.select();
+        navigator.clipboard.writeText(inputEl.value).then(() => {
+          showToast(toastMsg, "success");
+          playAudioChirp(900, 0.08);
+        }).catch(() => {
+          document.execCommand('copy');
+          showToast(toastMsg, "success");
+        });
+      }
+    }
+
+    function copyAllCredentialsToClipboard() {
+      if (!lastGeneratedCredentials) {
+        showToast("No credentials available to copy.", "error");
+        return;
+      }
+
+      const c = lastGeneratedCredentials;
+      const textToCopy = 
+`🏋️ *NEXUS GYM NETWORK — NODE ONBOARDING CREDENTIALS*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🏢 *Gym Node:* ${c.gymName}
+🔑 *Station Handle:* @${c.slug}
+📱 *Owner Phone:* +91 ${c.phone}
+
+🌐 *Admin Login Portal:*
+${c.adminLoginUrl}
+
+👤 *Owner Email (Login):* ${c.email}
+🔒 *Temporary Password:* ${c.password}
+🛡️ *Desk Security PIN:* ${c.adminPin}
+
+📱 *Athlete Pass Terminal:*
+${c.memberHudUrl}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+_Keep these credentials secure._`;
+
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        showToast("All credentials copied to clipboard! 📋", "success");
+        playAudioChirp(1000, 0.1);
+      }).catch(() => {
+        showToast("Please copy manually.", "error");
+      });
+    }
+
     async function handleOnboardSubmit() {
+      const submitBtn = document.getElementById('onboard-submit-btn');
       const gymName = document.getElementById('form-name').value.trim();
       const rawSlug = document.getElementById('form-slug').value.trim();
       const phone = document.getElementById('form-phone').value.trim();
+      const email = document.getElementById('form-email').value.trim();
+      const adminPin = document.getElementById('form-admin-pin').value.trim() || '1234';
+      const password = document.getElementById('form-password').value.trim() || generateInitialPassword(phone);
       const upi = document.getElementById('form-upi').value.trim();
       const saasFee = document.getElementById('form-fee').value.trim() || 2499;
       const validityDays = Number(document.getElementById('form-validity').value) || 365;
@@ -1643,7 +1963,7 @@
         cleanSlug = generateGymSlug(gymName, phone);
       }
 
-      if (!gymName || !cleanSlug || !phone || !upi) {
+      if (!gymName || !cleanSlug || !phone || !email || !upi) {
         showToast("Please fill all required fields", "error");
         return;
       }
@@ -1663,40 +1983,182 @@
         return;
       }
 
-      const { data, error } = await db.from('gyms').insert([{
-        gym_name: gymName,
-        name: gymName,
-        slug: cleanSlug,
-        owner_phone: phone,
-        upi_id: upi,
-        saas_fee: Number(saasFee),
-        monthly_saas_fee: Number(saasFee),
-        plan_1m_price: Number(p1),
-        plan_3m_price: Number(p3),
-        plan_6m_price: Number(p6),
-        plan_12m_price: Number(p12),
-        features: selectedFeatures,
-        is_active: true,
-        subscription_expires_at: expiryDateISO
-      }]).select();
+      try {
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.innerText = "DEPLOYING GYM NODE... ⚡";
+        }
 
-      if (error) {
-        console.error("Supabase insert error:", error);
-        alert("Database Error: " + error.message);
-        return;
+        // 1. Insert into public.gyms table with admin_pin
+        const gymPayload = {
+          gym_name: gymName,
+          name: gymName,
+          slug: cleanSlug,
+          owner_phone: phone,
+          owner_email: email,
+          upi_id: upi,
+          admin_pin: adminPin,
+          saas_fee: Number(saasFee),
+          monthly_saas_fee: Number(saasFee),
+          plan_1m_price: Number(p1),
+          plan_3m_price: Number(p3),
+          plan_6m_price: Number(p6),
+          plan_12m_price: Number(p12),
+          features: selectedFeatures,
+          is_active: true,
+          subscription_expires_at: expiryDateISO
+        };
+
+        const { data: gymData, error: gymError } = await db
+          .from('gyms')
+          .insert([gymPayload])
+          .select();
+
+        if (gymError) {
+          throw new Error("Gym creation failed: " + gymError.message);
+        }
+
+        // 2. Automate Owner Auth User Creation (RPC or isolated client signUp)
+        let authUserId = null;
+        try {
+          const { data: rpcRes, error: rpcErr } = await db.rpc('rpc_create_gym_owner', {
+            p_email: email,
+            p_password: password,
+            p_gym_slug: cleanSlug,
+            p_gym_name: gymName,
+            p_phone: phone,
+            p_admin_pin: adminPin
+          });
+          if (!rpcErr && rpcRes) {
+            authUserId = rpcRes.user_id || rpcRes.id || rpcRes;
+          }
+        } catch (rpcEx) {
+          console.warn("RPC create owner note:", rpcEx);
+        }
+
+        // Fallback: Isolated Supabase Auth Client
+        if (!authUserId && window.supabase) {
+          try {
+            const isolatedClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+              auth: {
+                persistSession: false,
+                autoRefreshToken: false,
+                detectSessionInUrl: false
+              }
+            });
+
+            const { data: signUpData, error: signUpErr } = await isolatedClient.auth.signUp({
+              email: email,
+              password: password,
+              options: {
+                data: {
+                  role: 'GYM_OWNER',
+                  gym_slug: cleanSlug,
+                  gym_name: gymName,
+                  phone: phone,
+                  full_name: `${gymName} Owner`,
+                  is_owner: true
+                }
+              }
+            });
+
+            if (signUpErr) {
+              console.warn("Isolated auth signUp note:", signUpErr.message);
+            } else if (signUpData?.user) {
+              authUserId = signUpData.user.id;
+            }
+          } catch (signUpEx) {
+            console.warn("Isolated auth creation note:", signUpEx);
+          }
+        }
+
+        // 3. Assign GYM_OWNER role in public.user_roles linked to this gym
+        try {
+          await db.from('user_roles').insert([{
+            user_id: authUserId || null,
+            email: email,
+            role: 'GYM_OWNER',
+            gym_slug: cleanSlug,
+            gym_id: cleanSlug
+          }]);
+        } catch (rErr) {
+          console.warn("user_roles insert note:", rErr);
+        }
+
+        // Defensively insert into gym_staff table if present
+        try {
+          await db.from('gym_staff').insert([{
+            user_id: authUserId || null,
+            email: email,
+            phone: phone,
+            role: 'GYM_OWNER',
+            gym_slug: cleanSlug,
+            is_active: true
+          }]);
+        } catch (sErr) {}
+
+        // Close onboarding modal and give audio feedback
+        closeOnboardModal();
+
+        // Construct deployment URLs & WhatsApp payload
+        const origin = window.location.origin;
+        const pathPrefix = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+        const adminLoginUrl = `${origin}${pathPrefix}admin-login.html?gym=${encodeURIComponent(cleanSlug)}`;
+        const adminConsoleUrl = `${origin}${pathPrefix}admin.html?gym=${encodeURIComponent(cleanSlug)}`;
+        const memberHudUrl = `${origin}${pathPrefix}index.html?gym=${encodeURIComponent(cleanSlug)}`;
+
+        const waMessage = 
+`🏋️ *WELCOME TO NEXUS GYM NETWORK*
+━━━━━━━━━━━━━━━━━━━━
+🏢 *Gym Node:* ${gymName}
+🔑 *Station Handle:* @${cleanSlug}
+
+🌐 *Admin Login Portal:*
+${adminLoginUrl}
+
+👤 *Owner Email:* ${email}
+🔒 *Temporary Password:* ${password}
+🛡️ *Desk Security PIN:* ${adminPin}
+
+📱 *Athlete Pass Terminal:*
+${memberHudUrl}
+━━━━━━━━━━━━━━━━━━━━
+_Login to your admin portal to customize gym passes, timings & member notices._`;
+
+        const cleanPhoneDigits = (phone || '').replace(/\D/g, '');
+        const waUrl = cleanPhoneDigits.length >= 10 
+          ? `https://wa.me/91${cleanPhoneDigits.slice(-10)}?text=${encodeURIComponent(waMessage)}`
+          : `https://api.whatsapp.com/send?text=${encodeURIComponent(waMessage)}`;
+
+        // Refresh Fleet Dashboard view
+        await fetchAndRenderFleet();
+
+        // Open Credentials Summary Modal
+        openOnboardSuccessModal({
+          gymName,
+          slug: cleanSlug,
+          phone,
+          email,
+          password,
+          adminPin,
+          adminLoginUrl,
+          adminConsoleUrl,
+          memberHudUrl,
+          whatsappUrl: waUrl
+        });
+
+        showToast(`🏢 Successfully Deployed Node for "${gymName}"!`, "success");
+
+      } catch (err) {
+        console.error("Onboarding execution error:", err);
+        showToast(err.message || "Failed to onboard gym", "error");
+        alert("Onboarding Error: " + err.message);
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerText = "Deploy New Gym Node";
+        }
       }
-
-      // Close modal and give sound feedback
-      closeOnboardModal();
-      playAudioChirp(1200, 0.2);
-      showToast(`🏢 Successfully Deployed Node for "${gymName}"!`, "success");
-
-      // IMMEDIATELY re-run the fetchAndRenderFleet() function so the new gym card appears on screen instantly
-      await fetchAndRenderFleet();
-
-      // Reset form fields
-      const formEl = document.getElementById('onboard-form');
-      if (formEl) formEl.reset();
     }
 
     // ----------------------------------------------------

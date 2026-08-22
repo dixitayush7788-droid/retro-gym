@@ -14,10 +14,50 @@ export async function requireAuth(allowedRoles = [], requestedGymSlug = null, re
       return null;
     }
 
-    const { data: context, error: contextError } = await supabase.rpc('rpc_get_current_user_context');
-    
-    if (contextError || !context || !context.authenticated) {
-      console.error('[AUTH GUARD] Context resolution failed:', contextError);
+    let context = null;
+    try {
+      const { data: rpcContext, error: contextError } = await supabase.rpc('rpc_get_current_user_context');
+      if (rpcContext && rpcContext.authenticated) {
+        context = rpcContext;
+      }
+    } catch (rpcErr) {
+      console.warn('[AUTH GUARD] RPC context resolution note:', rpcErr);
+    }
+
+    // Fallback: Build context directly from session, metadata, and user_roles table
+    if (!context && session.user) {
+      const user = session.user;
+      let userRoles = [];
+      try {
+        const { data: dbRoles } = await supabase
+          .from('user_roles')
+          .select('*')
+          .or(`user_id.eq.${user.id},email.eq.${user.email}`);
+        if (dbRoles) userRoles = dbRoles;
+      } catch (dbErr) {
+        console.warn('[AUTH GUARD] user_roles lookup note:', dbErr);
+      }
+
+      const metaRole = user.user_metadata?.role || user.app_metadata?.role || 'GYM_OWNER';
+      const metaSlug = user.user_metadata?.gym_slug || user.app_metadata?.gym_slug;
+      
+      if (metaRole && !userRoles.some(r => r.role === metaRole && r.gym_slug === metaSlug)) {
+        userRoles.push({ role: metaRole, gym_slug: metaSlug, gym_id: metaSlug });
+      }
+
+      context = {
+        authenticated: true,
+        user_id: user.id,
+        email: user.email,
+        roles: userRoles,
+        role: userRoles[0]?.role || metaRole,
+        gym_slug: metaSlug || userRoles[0]?.gym_slug || requestedGymSlug,
+        is_super_admin: user.user_metadata?.is_super_admin === true || user.app_metadata?.is_super_admin === true
+      };
+    }
+
+    if (!context || !context.authenticated) {
+      console.error('[AUTH GUARD] Context resolution failed.');
       await supabase.auth.signOut();
       redirectToLogin(requestedGymSlug, redirectTarget);
       return null;
