@@ -5,12 +5,12 @@ let cachedUserContext = null;
 /**
  * Validates active Supabase session and enforces tenant-scoped RBAC via RPC.
  */
-export async function requireAuth(allowedRoles = [], requestedGymSlug = null) {
+export async function requireAuth(allowedRoles = [], requestedGymSlug = null, redirectTarget = null) {
   try {
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
     if (sessionError || !session) {
-      redirectToLogin(requestedGymSlug);
+      redirectToLogin(requestedGymSlug, redirectTarget);
       return null;
     }
 
@@ -19,15 +19,19 @@ export async function requireAuth(allowedRoles = [], requestedGymSlug = null) {
     if (contextError || !context || !context.authenticated) {
       console.error('[AUTH GUARD] Context resolution failed:', contextError);
       await supabase.auth.signOut();
-      redirectToLogin(requestedGymSlug);
+      redirectToLogin(requestedGymSlug, redirectTarget);
       return null;
     }
 
     cachedUserContext = context;
 
     // Super Admin has global cross-tenant platform authorization
-    if (context.is_super_admin) {
-      setupAuthStateListener();
+    const isSuperAdmin = context.is_super_admin === true ||
+      context.role === 'SUPER_ADMIN' ||
+      (Array.isArray(context.roles) && context.roles.some(r => r.role === 'SUPER_ADMIN'));
+
+    if (isSuperAdmin) {
+      setupAuthStateListener(redirectTarget);
       return context;
     }
 
@@ -36,11 +40,11 @@ export async function requireAuth(allowedRoles = [], requestedGymSlug = null) {
       let isAuthorized = false;
 
       if (requestedGymSlug) {
-        isAuthorized = context.roles.some(
+        isAuthorized = Array.isArray(context.roles) && context.roles.some(
           r => r.gym_slug === requestedGymSlug && allowedRoles.includes(r.role)
         );
       } else {
-        isAuthorized = context.roles.some(r => allowedRoles.includes(r.role));
+        isAuthorized = Array.isArray(context.roles) && context.roles.some(r => allowedRoles.includes(r.role));
       }
 
       if (!isAuthorized) {
@@ -49,7 +53,7 @@ export async function requireAuth(allowedRoles = [], requestedGymSlug = null) {
       }
     }
 
-    setupAuthStateListener();
+    setupAuthStateListener(redirectTarget);
     return context;
   } catch (err) {
     console.error('[AUTH GUARD] Authorization error:', err.message);
@@ -64,12 +68,16 @@ export function getCurrentContext() {
 export async function handleSignOut() {
   cachedUserContext = null;
   localStorage.removeItem('nexus_desk_unlocked');
+  sessionStorage.removeItem('nexus_master_auth');
   await supabase.auth.signOut();
   window.location.href = './admin-login.html';
 }
 
-function redirectToLogin(gymSlug) {
-  const query = gymSlug ? `?gym=${encodeURIComponent(gymSlug)}` : '';
+function redirectToLogin(gymSlug = null, redirectTarget = null) {
+  const params = new URLSearchParams();
+  if (gymSlug) params.set('gym', gymSlug);
+  if (redirectTarget) params.set('redirect', redirectTarget);
+  const query = params.toString() ? `?${params.toString()}` : '';
   window.location.href = `./admin-login.html${query}`;
 }
 
@@ -86,11 +94,11 @@ function renderForbiddenState(gymSlug) {
   document.getElementById('nexusSignOutBtn')?.addEventListener('click', handleSignOut);
 }
 
-function setupAuthStateListener() {
+function setupAuthStateListener(redirectTarget = null) {
   supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_OUT' || !session) {
       cachedUserContext = null;
-      window.location.href = './admin-login.html';
+      redirectToLogin(null, redirectTarget);
     }
   });
 }

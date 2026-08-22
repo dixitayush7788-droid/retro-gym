@@ -1711,13 +1711,14 @@
 
   <!-- Super Admin Zero-Trust Auth Enforcement -->
   <script type="module">
-    import { requireAuth, handleSignOut } from './assets/js/authGuard.js';
+    import { initSuperAdmin, handleSignOut } from './assets/js/superAdmin.js';
 
     document.addEventListener('DOMContentLoaded', async () => {
       try {
-        const ctx = await requireAuth(['SUPER_ADMIN']);
+        const ctx = await initSuperAdmin();
         if (ctx) {
-          // If user is verified super admin, ensure console is ready
+          // If user is verified super admin, ensure console is ready and unlocked
+          sessionStorage.setItem('nexus_master_auth', 'true');
           if (typeof unlockConsole === 'function') {
             unlockConsole();
           }

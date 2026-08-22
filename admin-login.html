@@ -143,10 +143,17 @@
 
     const urlParams = new URLSearchParams(window.location.search);
     const gymSlug = urlParams.get('gym') || 'rahul-fitness';
+    const redirectParam = urlParams.get('redirect');
 
     // Hydrate Tenant Badge and Links
     const badge = document.getElementById('targetGymBadge');
-    if (badge) badge.innerText = `Tenant Station: @${gymSlug}`;
+    if (badge) {
+      if (redirectParam === 'super-admin.html') {
+        badge.innerText = `Platform Control: Master Fleet`;
+      } else {
+        badge.innerText = `Tenant Station: @${gymSlug}`;
+      }
+    }
 
     const backLink = document.getElementById('backToPassLink');
     if (backLink) backLink.href = `./index.html?gym=${encodeURIComponent(gymSlug)}`;
@@ -155,6 +162,32 @@
     const errBox = document.getElementById('loginErrorAlert');
     const errText = document.getElementById('loginErrorText');
     const submitBtn = document.getElementById('loginSubmitBtn');
+
+    // Check if user already has an authenticated session
+    async function checkExistingSession() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const { data: context } = await supabase.rpc('rpc_get_current_user_context');
+          if (context && context.authenticated) {
+            const isSuperAdmin = context.is_super_admin === true ||
+              context.role === 'SUPER_ADMIN' ||
+              (Array.isArray(context.roles) && context.roles.some(r => r.role === 'SUPER_ADMIN'));
+
+            if (isSuperAdmin || redirectParam === 'super-admin.html') {
+              window.location.href = './super-admin.html';
+            } else if (redirectParam) {
+              window.location.href = `./${redirectParam}`;
+            } else {
+              window.location.href = `./admin.html?gym=${encodeURIComponent(gymSlug || 'rahul-fitness')}`;
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Session check note:', e);
+      }
+    }
+    checkExistingSession();
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -177,7 +210,32 @@
 
         if (data?.session) {
           submitBtn.innerText = "SUCCESS! REDIRECTING...";
-          window.location.href = `./admin.html?gym=${encodeURIComponent(gymSlug || 'rahul-fitness')}`;
+
+          // Resolve User Context & Role Privileges
+          let isSuperAdmin = false;
+          try {
+            const { data: context } = await supabase.rpc('rpc_get_current_user_context');
+            if (context) {
+              if (
+                context.is_super_admin === true ||
+                context.role === 'SUPER_ADMIN' ||
+                (Array.isArray(context.roles) && context.roles.some(r => r.role === 'SUPER_ADMIN'))
+              ) {
+                isSuperAdmin = true;
+              }
+            }
+          } catch (ctxErr) {
+            console.warn('Context role resolution note:', ctxErr);
+          }
+
+          // If user is SUPER_ADMIN or requested super-admin, redirect to super-admin.html
+          if (isSuperAdmin || redirectParam === 'super-admin.html') {
+            window.location.href = './super-admin.html';
+          } else if (redirectParam) {
+            window.location.href = `./${redirectParam}`;
+          } else {
+            window.location.href = `./admin.html?gym=${encodeURIComponent(gymSlug || 'rahul-fitness')}`;
+          }
         } else {
           throw new Error('Could not establish session. Please verify credentials.');
         }
