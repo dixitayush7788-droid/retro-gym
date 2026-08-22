@@ -70,10 +70,12 @@ export function generateInitialPassword(phone = '') {
 }
 
 /**
- * Full Automated Gym Onboarding Engine:
- * 1. Inserts gym into public.gyms table with admin_pin
- * 2. Creates Auth User with email & secure password via RPC or isolated client
- * 3. Assigns GYM_OWNER role in public.user_roles linked to this gym
+ * Full Automated 1-Click Gym Onboarding Engine:
+ * 1. Calls isolated client auth.signUp({ email, password }) without switching Super Admin's active session
+ * 2. Extracts created user.id from auth response
+ * 3. Inserts new gym into public.gyms table with admin_pin, owner_phone, owner_email, owner_upi_id, pricing, feature gates, and gets gym.id
+ * 4. Inserts into public.user_roles (user_id, gym_id, role) linking user.id and gym.id with role: 'GYM_OWNER'
+ * 5. Returns all credentials for WhatsApp summary modal
  */
 export async function onboardGymNode({
   gymName,
@@ -92,7 +94,7 @@ export async function onboardGymNode({
   features = { workouts: true, nutrition: true, qr_attendance: true, notices: true }
 }) {
   if (!gymName || !slug || !phone || !email || !upi) {
-    throw new Error('All required onboarding fields must be filled.');
+    throw new Error('All required onboarding fields (Gym Name, Slug, Phone, Email, UPI) must be filled.');
   }
 
   const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
@@ -100,15 +102,68 @@ export async function onboardGymNode({
   const finalPin = String(adminPin || '1234').padStart(4, '0').slice(-4);
   const expiryDate = new Date(Date.now() + validityDays * 86400000).toISOString();
 
-  // 1. Insert gym node into public.gyms
+  // 1. Create Auth User using Isolated Supabase Client (Preserves Super Admin active session)
+  let authUserId = null;
+  let authNotice = null;
+
+  try {
+    const isoClient = createIsolatedAuthClient();
+    const { data: signUpData, error: signUpErr } = await isoClient.auth.signUp({
+      email: email,
+      password: finalPassword,
+      options: {
+        data: {
+          role: 'GYM_OWNER',
+          gym_slug: cleanSlug,
+          gym_name: gymName,
+          phone: phone,
+          full_name: `${gymName} Owner`,
+          is_owner: true
+        }
+      }
+    });
+
+    if (signUpErr) {
+      console.warn('[ONBOARDING] Isolated Auth signUp notice:', signUpErr.message);
+      authNotice = signUpErr.message;
+    } else if (signUpData?.user) {
+      authUserId = signUpData.user.id;
+    }
+  } catch (authEx) {
+    console.warn('[ONBOARDING] Isolated Auth signUp exception:', authEx);
+    authNotice = authEx.message;
+  }
+
+  // Fallback to RPC if direct isolated signUp encountered a client restriction
+  if (!authUserId) {
+    try {
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc('rpc_create_gym_owner', {
+        p_email: email,
+        p_password: finalPassword,
+        p_gym_slug: cleanSlug,
+        p_gym_name: gymName,
+        p_phone: phone,
+        p_admin_pin: finalPin
+      });
+
+      if (!rpcErr && rpcRes) {
+        authUserId = rpcRes.user_id || rpcRes.id || rpcRes;
+      }
+    } catch (rpcEx) {
+      console.warn('[ONBOARDING] RPC fallback note:', rpcEx);
+    }
+  }
+
+  // 2. Insert new gym node into public.gyms table
   const gymPayload = {
     gym_name: gymName,
     name: gymName,
     slug: cleanSlug,
+    admin_pin: finalPin,
     owner_phone: phone,
     owner_email: email,
+    owner_upi_id: upi,
     upi_id: upi,
-    admin_pin: finalPin,
     saas_fee: Number(saasFee),
     monthly_saas_fee: Number(saasFee),
     plan_1m_price: Number(p1),
@@ -126,89 +181,43 @@ export async function onboardGymNode({
     .select();
 
   if (gymError) {
-    console.error('[ONBOARDING] Gym creation error:', gymError);
+    console.error('[ONBOARDING] Gym table insertion error:', gymError);
     throw new Error(`Database error creating gym: ${gymError.message}`);
   }
 
-  // 2. Automate Owner Auth User Creation (RPC fallback to isolated client signUp)
-  let authUserId = null;
-  let authNotice = null;
+  const createdGym = gymData?.[0] || gymPayload;
+  const gymId = createdGym.id || cleanSlug;
 
-  try {
-    const { data: rpcRes, error: rpcErr } = await supabase.rpc('rpc_create_gym_owner', {
-      p_email: email,
-      p_password: finalPassword,
-      p_gym_slug: cleanSlug,
-      p_gym_name: gymName,
-      p_phone: phone,
-      p_admin_pin: finalPin
-    });
-
-    if (!rpcErr && rpcRes) {
-      authUserId = rpcRes.user_id || rpcRes.id || rpcRes;
-    }
-  } catch (rpcEx) {
-    console.warn('[ONBOARDING] RPC create gym owner note:', rpcEx);
-  }
-
-  if (!authUserId) {
-    try {
-      const isoClient = createIsolatedAuthClient();
-      const { data: signUpData, error: signUpErr } = await isoClient.auth.signUp({
-        email: email,
-        password: finalPassword,
-        options: {
-          data: {
-            role: 'GYM_OWNER',
-            gym_slug: cleanSlug,
-            gym_name: gymName,
-            phone: phone,
-            full_name: `${gymName} Owner`,
-            is_owner: true
-          }
-        }
-      });
-
-      if (signUpErr) {
-        authNotice = signUpErr.message;
-        console.warn('[ONBOARDING] Auth signUp note:', signUpErr);
-      } else if (signUpData?.user) {
-        authUserId = signUpData.user.id;
-      }
-    } catch (authEx) {
-      console.warn('[ONBOARDING] Auth creation exception:', authEx);
-      authNotice = authEx.message;
-    }
-  }
-
-  // 3. Automatically link GYM_OWNER role in public.user_roles
+  // 3. Insert into public.user_roles linking user_id and gym_id with role: 'GYM_OWNER'
   try {
     await supabase.from('user_roles').insert([{
       user_id: authUserId || null,
-      email: email,
-      role: 'GYM_OWNER',
+      gym_id: gymId,
       gym_slug: cleanSlug,
-      gym_id: cleanSlug
+      role: 'GYM_OWNER',
+      email: email
     }]);
   } catch (roleErr) {
-    console.warn('[ONBOARDING] user_roles table insert note:', roleErr);
+    console.warn('[ONBOARDING] user_roles table insertion note:', roleErr);
   }
 
-  // Defensively insert into gym_staff
+  // Defensively insert into gym_staff table
   try {
     await supabase.from('gym_staff').insert([{
       user_id: authUserId || null,
+      gym_id: gymId,
+      gym_slug: cleanSlug,
       email: email,
       phone: phone,
       role: 'GYM_OWNER',
-      gym_slug: cleanSlug,
       is_active: true
     }]);
   } catch (staffErr) {}
 
   return {
     success: true,
-    gym: gymData?.[0] || gymPayload,
+    gym: createdGym,
+    gymId,
     authUserId,
     email,
     password: finalPassword,

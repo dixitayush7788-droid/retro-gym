@@ -1989,55 +1989,9 @@ _Keep these credentials secure._`;
           submitBtn.innerText = "DEPLOYING GYM NODE... ⚡";
         }
 
-        // 1. Insert into public.gyms table with admin_pin
-        const gymPayload = {
-          gym_name: gymName,
-          name: gymName,
-          slug: cleanSlug,
-          owner_phone: phone,
-          owner_email: email,
-          upi_id: upi,
-          admin_pin: adminPin,
-          saas_fee: Number(saasFee),
-          monthly_saas_fee: Number(saasFee),
-          plan_1m_price: Number(p1),
-          plan_3m_price: Number(p3),
-          plan_6m_price: Number(p6),
-          plan_12m_price: Number(p12),
-          features: selectedFeatures,
-          is_active: true,
-          subscription_expires_at: expiryDateISO
-        };
-
-        const { data: gymData, error: gymError } = await db
-          .from('gyms')
-          .insert([gymPayload])
-          .select();
-
-        if (gymError) {
-          throw new Error("Gym creation failed: " + gymError.message);
-        }
-
-        // 2. Automate Owner Auth User Creation (RPC or isolated client signUp)
+        // 1. Create Auth User with Isolated Supabase Client (Preserves Super Admin active session)
         let authUserId = null;
-        try {
-          const { data: rpcRes, error: rpcErr } = await db.rpc('rpc_create_gym_owner', {
-            p_email: email,
-            p_password: password,
-            p_gym_slug: cleanSlug,
-            p_gym_name: gymName,
-            p_phone: phone,
-            p_admin_pin: adminPin
-          });
-          if (!rpcErr && rpcRes) {
-            authUserId = rpcRes.user_id || rpcRes.id || rpcRes;
-          }
-        } catch (rpcEx) {
-          console.warn("RPC create owner note:", rpcEx);
-        }
-
-        // Fallback: Isolated Supabase Auth Client
-        if (!authUserId && window.supabase) {
+        if (window.supabase) {
           try {
             const isolatedClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
               auth: {
@@ -2072,14 +2026,66 @@ _Keep these credentials secure._`;
           }
         }
 
+        // Fallback: RPC create gym owner
+        if (!authUserId) {
+          try {
+            const { data: rpcRes, error: rpcErr } = await db.rpc('rpc_create_gym_owner', {
+              p_email: email,
+              p_password: password,
+              p_gym_slug: cleanSlug,
+              p_gym_name: gymName,
+              p_phone: phone,
+              p_admin_pin: adminPin
+            });
+            if (!rpcErr && rpcRes) {
+              authUserId = rpcRes.user_id || rpcRes.id || rpcRes;
+            }
+          } catch (rpcEx) {
+            console.warn("RPC create owner note:", rpcEx);
+          }
+        }
+
+        // 2. Insert into public.gyms table with admin_pin & owner details
+        const gymPayload = {
+          gym_name: gymName,
+          name: gymName,
+          slug: cleanSlug,
+          owner_phone: phone,
+          owner_email: email,
+          owner_upi_id: upi,
+          upi_id: upi,
+          admin_pin: adminPin,
+          saas_fee: Number(saasFee),
+          monthly_saas_fee: Number(saasFee),
+          plan_1m_price: Number(p1),
+          plan_3m_price: Number(p3),
+          plan_6m_price: Number(p6),
+          plan_12m_price: Number(p12),
+          features: selectedFeatures,
+          is_active: true,
+          subscription_expires_at: expiryDateISO
+        };
+
+        const { data: gymData, error: gymError } = await db
+          .from('gyms')
+          .insert([gymPayload])
+          .select();
+
+        if (gymError) {
+          throw new Error("Gym creation failed: " + gymError.message);
+        }
+
+        const createdGym = gymData?.[0] || gymPayload;
+        const gymId = createdGym.id || cleanSlug;
+
         // 3. Assign GYM_OWNER role in public.user_roles linked to this gym
         try {
           await db.from('user_roles').insert([{
             user_id: authUserId || null,
-            email: email,
-            role: 'GYM_OWNER',
+            gym_id: gymId,
             gym_slug: cleanSlug,
-            gym_id: cleanSlug
+            role: 'GYM_OWNER',
+            email: email
           }]);
         } catch (rErr) {
           console.warn("user_roles insert note:", rErr);
@@ -2089,10 +2095,11 @@ _Keep these credentials secure._`;
         try {
           await db.from('gym_staff').insert([{
             user_id: authUserId || null,
+            gym_id: gymId,
+            gym_slug: cleanSlug,
             email: email,
             phone: phone,
             role: 'GYM_OWNER',
-            gym_slug: cleanSlug,
             is_active: true
           }]);
         } catch (sErr) {}
