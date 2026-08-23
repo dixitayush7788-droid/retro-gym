@@ -1936,6 +1936,9 @@
       const todayStr = new Date().toISOString().split('T')[0];
       try {
         let q = db.from('attendance').select('id, check_in, created_at');
+        if (currentGymConfig && currentGymConfig.id) {
+          q = q.eq('gym_id', currentGymConfig.id);
+        }
         if (currentAthlete.id && typeof currentAthlete.id === 'string' && currentAthlete.id.includes('-')) {
           q = q.eq('member_id', currentAthlete.id);
         }
@@ -1988,6 +1991,9 @@
       const todayStr = now.toISOString().split('T')[0];
       try {
         let q = db.from('attendance').select('id, check_in, created_at');
+        if (currentGymConfig && currentGymConfig.id) {
+          q = q.eq('gym_id', currentGymConfig.id);
+        }
         if (currentAthlete.id && typeof currentAthlete.id === 'string' && currentAthlete.id.includes('-')) {
           q = q.eq('member_id', currentAthlete.id);
         }
@@ -2174,6 +2180,9 @@
 
       try {
         let q = db.from('attendance').select('*');
+        if (currentGymConfig && currentGymConfig.id) {
+          q = q.eq('gym_id', currentGymConfig.id);
+        }
         if (currentAthlete.id && typeof currentAthlete.id === 'string' && currentAthlete.id.includes('-')) {
           q = q.eq('member_id', currentAthlete.id);
         }

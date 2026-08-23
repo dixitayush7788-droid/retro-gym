@@ -11,10 +11,13 @@ export async function claimMemberPass(gymId, phoneNumber) {
 
   const cleanPhone = String(phoneNumber).replace(/\D/g, '').slice(-10);
   const numericGymId = typeof gymId === 'number' ? gymId : parseInt(gymId, 10);
+  if (isNaN(numericGymId)) {
+    throw new Error('Valid gym identifier required to claim pass.');
+  }
 
   try {
     const { data, error } = await supabase.rpc('rpc_claim_member_pass', {
-      p_gym_id: isNaN(numericGymId) ? null : numericGymId,
+      p_gym_id: numericGymId,
       p_phone: cleanPhone
     });
 
@@ -24,16 +27,14 @@ export async function claimMemberPass(gymId, phoneNumber) {
   }
 
   // Fallback: Link auth user profile to member record in members table
-  const query = supabase
+  const { data, error } = await supabase
     .from('members')
     .update({ profile_id: session.user.id })
-    .eq('normalized_phone', cleanPhone);
+    .eq('normalized_phone', cleanPhone)
+    .eq('gym_id', numericGymId)
+    .select()
+    .maybeSingle();
 
-  if (!isNaN(numericGymId)) {
-    query.eq('gym_id', numericGymId);
-  }
-
-  const { data, error } = await query.select().maybeSingle();
   if (error) throw error;
   return { success: true, member: data };
 }
@@ -65,14 +66,15 @@ export async function getPublicHudPass(gymSlug, phoneNumber) {
     if (gym) targetGymId = gym.id;
   }
 
-  let memberQuery = supabase
+  if (!targetGymId) {
+    return null;
+  }
+
+  const memberQuery = supabase
     .from('members')
     .select('*, member_memberships(*, plans(*))')
-    .eq('normalized_phone', cleanPhone);
-
-  if (targetGymId) {
-    memberQuery = memberQuery.eq('gym_id', targetGymId);
-  }
+    .eq('normalized_phone', cleanPhone)
+    .eq('gym_id', targetGymId);
 
   const { data: member, error } = await memberQuery.maybeSingle();
   if (error) throw error;

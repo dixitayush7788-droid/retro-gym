@@ -1784,10 +1784,7 @@
           }));
         } catch (lErr) {
           console.warn("Attendance table note:", lErr);
-          try {
-            const { data: allLogs } = await db.from('attendance_logs').select('*').order('checkin_time', { ascending: false }).limit(50);
-            logs = (allLogs || []).filter(l => l.gym_id === gymIntId || l.gym_id === currentGymSlug || l.gym_slug === currentGymSlug);
-          } catch (e) {}
+          logs = [];
         }
         allAttendanceLogs = logs || [];
 
@@ -2231,15 +2228,24 @@
         const newExpiryIso = baseDate.toISOString();
         const newExpiryDateStr = newExpiryIso.split('T')[0];
 
+        const gymIntId = (currentGymConfig && currentGymConfig.id && !isNaN(parseInt(currentGymConfig.id, 10))) ? parseInt(currentGymConfig.id, 10) : null;
+
         // 1. Update member_memberships if exists
         if (member.membershipId) {
-          await db.from('member_memberships').update({ end_date: newExpiryDateStr }).eq('id', member.membershipId);
+          let mmQ = db.from('member_memberships').update({ end_date: newExpiryDateStr }).eq('id', member.membershipId);
+          if (gymIntId !== null) mmQ = mmQ.eq('gym_id', gymIntId);
+          await mmQ;
         } else if (member.id && typeof member.id === 'string' && member.id.includes('-')) {
-          await db.from('member_memberships').update({ end_date: newExpiryDateStr }).eq('member_id', member.id);
+          let mmQ = db.from('member_memberships').update({ end_date: newExpiryDateStr }).eq('member_id', member.id);
+          if (gymIntId !== null) mmQ = mmQ.eq('gym_id', gymIntId);
+          await mmQ;
         }
 
         // 2. Defensive update on members table
         let memUpdate = db.from('members').update({ valid_until: newExpiryIso, expiry_date: newExpiryIso });
+        if (gymIntId !== null) {
+          memUpdate = memUpdate.eq('gym_id', gymIntId);
+        }
         if (member.id && typeof member.id === 'string' && member.id.includes('-')) {
           memUpdate = memUpdate.eq('id', member.id);
         } else {
@@ -2259,6 +2265,7 @@
     async function executeDossierDiscontinue() {
       if (!activeDossierMember || !db) return;
       const member = activeDossierMember;
+      const gymIntId = (currentGymConfig && currentGymConfig.id && !isNaN(parseInt(currentGymConfig.id, 10))) ? parseInt(currentGymConfig.id, 10) : null;
 
       if (!confirm(`Are you sure you want to DISCONTINUE / CLOSE pass for ${member.fullName}? Pass access will be revoked immediately.`)) return;
 
@@ -2271,13 +2278,20 @@
 
         // 1. Update member_memberships
         if (member.membershipId) {
-          await db.from('member_memberships').update({ end_date: pastDateStr, status: 'EXPIRED' }).eq('id', member.membershipId);
+          let mmQ = db.from('member_memberships').update({ end_date: pastDateStr, status: 'EXPIRED' }).eq('id', member.membershipId);
+          if (gymIntId !== null) mmQ = mmQ.eq('gym_id', gymIntId);
+          await mmQ;
         } else if (member.id && typeof member.id === 'string' && member.id.includes('-')) {
-          await db.from('member_memberships').update({ end_date: pastDateStr, status: 'EXPIRED' }).eq('member_id', member.id);
+          let mmQ = db.from('member_memberships').update({ end_date: pastDateStr, status: 'EXPIRED' }).eq('member_id', member.id);
+          if (gymIntId !== null) mmQ = mmQ.eq('gym_id', gymIntId);
+          await mmQ;
         }
 
         // 2. Update members
         let memUpdate = db.from('members').update({ is_active: false, valid_until: pastIso, expiry_date: pastIso });
+        if (gymIntId !== null) {
+          memUpdate = memUpdate.eq('gym_id', gymIntId);
+        }
         if (member.id && typeof member.id === 'string' && member.id.includes('-')) {
           memUpdate = memUpdate.eq('id', member.id);
         } else {
