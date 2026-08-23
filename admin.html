@@ -1743,23 +1743,19 @@
       try {
         const gymIntId = (currentGymConfig && currentGymConfig.id && !isNaN(parseInt(currentGymConfig.id, 10))) ? parseInt(currentGymConfig.id, 10) : null;
 
-        // 1. Fetch Members strictly for current gym (via integer gym_id or fallback)
+        // 1. Fetch Members strictly for current gym (via integer gym_id)
         let rawMembers = [];
         try {
           let memberQuery = db.from('members').select('*, member_memberships(*, plans(*))');
           if (gymIntId !== null) {
             memberQuery = memberQuery.eq('gym_id', gymIntId);
-          } else {
-            memberQuery = memberQuery.or(`gym_id.eq.${currentGymSlug},gym_slug.eq.${currentGymSlug}`);
           }
           const { data, error } = await memberQuery;
           if (error) throw error;
           rawMembers = data || [];
         } catch (filterErr) {
           console.warn("Direct tenant members query note:", filterErr);
-          const { data: allData, error: allErr } = await db.from('members').select('*');
-          if (allErr) throw allErr;
-          rawMembers = (allData || []).filter(m => m.gym_id === gymIntId || m.gym_id === currentGymSlug || m.gym_slug === currentGymSlug);
+          rawMembers = [];
         }
         
         // Defensive normalization
@@ -2128,25 +2124,30 @@
       try {
         if (!db || !currentGymSlug) return;
         let punches = [];
+        const gymIntId = (currentGymConfig && currentGymConfig.id && !isNaN(parseInt(currentGymConfig.id, 10))) ? parseInt(currentGymConfig.id, 10) : null;
         try {
-          const { data: logs, error } = await db
-            .from('attendance_logs')
+          let query = db
+            .from('attendance')
             .select('*')
-            .eq('phone', phone)
-            .or(`gym_id.eq.${currentGymSlug},gym_slug.eq.${currentGymSlug}`)
-            .order('checkin_time', { ascending: false })
+            .order('check_in', { ascending: false })
             .limit(15);
 
+          if (gymIntId !== null) {
+            query = query.eq('gym_id', gymIntId);
+          }
+          if (member.id && typeof member.id === 'string' && member.id.includes('-')) {
+            query = query.eq('member_id', member.id);
+          }
+
+          const { data: logs, error } = await query;
           if (error) throw error;
-          punches = logs || [];
+          punches = (logs || []).map(l => ({
+            ...l,
+            checkin_time: l.check_in || l.created_at
+          }));
         } catch (queryErr) {
-          const { data: allLogs } = await db
-            .from('attendance_logs')
-            .select('*')
-            .eq('phone', phone)
-            .order('checkin_time', { ascending: false })
-            .limit(15);
-          punches = (allLogs || []).filter(l => l.gym_id === currentGymSlug || l.gym_slug === currentGymSlug);
+          console.warn("Dossier attendance query note:", queryErr);
+          punches = [];
         }
         const now = new Date();
         const curMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -2314,60 +2315,24 @@
 
       playAudioChirp(700, 0.06);
 
-      const gymIntId = (currentGymConfig && currentGymConfig.id && !isNaN(parseInt(currentGymConfig.id, 10))) ? parseInt(currentGymConfig.id, 10) : 1;
       const memberId = member.id || (member.raw && member.raw.id) || member.phone;
       const numberOfDays = months === 1 ? 30 : months === 3 ? 90 : months === 6 ? 180 : months * 30;
       const activeAdminPin = currentGymAdminPin || sessionStorage.getItem('retrogym_admin_pin') || '';
 
       try {
-        let renewalSucceeded = false;
-        try {
-          const { data, error } = await db.rpc('secure_renew_pass', {
-            target_member_id: memberId,
-            target_gym_slug: currentGymSlug,
-            days_to_add: numberOfDays,
-            entered_pin: activeAdminPin
-          });
+        const { data, error } = await db.rpc('secure_renew_pass', {
+          target_member_id: memberId,
+          target_gym_slug: currentGymSlug,
+          days_to_add: numberOfDays,
+          entered_pin: activeAdminPin
+        });
 
-          if (!error && data && data.success !== false) {
-            renewalSucceeded = true;
-          }
-        } catch (rpcErr) {}
+        if (error) {
+          throw new Error(error.message || 'RPC renewal execution failed.');
+        }
 
-        if (!renewalSucceeded) {
-          // Direct table renewal fallback
-          let baseDate = new Date();
-          if (member.validUntil) {
-            const currentExp = new Date(member.validUntil);
-            if (currentExp > baseDate) baseDate = currentExp;
-          }
-          baseDate.setDate(baseDate.getDate() + numberOfDays);
-          const newExpiryIso = baseDate.toISOString();
-          const newExpiryDateStr = newExpiryIso.split('T')[0];
-
-          if (member.membershipId) {
-            await db.from('member_memberships').update({ end_date: newExpiryDateStr, status: 'ACTIVE' }).eq('id', member.membershipId);
-          } else if (member.id && typeof member.id === 'string' && member.id.includes('-')) {
-            await db.from('member_memberships').insert([{
-              gym_id: gymIntId,
-              member_id: member.id,
-              start_date: new Date().toISOString().split('T')[0],
-              end_date: newExpiryDateStr,
-              status: 'ACTIVE'
-            }]);
-          }
-
-          // Record renewal payment
-          if (member.id && typeof member.id === 'string' && member.id.includes('-')) {
-            const planFee = months === 1 ? (currentGymConfig.plan_1m_price || 1200) : (months === 3 ? (currentGymConfig.plan_3m_price || 3200) : 1200);
-            await db.from('payments').insert([{
-              gym_id: gymIntId,
-              member_id: member.id,
-              amount: planFee,
-              payment_method: 'CASH',
-              payment_date: new Date().toISOString()
-            }]);
-          }
+        if (data && data.success === false) {
+          throw new Error(data.error || 'Pass renewal failed. Verification rejected.');
         }
 
         playAudioChirp(780, 0.12);
@@ -2380,24 +2345,30 @@
           openAthleteDossier(member.phone, false);
         }
       } catch (err) {
-        console.error("Secure pass renewal error:", err);
+        console.error("Pass renewal error:", err);
         showToast("Renewal Error: " + (err.message || err), "error");
+        alert("Pass Renewal Error: " + (err.message || err));
       }
     }
 
     async function resetMemberPin(phone) {
       const member = allMembers.find(m => m.phone === phone);
       const name = member ? member.fullName : phone;
+      const gymIntId = (currentGymConfig && currentGymConfig.id && !isNaN(parseInt(currentGymConfig.id, 10))) ? parseInt(currentGymConfig.id, 10) : null;
 
       if (!confirm(`Reset 4-digit passkey PIN for athlete ${name} (+91 ${phone})? Member will be prompted to set a new PIN on next login.`)) return;
 
       try {
-        const { error } = await db
+        let query = db
           .from('members')
           .update({ password: null })
-          .eq('phone', phone)
-          .or(`gym_id.eq.${currentGymSlug},gym_slug.eq.${currentGymSlug}`);
+          .eq('normalized_phone', phone);
 
+        if (gymIntId !== null) {
+          query = query.eq('gym_id', gymIntId);
+        }
+
+        const { error } = await query;
         if (error) throw error;
 
         playAudioChirp(600, 0.1);
@@ -2416,19 +2387,29 @@
       if (!db || !currentGymSlug) return;
       try {
         let logs = [];
+        const gymIntId = (currentGymConfig && currentGymConfig.id && !isNaN(parseInt(currentGymConfig.id, 10))) ? parseInt(currentGymConfig.id, 10) : null;
         try {
-          const { data, error } = await db
-            .from('attendance_logs')
-            .select('*')
-            .or(`gym_id.eq.${currentGymSlug},gym_slug.eq.${currentGymSlug}`)
-            .order('checkin_time', { ascending: false })
+          let attQuery = db
+            .from('attendance')
+            .select('*, members(full_name, normalized_phone)')
+            .order('check_in', { ascending: false })
             .limit(40);
 
+          if (gymIntId !== null) {
+            attQuery = attQuery.eq('gym_id', gymIntId);
+          }
+
+          const { data, error } = await attQuery;
           if (error) throw error;
-          logs = data || [];
+          logs = (data || []).map(l => ({
+            ...l,
+            checkin_time: l.check_in || l.created_at,
+            member_name: l.members?.full_name || 'Athlete',
+            phone: l.members?.normalized_phone || '--'
+          }));
         } catch (lErr) {
-          const { data: allLogs } = await db.from('attendance_logs').select('*').order('checkin_time', { ascending: false }).limit(40);
-          logs = (allLogs || []).filter(l => l.gym_id === currentGymSlug || l.gym_slug === currentGymSlug);
+          console.warn("Attendance feed query note:", lErr);
+          logs = [];
         }
 
         allAttendanceLogs = logs || [];
@@ -2438,6 +2419,9 @@
           showToast("Telemetry stream refreshed ⟳", "info");
         }
       } catch (e) {
+        console.warn("Telemetry feed note:", e);
+      }
+    }
         console.warn("Telemetry feed note:", e);
       }
     }
@@ -3467,7 +3451,7 @@ _Old School Iron • Modern Discipline_`;
           const staffText = document.getElementById('admin-staff-name-role');
           if (staffBadge && staffText) {
             const userEmail = ctx.email || 'Admin Staff';
-            const userRole = ctx.is_super_admin ? 'SUPER ADMIN' : (ctx.roles?.[0]?.role || 'STAFF');
+            const userRole = ctx.is_super_admin ? 'SUPER ADMIN' : (ctx.roles?.[0]?.role || 'MANAGER');
             staffText.innerText = `${userEmail} (${userRole})`;
             staffBadge.classList.remove('hidden');
           }

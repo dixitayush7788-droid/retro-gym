@@ -7,7 +7,7 @@ export async function initAdminConsole() {
 
   try {
     const userContext = await requireAuth(
-      ['GYM_OWNER', 'GYM_MANAGER', 'FRONT_DESK'],
+      ['GYM_OWNER', 'MANAGER'],
       targetGymSlug
     );
 

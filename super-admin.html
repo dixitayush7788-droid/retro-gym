@@ -1981,7 +1981,7 @@ _Keep these credentials secure._`;
           submitBtn.innerText = "DEPLOYING GYM NODE... ⚡";
         }
 
-        // 1. Try Atomic RPC: rpc_create_gym_with_owner
+        // 1. Authoritative Atomic RPC: rpc_create_gym_with_owner
         let authUserId = null;
         let createdGym = null;
         let gymId = cleanSlug;
@@ -1993,131 +1993,32 @@ _Keep these credentials secure._`;
           plan_12m_price: Number(p12)
         };
 
-        try {
-          const { data: rpcRes, error: rpcErr } = await db.rpc('rpc_create_gym_with_owner', {
-            p_gym_name: gymName,
-            p_slug: cleanSlug,
-            p_owner_phone: phone,
-            p_owner_email: email,
-            p_owner_password: password,
-            p_admin_pin: adminPin,
-            p_owner_upi_id: upi,
-            p_saas_fee: Number(saasFee),
-            p_validity_days: Number(validityDays),
-            p_pricing: pricingPayload,
-            p_feature_gates: selectedFeatures
-          });
+        const { data: rpcRes, error: rpcErr } = await db.rpc('rpc_create_gym_with_owner', {
+          p_gym_name: gymName,
+          p_slug: cleanSlug,
+          p_owner_phone: phone,
+          p_owner_email: email,
+          p_owner_password: password,
+          p_admin_pin: adminPin,
+          p_owner_upi_id: upi,
+          p_saas_fee: Number(saasFee),
+          p_validity_days: Number(validityDays),
+          p_pricing: pricingPayload,
+          p_feature_gates: selectedFeatures
+        });
 
-          if (!rpcErr && rpcRes) {
-            createdGym = rpcRes.gym || rpcRes;
-            gymId = createdGym.id || rpcRes.gym_id || cleanSlug;
-            authUserId = rpcRes.user_id || rpcRes.auth_user_id || (rpcRes.user && rpcRes.user.id) || null;
-          } else if (rpcErr) {
-            console.warn("Atomic RPC note (falling back to direct client execution):", rpcErr.message);
-          }
-        } catch (rpcEx) {
-          console.warn("Atomic RPC exception note:", rpcEx);
+        if (rpcErr) {
+          console.error("Atomic RPC error:", rpcErr);
+          throw new Error(`Onboarding failed: ${rpcErr.message}`);
         }
 
-        // Fallback: Client-side creation flow if atomic RPC not deployed
-        if (!createdGym) {
-          if (window.supabase) {
-            try {
-              const isolatedClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-                auth: {
-                  persistSession: false,
-                  autoRefreshToken: false,
-                  detectSessionInUrl: false
-                }
-              });
-
-              const { data: signUpData, error: signUpErr } = await isolatedClient.auth.signUp({
-                email: email,
-                password: password,
-                options: {
-                  data: {
-                    role: 'GYM_OWNER',
-                    gym_slug: cleanSlug,
-                    gym_name: gymName,
-                    phone: phone,
-                    full_name: `${gymName} Owner`,
-                    is_owner: true
-                  }
-                }
-              });
-
-              if (signUpErr) {
-                console.warn("Isolated auth signUp note:", signUpErr.message);
-              } else if (signUpData?.user) {
-                authUserId = signUpData.user.id;
-              }
-            } catch (signUpEx) {
-              console.warn("Isolated auth creation note:", signUpEx);
-            }
-          }
-
-          if (!authUserId) {
-            try {
-              const { data: rpcRes, error: rpcErr } = await db.rpc('rpc_create_gym_owner', {
-                p_email: email,
-                p_password: password,
-                p_gym_slug: cleanSlug,
-                p_gym_name: gymName,
-                p_phone: phone,
-                p_admin_pin: adminPin
-              });
-              if (!rpcErr && rpcRes) {
-                authUserId = rpcRes.user_id || rpcRes.id || rpcRes;
-              }
-            } catch (rpcEx) {
-              console.warn("RPC create owner note:", rpcEx);
-            }
-          }
-
-          const gymPayload = {
-            gym_name: gymName,
-            name: gymName,
-            slug: cleanSlug,
-            owner_phone: phone,
-            owner_email: email,
-            owner_upi_id: upi,
-            upi_id: upi,
-            admin_pin: adminPin,
-            saas_fee: Number(saasFee),
-            monthly_saas_fee: Number(saasFee),
-            plan_1m_price: Number(p1),
-            plan_3m_price: Number(p3),
-            plan_6m_price: Number(p6),
-            plan_12m_price: Number(p12),
-            features: selectedFeatures,
-            is_active: true,
-            subscription_expires_at: expiryDateISO
-          };
-
-          const { data: gymData, error: gymError } = await db
-            .from('gyms')
-            .insert([gymPayload])
-            .select();
-
-          if (gymError) {
-            throw new Error("Gym creation failed: " + gymError.message);
-          }
-
-          createdGym = gymData?.[0] || gymPayload;
-          gymId = createdGym.id || cleanSlug;
-
-          try {
-            await db.from('user_roles').insert([{
-              user_id: authUserId || null,
-              gym_id: gymId,
-              gym_slug: cleanSlug,
-              role: 'GYM_OWNER',
-              email: email
-            }]);
-          } catch (rErr) {
-            console.warn("user_roles insert note:", rErr);
-          }
+        if (!rpcRes) {
+          throw new Error('Onboarding failed: No response from rpc_create_gym_with_owner.');
         }
+
+        createdGym = rpcRes.gym || rpcRes;
+        gymId = createdGym.id || rpcRes.gym_id || cleanSlug;
+        authUserId = rpcRes.user_id || rpcRes.auth_user_id || (rpcRes.user && rpcRes.user.id) || null;
 
         // Close onboarding modal and give audio feedback
         closeOnboardModal();

@@ -1625,7 +1625,7 @@
           }
         }
 
-        // 2. Direct Supabase Query Fallback
+        // 2. Direct Supabase Query
         if (!freshMember && db) {
           let q = db
             .from('members')
@@ -1640,16 +1640,6 @@
 
           if (!error && qMember) {
             freshMember = qMember;
-          } else {
-            const { data: fallbackList } = await db
-              .from('members')
-              .select('*, member_memberships(*, plans(*))')
-              .eq('normalized_phone', rawPhone)
-              .limit(1);
-
-            if (fallbackList && fallbackList.length > 0) {
-              freshMember = fallbackList[0];
-            }
           }
         }
 
