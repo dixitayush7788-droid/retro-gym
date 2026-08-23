@@ -1627,20 +1627,24 @@
 
         // 2. Direct Supabase Query Fallback
         if (!freshMember && db) {
-          const { data: qMember, error } = await db
+          let q = db
             .from('members')
-            .select('*')
-            .eq('phone', rawPhone)
-            .eq('gym_slug', currentGymSlug)
-            .single();
+            .select('*, member_memberships(*, plans(*))')
+            .eq('normalized_phone', rawPhone);
+
+          if (currentGymConfig && currentGymConfig.id) {
+            q = q.eq('gym_id', currentGymConfig.id);
+          }
+
+          const { data: qMember, error } = await q.maybeSingle();
 
           if (!error && qMember) {
             freshMember = qMember;
           } else {
             const { data: fallbackList } = await db
               .from('members')
-              .select('*')
-              .eq('phone', rawPhone)
+              .select('*, member_memberships(*, plans(*))')
+              .eq('normalized_phone', rawPhone)
               .limit(1);
 
             if (fallbackList && fallbackList.length > 0) {
@@ -1747,10 +1751,13 @@
       try {
         if (!pendingMemberCandidate.password) {
           // Setting new PIN for athlete
-          const { error } = await db
-            .from('members')
-            .update({ password: pin })
-            .eq('phone', pendingMemberCandidate.phone);
+          let pinUpdate = db.from('members').update({ password: pin });
+          if (pendingMemberCandidate.id && typeof pendingMemberCandidate.id === 'string' && pendingMemberCandidate.id.includes('-')) {
+            pinUpdate = pinUpdate.eq('id', pendingMemberCandidate.id);
+          } else {
+            pinUpdate = pinUpdate.eq('normalized_phone', pendingMemberCandidate.phone);
+          }
+          const { error } = await pinUpdate;
 
           if (error) throw error;
           pendingMemberCandidate.password = pin;
@@ -1803,14 +1810,24 @@
     // --------------------------------------------------------
     function normalizeMemberData(m) {
       const full_name = m.full_name || m.name || 'Retro Athlete';
-      const phone = m.phone ? String(m.phone).replace(/\D/g, '').slice(-10) : '0000000000';
-      const valid_until = m.valid_until || m.expiry_date || new Date(Date.now() + 28 * 86400000).toISOString();
+      const phone = (m.normalized_phone || m.phone) ? String(m.normalized_phone || m.phone).replace(/\D/g, '').slice(-10) : '0000000000';
+      
+      let valid_until = m.valid_until || m.expiry_date;
+      if (!valid_until && m.member_memberships && m.member_memberships.length > 0) {
+        const sorted = [...m.member_memberships].sort((a, b) => new Date(b.end_date) - new Date(a.end_date));
+        valid_until = sorted[0].end_date;
+      }
+      if (!valid_until) {
+        valid_until = new Date(Date.now() + 28 * 86400000).toISOString();
+      }
+
       const streak_count = m.streak_count !== undefined ? m.streak_count : (m.streak || 0);
 
       return {
         id: m.id || phone,
         full_name,
         phone,
+        normalized_phone: phone,
         valid_until,
         expiry_date: valid_until,
         streak_count,
@@ -1893,14 +1910,16 @@
     // Direct fresh fetch from Supabase bypassing any stale local storage
     async function fetchFreshAthleteData(phone) {
       const targetPhone = phone || (currentAthlete && currentAthlete.phone);
-      if (!targetPhone || !db || !currentGymSlug) return null;
+      if (!targetPhone || !db) return null;
 
       try {
         let query = db.from('members')
-          .select('*')
-          .eq('phone', targetPhone);
+          .select('*, member_memberships(*, plans(*))')
+          .eq('normalized_phone', targetPhone);
         
-        query = query.or(`gym_slug.eq.${currentGymSlug},gym_id.eq.${currentGymSlug}`);
+        if (currentGymConfig && currentGymConfig.id) {
+          query = query.eq('gym_id', currentGymConfig.id);
+        }
         
         const { data: freshMember, error } = await query.limit(1).maybeSingle();
 
@@ -1926,15 +1945,14 @@
 
       const todayStr = new Date().toISOString().split('T')[0];
       try {
-        const { data, error } = await db
-          .from('attendance_logs')
-          .select('id, checkin_time')
-          .eq('phone', currentAthlete.phone)
-          .gte('checkin_time', `${todayStr}T00:00:00.000Z`)
-          .limit(1);
+        let q = db.from('attendance').select('id, check_in, created_at');
+        if (currentAthlete.id && typeof currentAthlete.id === 'string' && currentAthlete.id.includes('-')) {
+          q = q.eq('member_id', currentAthlete.id);
+        }
+        const { data, error } = await q.gte('created_at', `${todayStr}T00:00:00.000Z`).limit(1);
 
         if (!error && data && data.length > 0) {
-          markPunchButtonVerified(data[0].checkin_time);
+          markPunchButtonVerified(data[0].check_in || data[0].created_at);
         }
       } catch (e) {
         console.warn("Punch check error:", e);
@@ -1979,15 +1997,14 @@
       // Check if already checked in today
       const todayStr = now.toISOString().split('T')[0];
       try {
-        const { data: existing } = await db
-          .from('attendance_logs')
-          .select('id, checkin_time')
-          .eq('phone', currentAthlete.phone)
-          .gte('checkin_time', `${todayStr}T00:00:00.000Z`)
-          .limit(1);
+        let q = db.from('attendance').select('id, check_in, created_at');
+        if (currentAthlete.id && typeof currentAthlete.id === 'string' && currentAthlete.id.includes('-')) {
+          q = q.eq('member_id', currentAthlete.id);
+        }
+        const { data: existing } = await q.gte('created_at', `${todayStr}T00:00:00.000Z`).limit(1);
 
         if (existing && existing.length > 0) {
-          markPunchButtonVerified(existing[0].checkin_time);
+          markPunchButtonVerified(existing[0].check_in || existing[0].created_at);
           playCyberChime('success');
           showToast("Attendance already logged for today! ✓", "info");
           return;
@@ -2112,31 +2129,35 @@
       if (!currentAthlete || !db) return;
 
       const nowIso = new Date().toISOString();
-      const todayStr = nowIso.split('T')[0];
+      const gymInt = (currentGymConfig && currentGymConfig.id && !isNaN(parseInt(currentGymConfig.id, 10))) ? parseInt(currentGymConfig.id, 10) : 1;
 
       try {
-        // 1. Insert record into attendance_logs in Supabase with multi-tenant gym tag
-        const { error: insErr } = await db
-          .from('attendance_logs')
-          .insert([{
-            full_name: currentAthlete.full_name,
-            phone: currentAthlete.phone,
-            gym_id: currentGymSlug,
-            gym_slug: currentGymSlug,
-            checkin_time: nowIso
-          }]);
+        // 1. Insert record into attendance table in Supabase with member_id UUID and gym_id
+        if (currentAthlete.id && typeof currentAthlete.id === 'string' && currentAthlete.id.includes('-')) {
+          const { error: insErr } = await db
+            .from('attendance')
+            .insert([{
+              gym_id: gymInt,
+              member_id: currentAthlete.id,
+              check_in: nowIso,
+              created_at: nowIso
+            }]);
 
-        if (insErr) throw insErr;
+          if (insErr) throw insErr;
+        }
 
         // 2. Increment streak_count in members table & local session
         const newStreak = (currentAthlete.streak_count || 0) + 1;
         currentAthlete.streak_count = newStreak;
         localStorage.setItem('rg_member_session', JSON.stringify(currentAthlete));
 
-        await db
-          .from('members')
-          .update({ streak_count: newStreak })
-          .eq('phone', currentAthlete.phone);
+        let updateStreak = db.from('members').update({ streak_count: newStreak });
+        if (currentAthlete.id && typeof currentAthlete.id === 'string' && currentAthlete.id.includes('-')) {
+          updateStreak = updateStreak.eq('id', currentAthlete.id);
+        } else {
+          updateStreak = updateStreak.eq('normalized_phone', currentAthlete.phone);
+        }
+        await updateStreak;
 
         // 3. Trigger UI & Audio celebration
         markPunchButtonVerified(nowIso);
@@ -2162,16 +2183,18 @@
       const streakEl = document.getElementById('activity-streak-counter');
 
       try {
-        const { data, error } = await db
-          .from('attendance_logs')
-          .select('*')
-          .eq('phone', currentAthlete.phone)
-          .order('checkin_time', { ascending: false })
-          .limit(30);
+        let q = db.from('attendance').select('*');
+        if (currentAthlete.id && typeof currentAthlete.id === 'string' && currentAthlete.id.includes('-')) {
+          q = q.eq('member_id', currentAthlete.id);
+        }
+        const { data, error } = await q.order('check_in', { ascending: false }).limit(30);
 
         if (error) throw error;
 
-        athleteAttendanceHistory = data || [];
+        athleteAttendanceHistory = (data || []).map(d => ({
+          ...d,
+          checkin_time: d.check_in || d.created_at
+        }));
         totalPunchesEl.innerText = athleteAttendanceHistory.length;
         streakEl.innerText = `🔥 ${currentAthlete.streak_count} Days`;
 
@@ -2721,32 +2744,41 @@
 
       try {
         // Fetch logged-in member record
-        const { data: me } = await db
+        let meQuery = db
           .from('members')
-          .select('total_referrals, valid_until')
-          .eq('phone', myPhone10)
-          .eq('gym_slug', currentGymSlug)
-          .single();
+          .select('id, referral_code, normalized_phone, created_at')
+          .eq('normalized_phone', myPhone10);
+        
+        if (currentGymConfig && currentGymConfig.id) {
+          meQuery = meQuery.eq('gym_id', currentGymConfig.id);
+        }
+        const { data: me } = await meQuery.maybeSingle();
 
-        // Fetch list of joined friends
-        const { data: squad, error } = await db
-          .from('members')
-          .select('name, full_name, joining_date, created_at')
-          .or(`referred_by.ilike.%${myPhone10}%,referred_by_phone.ilike.%${myPhone10}%`)
-          .eq('gym_slug', currentGymSlug)
-          .order('created_at', { ascending: false });
+        let finalSquad = [];
+        if (me && me.id) {
+          // 1. Try referral_ledger table
+          try {
+            const { data: ledgerRows } = await db
+              .from('referral_ledger')
+              .select('*, referred_member:members!referral_ledger_referred_member_id_fkey(full_name, normalized_phone, created_at)')
+              .eq('referrer_member_id', me.id);
+            if (ledgerRows && ledgerRows.length > 0) {
+              finalSquad = ledgerRows.map(r => ({
+                full_name: r.referred_member?.full_name || 'Referred Athlete',
+                created_at: r.created_at || r.reward_applied_at
+              }));
+            }
+          } catch (lErr) {}
 
-        let finalSquad = squad;
-        if (error) {
-          console.warn("Primary referral query notice:", error);
-          // Fallback query matching clean 10-digit number
-          const { data: fbData } = await db
-            .from('members')
-            .select('name, full_name, joining_date, created_at')
-            .eq('referred_by', myPhone10)
-            .eq('gym_slug', currentGymSlug)
-            .order('created_at', { ascending: false });
-          finalSquad = fbData || [];
+          // 2. Query members table with referred_by_member_id
+          if (finalSquad.length === 0) {
+            const { data: squad } = await db
+              .from('members')
+              .select('full_name, created_at')
+              .eq('referred_by_member_id', me.id)
+              .order('created_at', { ascending: false });
+            if (squad) finalSquad = squad;
+          }
         }
 
         memberReferralSquad = finalSquad || [];

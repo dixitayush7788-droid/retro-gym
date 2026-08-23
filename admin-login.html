@@ -207,7 +207,7 @@
 
           if (!isSuperAdmin) {
             try {
-              const { data: rows } = await supabase.from('super_admins').select('id').or(`user_id.eq.${session.user.id},email.eq.${session.user.email}`).limit(1);
+              const { data: rows } = await supabase.from('user_roles').select('id, role').eq('user_id', session.user.id).eq('role', 'SUPER_ADMIN').limit(1);
               if (rows && rows.length > 0) isSuperAdmin = true;
             } catch (e) {}
           }
@@ -263,7 +263,7 @@
 
           if (!isSuperAdmin) {
             try {
-              const { data: saRows } = await supabase.from('super_admins').select('id').or(`user_id.eq.${data.user.id},email.eq.${data.user.email}`).limit(1);
+              const { data: saRows } = await supabase.from('user_roles').select('id, role').eq('user_id', data.user.id).eq('role', 'SUPER_ADMIN').limit(1);
               if (saRows && saRows.length > 0) isSuperAdmin = true;
             } catch (e) {}
           }

@@ -1050,18 +1050,9 @@
       }
 
       try {
-        const { data: config, error } = await db
-          .from('platform_config')
-          .select('master_pin')
-          .eq('id', 1)
-          .maybeSingle();
-
-        if (error) {
-          console.warn("platform_config query error:", error);
-        }
-
-        if (config && config.master_pin) {
-          configuredMasterPin = String(config.master_pin).trim();
+        const savedPin = localStorage.getItem('nexus_master_pin');
+        if (savedPin) {
+          configuredMasterPin = String(savedPin).trim();
           setPinOverlayMode('unlock');
           if (isAuthSession) {
             unlockConsole();
@@ -1207,21 +1198,7 @@
           const finalPin = pinBuffer;
           playAudioChirp(1200, 0.25);
 
-          // Persist to Supabase platform_config
-          if (db) {
-            try {
-              const { error: upsertErr } = await db
-                .from('platform_config')
-                .upsert({ id: 1, master_pin: finalPin }, { onConflict: 'id' });
-              
-              if (upsertErr) {
-                await db.from('platform_config').update({ master_pin: finalPin }).eq('id', 1);
-              }
-            } catch (err) {
-              console.error("Error saving new master PIN:", err);
-            }
-          }
-
+          localStorage.setItem('nexus_master_pin', finalPin);
           configuredMasterPin = finalPin;
           sessionStorage.setItem('nexus_master_auth', 'true');
           isVerifying = false;
@@ -2140,18 +2117,6 @@ _Keep these credentials secure._`;
           } catch (rErr) {
             console.warn("user_roles insert note:", rErr);
           }
-
-          try {
-            await db.from('gym_staff').insert([{
-              user_id: authUserId || null,
-              gym_id: gymId,
-              gym_slug: cleanSlug,
-              email: email,
-              phone: phone,
-              role: 'GYM_OWNER',
-              is_active: true
-            }]);
-          } catch (sErr) {}
         }
 
         // Close onboarding modal and give audio feedback

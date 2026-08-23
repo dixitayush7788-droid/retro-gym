@@ -38,10 +38,34 @@ export async function requireAuth(allowedRoles = [], requestedGymSlug = null, re
         console.warn('[AUTH GUARD] user_roles lookup note:', dbErr);
       }
 
+      // Map gym slugs if user_roles has gym_id
+      const gymIds = userRoles.map(r => r.gym_id).filter(Boolean);
+      let gymsMap = {};
+      if (gymIds.length > 0) {
+        try {
+          const { data: gymRecords } = await supabase
+            .from('gyms')
+            .select('id, slug, name')
+            .in('id', gymIds);
+          if (gymRecords) {
+            gymRecords.forEach(g => { gymsMap[g.id] = g; });
+          }
+        } catch (gErr) {}
+      }
+
+      userRoles = userRoles.map(r => {
+        const g = gymsMap[r.gym_id];
+        return {
+          ...r,
+          gym_slug: g ? g.slug : r.gym_slug,
+          gym_name: g ? g.name : undefined
+        };
+      });
+
       const metaRole = user.user_metadata?.role || user.app_metadata?.role || 'GYM_OWNER';
       const metaSlug = user.user_metadata?.gym_slug || user.app_metadata?.gym_slug;
       
-      if (metaRole && !userRoles.some(r => r.role === metaRole && r.gym_slug === metaSlug)) {
+      if (metaRole && !userRoles.some(r => r.role === metaRole && (r.gym_slug === metaSlug || !metaSlug))) {
         userRoles.push({ role: metaRole, gym_slug: metaSlug, gym_id: metaSlug });
       }
 
@@ -51,8 +75,9 @@ export async function requireAuth(allowedRoles = [], requestedGymSlug = null, re
         email: user.email,
         roles: userRoles,
         role: userRoles[0]?.role || metaRole,
+        gym_id: userRoles[0]?.gym_id || null,
         gym_slug: metaSlug || userRoles[0]?.gym_slug || requestedGymSlug,
-        is_super_admin: user.user_metadata?.is_super_admin === true || user.app_metadata?.is_super_admin === true
+        is_super_admin: user.user_metadata?.is_super_admin === true || user.app_metadata?.is_super_admin === true || userRoles.some(r => r.role === 'SUPER_ADMIN')
       };
     }
 

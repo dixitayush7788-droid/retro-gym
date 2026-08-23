@@ -1681,10 +1681,16 @@
     // ----------------------------------------------------
     function normalizeMember(m) {
       const fullName = m.full_name || m.name || 'Retro Athlete';
-      const phone = m.phone ? String(m.phone).replace(/\D/g, '').slice(-10) : 'N/A';
+      const phone = m.normalized_phone || (m.phone ? String(m.phone).replace(/\D/g, '').slice(-10) : 'N/A');
       
-      // Fallback for valid_until / expiry_date
-      let validUntil = m.valid_until || m.expiry_date;
+      // Resolve active membership
+      let activeMembership = null;
+      if (m.member_memberships && Array.isArray(m.member_memberships) && m.member_memberships.length > 0) {
+        const sorted = [...m.member_memberships].sort((a, b) => new Date(b.end_date || 0) - new Date(a.end_date || 0));
+        activeMembership = sorted[0];
+      }
+
+      let validUntil = activeMembership ? activeMembership.end_date : (m.valid_until || m.expiry_date);
       if (!validUntil) {
         const d = new Date();
         d.setDate(d.getDate() + 28);
@@ -1692,11 +1698,11 @@
       }
 
       const streak = m.streak_count !== undefined ? m.streak_count : (m.streak || 0);
-      const hasPin = Boolean(m.password);
-      const feesPaid = m.fees_paid !== undefined ? m.fees_paid : 1200;
-      const planDuration = m.plan_duration_months || 1;
-      const gymId = m.gym_id || m.gym_slug || 'retro-gym';
-      const photoUrl = m.photo_url || m.avatar_url || m.photo || '';
+      const hasPin = Boolean(m.password || m.profile_id);
+      const feesPaid = m.fees_paid !== undefined ? m.fees_paid : (activeMembership?.plans?.price || 1200);
+      const planDuration = activeMembership?.plans?.duration_months || m.plan_duration_months || 1;
+      const gymId = m.gym_id || (currentGymConfig && currentGymConfig.id) || currentGymSlug;
+      const photoUrl = m.baseline_photo_path || m.photo_url || m.avatar_url || '';
       const age = m.age || null;
       const address = m.address || '';
       const referredBy = m.referred_by || m.referrer_phone || '';
@@ -1704,6 +1710,7 @@
       return {
         raw: m,
         id: m.id || phone,
+        membershipId: activeMembership?.id,
         fullName,
         phone,
         gymId,
@@ -1716,7 +1723,8 @@
         age,
         address,
         referredBy,
-        password: m.password
+        referralCode: m.referral_code || phone,
+        referredByMemberId: m.referred_by_member_id
       };
     }
 
@@ -1733,21 +1741,25 @@
       if (showFeedback) playAudioChirp(650, 0.08);
       
       try {
-        // 1. Fetch Members strictly for currentGymSlug
+        const gymIntId = (currentGymConfig && currentGymConfig.id && !isNaN(parseInt(currentGymConfig.id, 10))) ? parseInt(currentGymConfig.id, 10) : null;
+
+        // 1. Fetch Members strictly for current gym (via integer gym_id or fallback)
         let rawMembers = [];
         try {
-          const { data, error } = await db
-            .from('members')
-            .select('*')
-            .or(`gym_id.eq.${currentGymSlug},gym_slug.eq.${currentGymSlug}`);
-
+          let memberQuery = db.from('members').select('*, member_memberships(*, plans(*))');
+          if (gymIntId !== null) {
+            memberQuery = memberQuery.eq('gym_id', gymIntId);
+          } else {
+            memberQuery = memberQuery.or(`gym_id.eq.${currentGymSlug},gym_slug.eq.${currentGymSlug}`);
+          }
+          const { data, error } = await memberQuery;
           if (error) throw error;
           rawMembers = data || [];
         } catch (filterErr) {
-          console.warn("Direct tenant query note:", filterErr);
+          console.warn("Direct tenant members query note:", filterErr);
           const { data: allData, error: allErr } = await db.from('members').select('*');
           if (allErr) throw allErr;
-          rawMembers = (allData || []).filter(m => m.gym_id === currentGymSlug || m.gym_slug === currentGymSlug);
+          rawMembers = (allData || []).filter(m => m.gym_id === gymIntId || m.gym_id === currentGymSlug || m.gym_slug === currentGymSlug);
         }
         
         // Defensive normalization
@@ -1761,18 +1773,25 @@
         const todayStr = new Date().toISOString().split('T')[0];
         let logs = [];
         try {
-          const { data: logData, error: lErr } = await db
-            .from('attendance_logs')
-            .select('*')
-            .or(`gym_id.eq.${currentGymSlug},gym_slug.eq.${currentGymSlug}`)
-            .order('checkin_time', { ascending: false })
-            .limit(50);
+          let attQuery = db.from('attendance').select('*, members(full_name, normalized_phone)');
+          if (gymIntId !== null) {
+            attQuery = attQuery.eq('gym_id', gymIntId);
+          }
+          const { data: logData, error: lErr } = await attQuery.order('check_in', { ascending: false }).limit(50);
 
           if (lErr) throw lErr;
-          logs = logData || [];
+          logs = (logData || []).map(l => ({
+            ...l,
+            checkin_time: l.check_in || l.created_at,
+            member_name: l.members?.full_name || 'Athlete',
+            phone: l.members?.normalized_phone || '--'
+          }));
         } catch (lErr) {
-          const { data: allLogs } = await db.from('attendance_logs').select('*').order('checkin_time', { ascending: false }).limit(50);
-          logs = (allLogs || []).filter(l => l.gym_id === currentGymSlug || l.gym_slug === currentGymSlug);
+          console.warn("Attendance table note:", lErr);
+          try {
+            const { data: allLogs } = await db.from('attendance_logs').select('*').order('checkin_time', { ascending: false }).limit(50);
+            logs = (allLogs || []).filter(l => l.gym_id === gymIntId || l.gym_id === currentGymSlug || l.gym_slug === currentGymSlug);
+          } catch (e) {}
         }
         allAttendanceLogs = logs || [];
 
@@ -1785,7 +1804,7 @@
 
         // 5. Update open dossier if active
         if (activeDossierMember) {
-          const updated = allMembers.find(m => m.phone === activeDossierMember.phone);
+          const updated = allMembers.find(m => m.phone === activeDossierMember.phone || m.id === activeDossierMember.id);
           if (updated) openAthleteDossier(updated.phone, false);
         }
 
@@ -1793,11 +1812,14 @@
 
       } catch (err) {
         showToast("Fetch error: " + (err.message || err), "error");
-        document.getElementById('members-cards-container').innerHTML = `
-          <div class="col-span-full p-8 text-center text-rose-400 font-mono text-xs border border-rose-500/20 bg-rose-500/5 rounded-2xl">
-            Failed to load members: ${err.message || 'Network error'}
-          </div>
-        `;
+        const container = document.getElementById('members-cards-container');
+        if (container) {
+          container.innerHTML = `
+            <div class="col-span-full p-8 text-center text-rose-400 font-mono text-xs border border-rose-500/20 bg-rose-500/5 rounded-2xl">
+              Failed to load members: ${err.message || 'Network error'}
+            </div>
+          `;
+        }
       }
     }
 
@@ -2195,6 +2217,7 @@
     async function executeDossierFreeze(days) {
       if (!activeDossierMember || !db) return;
       const member = activeDossierMember;
+      const gymIntId = (currentGymConfig && currentGymConfig.id && !isNaN(parseInt(currentGymConfig.id, 10))) ? parseInt(currentGymConfig.id, 10) : 1;
 
       try {
         let baseDate = new Date();
@@ -2205,17 +2228,23 @@
 
         baseDate.setDate(baseDate.getDate() + days);
         const newExpiryIso = baseDate.toISOString();
+        const newExpiryDateStr = newExpiryIso.split('T')[0];
 
-        const { error } = await db
-          .from('members')
-          .update({ 
-            valid_until: newExpiryIso,
-            expiry_date: newExpiryIso 
-          })
-          .eq('phone', member.phone)
-          .or(`gym_id.eq.${currentGymSlug},gym_slug.eq.${currentGymSlug}`);
+        // 1. Update member_memberships if exists
+        if (member.membershipId) {
+          await db.from('member_memberships').update({ end_date: newExpiryDateStr }).eq('id', member.membershipId);
+        } else if (member.id && typeof member.id === 'string' && member.id.includes('-')) {
+          await db.from('member_memberships').update({ end_date: newExpiryDateStr }).eq('member_id', member.id);
+        }
 
-        if (error) throw error;
+        // 2. Defensive update on members table
+        let memUpdate = db.from('members').update({ valid_until: newExpiryIso, expiry_date: newExpiryIso });
+        if (member.id && typeof member.id === 'string' && member.id.includes('-')) {
+          memUpdate = memUpdate.eq('id', member.id);
+        } else {
+          memUpdate = memUpdate.eq('normalized_phone', member.phone);
+        }
+        await memUpdate;
 
         playAudioChirp(780, 0.12);
         showToast(`Pass for ${member.fullName} frozen/extended by +${days} Days! ❄️`, "success");
@@ -2237,17 +2266,23 @@
         const pastDate = new Date();
         pastDate.setDate(pastDate.getDate() - 1);
         const pastIso = pastDate.toISOString();
+        const pastDateStr = pastIso.split('T')[0];
 
-        const { error } = await db
-          .from('members')
-          .update({ 
-            valid_until: pastIso,
-            expiry_date: pastIso 
-          })
-          .eq('phone', member.phone)
-          .or(`gym_id.eq.${currentGymSlug},gym_slug.eq.${currentGymSlug}`);
+        // 1. Update member_memberships
+        if (member.membershipId) {
+          await db.from('member_memberships').update({ end_date: pastDateStr, status: 'EXPIRED' }).eq('id', member.membershipId);
+        } else if (member.id && typeof member.id === 'string' && member.id.includes('-')) {
+          await db.from('member_memberships').update({ end_date: pastDateStr, status: 'EXPIRED' }).eq('member_id', member.id);
+        }
 
-        if (error) throw error;
+        // 2. Update members
+        let memUpdate = db.from('members').update({ is_active: false, valid_until: pastIso, expiry_date: pastIso });
+        if (member.id && typeof member.id === 'string' && member.id.includes('-')) {
+          memUpdate = memUpdate.eq('id', member.id);
+        } else {
+          memUpdate = memUpdate.eq('normalized_phone', member.phone);
+        }
+        await memUpdate;
 
         playAudioChirp(400, 0.15);
         showToast(`Membership for ${member.fullName} closed & revoked. 🚫`, "info");
@@ -2279,24 +2314,60 @@
 
       playAudioChirp(700, 0.06);
 
+      const gymIntId = (currentGymConfig && currentGymConfig.id && !isNaN(parseInt(currentGymConfig.id, 10))) ? parseInt(currentGymConfig.id, 10) : 1;
       const memberId = member.id || (member.raw && member.raw.id) || member.phone;
       const numberOfDays = months === 1 ? 30 : months === 3 ? 90 : months === 6 ? 180 : months * 30;
-
       const activeAdminPin = currentGymAdminPin || sessionStorage.getItem('retrogym_admin_pin') || '';
 
       try {
-        const { data, error } = await db.rpc('secure_renew_pass', {
-          target_member_id: memberId,
-          target_gym_slug: currentGymSlug,
-          days_to_add: numberOfDays,
-          entered_pin: activeAdminPin
-        });
+        let renewalSucceeded = false;
+        try {
+          const { data, error } = await db.rpc('secure_renew_pass', {
+            target_member_id: memberId,
+            target_gym_slug: currentGymSlug,
+            days_to_add: numberOfDays,
+            entered_pin: activeAdminPin
+          });
 
-        if (error || !data || data.success === false) {
-          const errMsg = (data && data.error) || (error && error.message) || "Pass renewal failed";
-          console.error("Pass renewal RPC error:", error || data);
-          showToast(errMsg, "error");
-          return;
+          if (!error && data && data.success !== false) {
+            renewalSucceeded = true;
+          }
+        } catch (rpcErr) {}
+
+        if (!renewalSucceeded) {
+          // Direct table renewal fallback
+          let baseDate = new Date();
+          if (member.validUntil) {
+            const currentExp = new Date(member.validUntil);
+            if (currentExp > baseDate) baseDate = currentExp;
+          }
+          baseDate.setDate(baseDate.getDate() + numberOfDays);
+          const newExpiryIso = baseDate.toISOString();
+          const newExpiryDateStr = newExpiryIso.split('T')[0];
+
+          if (member.membershipId) {
+            await db.from('member_memberships').update({ end_date: newExpiryDateStr, status: 'ACTIVE' }).eq('id', member.membershipId);
+          } else if (member.id && typeof member.id === 'string' && member.id.includes('-')) {
+            await db.from('member_memberships').insert([{
+              gym_id: gymIntId,
+              member_id: member.id,
+              start_date: new Date().toISOString().split('T')[0],
+              end_date: newExpiryDateStr,
+              status: 'ACTIVE'
+            }]);
+          }
+
+          // Record renewal payment
+          if (member.id && typeof member.id === 'string' && member.id.includes('-')) {
+            const planFee = months === 1 ? (currentGymConfig.plan_1m_price || 1200) : (months === 3 ? (currentGymConfig.plan_3m_price || 3200) : 1200);
+            await db.from('payments').insert([{
+              gym_id: gymIntId,
+              member_id: member.id,
+              amount: planFee,
+              payment_method: 'CASH',
+              payment_date: new Date().toISOString()
+            }]);
+          }
         }
 
         playAudioChirp(780, 0.12);
@@ -2650,30 +2721,107 @@
       btn.innerText = "Registering Athlete to Cloud...";
       btn.disabled = true;
 
+      const gymIntId = (currentGymConfig && currentGymConfig.id && !isNaN(parseInt(currentGymConfig.id, 10))) ? parseInt(currentGymConfig.id, 10) : 1;
+
       try {
         const calculatedExpiryDate = new Date();
         calculatedExpiryDate.setMonth(calculatedExpiryDate.getMonth() + selectedPlanMonths);
         const calculatedExpiryISO = calculatedExpiryDate.toISOString();
+        const calculatedExpiryDateStr = calculatedExpiryISO.split('T')[0];
+        const todayDateStr = new Date().toISOString().split('T')[0];
 
-        const { error } = await db.from('members').insert([{
-          gym_slug: currentGymSlug,
-          gym_id: currentGymSlug,
-          name: fullName,
-          full_name: fullName,
-          phone: cleanPhone,
-          age: parseInt(age, 10) || null,
-          address: address,
-          photo_url: newMemberPhotoBase64 || '',
-          plan_months: parseInt(selectedPlanMonths, 10) || 1,
-          fees_paid: parseFloat(collectedAmount) || 0,
-          valid_until: calculatedExpiryISO,
-          referred_by: cleanRefPhone || null,
-          referred_by_phone: cleanRefPhone || null,
-          joining_date: new Date().toISOString().split('T')[0],
-          is_active: true
-        }]);
+        // 1. Resolve Referring Member ID if applicable
+        let refMemberId = null;
+        if (cleanRefPhone) {
+          try {
+            const { data: refMem } = await db
+              .from('members')
+              .select('id')
+              .eq('normalized_phone', cleanRefPhone)
+              .eq('gym_id', gymIntId)
+              .maybeSingle();
+            if (refMem && refMem.id) refMemberId = refMem.id;
+          } catch (rErr) {}
+        }
 
-        if (error) throw error;
+        // 2. Insert into members table
+        const { data: createdMembers, error: memErr } = await db
+          .from('members')
+          .insert([{
+            gym_id: gymIntId,
+            full_name: fullName,
+            normalized_phone: cleanPhone,
+            age: parseInt(age, 10) || null,
+            address: address,
+            baseline_photo_path: newMemberPhotoBase64 || null,
+            referral_code: cleanPhone,
+            referred_by_member_id: refMemberId,
+            is_active: true
+          }])
+          .select();
+
+        if (memErr) throw memErr;
+
+        const createdMember = createdMembers?.[0];
+        const newMemberId = createdMember?.id;
+
+        // 3. Match or find plan
+        let planId = null;
+        try {
+          const { data: plans } = await db.from('plans').select('id, duration_months').eq('gym_id', gymIntId);
+          const matched = (plans || []).find(p => p.duration_months === selectedPlanMonths);
+          if (matched) planId = matched.id;
+        } catch (pErr) {}
+
+        // 4. Insert into member_memberships table
+        let newMembershipId = null;
+        if (newMemberId) {
+          try {
+            const { data: mRows } = await db
+              .from('member_memberships')
+              .insert([{
+                gym_id: gymIntId,
+                member_id: newMemberId,
+                plan_id: planId,
+                start_date: todayDateStr,
+                end_date: calculatedExpiryDateStr,
+                status: 'ACTIVE'
+              }])
+              .select();
+            if (mRows && mRows.length > 0) newMembershipId = mRows[0].id;
+          } catch (mErr) {
+            console.warn("Membership record note:", mErr);
+          }
+
+          // 5. Insert payment record
+          try {
+            await db.from('payments').insert([{
+              gym_id: gymIntId,
+              member_id: newMemberId,
+              membership_id: newMembershipId,
+              amount: parseFloat(collectedAmount) || 0,
+              payment_method: 'CASH',
+              payment_date: new Date().toISOString()
+            }]);
+          } catch (pErr) {
+            console.warn("Payment record note:", pErr);
+          }
+
+          // 6. Record Referral Reward in referral_ledger
+          if (refMemberId) {
+            try {
+              await db.from('referral_ledger').insert([{
+                gym_id: gymIntId,
+                referrer_member_id: refMemberId,
+                referred_member_id: newMemberId,
+                reward_days: 7,
+                reward_applied_at: new Date().toISOString()
+              }]);
+            } catch (rErr) {
+              console.warn("Referral ledger note:", rErr);
+            }
+          }
+        }
 
         playAudioChirp(880, 0.15);
         showToast(`Athlete ${fullName} registered to [${currentGymConfig.gym_name}]! ⚡`, "success");

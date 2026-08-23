@@ -209,7 +209,7 @@ export async function onboardGymNode({
     try {
       await supabase.from('user_roles').insert([{
         user_id: authUserId || null,
-        gym_id: gymId,
+        gym_id: typeof gymId === 'number' ? gymId : (createdGym.id || null),
         gym_slug: cleanSlug,
         role: 'GYM_OWNER',
         email: email
@@ -217,19 +217,6 @@ export async function onboardGymNode({
     } catch (roleErr) {
       console.warn('[ONBOARDING] user_roles table insertion note:', roleErr);
     }
-
-    // Defensively insert into gym_staff table
-    try {
-      await supabase.from('gym_staff').insert([{
-        user_id: authUserId || null,
-        gym_id: gymId,
-        gym_slug: cleanSlug,
-        email: email,
-        phone: phone,
-        role: 'GYM_OWNER',
-        is_active: true
-      }]);
-    } catch (staffErr) {}
   }
 
   return {
@@ -379,9 +366,10 @@ export async function initSuperAdmin() {
 async function dbLookupSuperAdmin(userId, userEmail) {
   try {
     const { data, error } = await supabase
-      .from('super_admins')
+      .from('user_roles')
       .select('*')
-      .or(`user_id.eq.${userId},email.eq.${userEmail || ''}`)
+      .eq('user_id', userId)
+      .eq('role', 'SUPER_ADMIN')
       .limit(1);
     if (!error && data) return { data };
   } catch (e) {}
