@@ -2444,7 +2444,10 @@
     // ----------------------------------------------------
     // 1-TAP DESK QUICK PUNCH & CHECK-IN ENGINE
     // ----------------------------------------------------
+    const activePunchesInProgress = new Set();
+
     async function deskQuickPunch(phone) {
+      if (activePunchesInProgress.has(phone)) return;
       const member = allMembers.find(m => m.phone === phone);
       if (!member) {
         showToast("Athlete record not found", "error");
@@ -2454,6 +2457,8 @@
         showToast("Database not connected", "error");
         return;
       }
+
+      activePunchesInProgress.add(phone);
 
       const gymIntId = (currentGymConfig && currentGymConfig.id && !isNaN(parseInt(currentGymConfig.id, 10))) ? parseInt(currentGymConfig.id, 10) : 1;
       const nowIso = new Date().toISOString();
@@ -2467,6 +2472,7 @@
 
       if (alreadyLogged) {
         if (!confirm(`Athlete ${member.fullName} is ALREADY checked in today. Log an additional session punch?`)) {
+          activePunchesInProgress.delete(phone);
           return;
         }
       }
@@ -2506,6 +2512,8 @@
       } catch (err) {
         console.error("Desk quick punch failed:", err);
         showToast("Check-in error: " + (err.message || err), "error");
+      } finally {
+        activePunchesInProgress.delete(phone);
       }
     }
 
@@ -3420,6 +3428,34 @@ _Old School Iron • Modern Discipline_`;
       playAudioChirp(750, 0.12);
       showToast("WhatsApp broadcast window triggered! 📢", "success");
     }
+
+    // ----------------------------------------------------
+    // GLOBAL KEYBOARD SHORTCUTS & MODAL ACCESSIBILITY
+    // ----------------------------------------------------
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const qrModal = document.getElementById('desk-qr-modal');
+        if (qrModal && !qrModal.classList.contains('hidden')) {
+          closeDeskQRModal();
+          return;
+        }
+        const memberDrawer = document.getElementById('add-member-drawer');
+        if (memberDrawer && !memberDrawer.classList.contains('hidden')) {
+          closeAddMemberDrawer();
+          return;
+        }
+        const dossierModal = document.getElementById('athlete-dossier-modal');
+        if (dossierModal && !dossierModal.classList.contains('hidden')) {
+          closeAthleteDossier();
+          return;
+        }
+        const settingsModal = document.getElementById('gym-settings-modal');
+        if (settingsModal && !settingsModal.classList.contains('hidden')) {
+          closeGymSettingsModal();
+          return;
+        }
+      }
+    });
 
     // ----------------------------------------------------
     // INITIALIZATION & GATEKEEPER BOOTSTRAP

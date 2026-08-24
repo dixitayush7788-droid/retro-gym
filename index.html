@@ -3142,6 +3142,22 @@
         );
       }
     });
+
+    // Clean up camera hardware if user tabs away or presses Escape
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && typeof stopScannerSafely === 'function') {
+        stopScannerSafely();
+      }
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const qrModal = document.getElementById('qr-scanner-modal');
+        if (qrModal && !qrModal.classList.contains('hidden')) {
+          closeDeskQRScanner();
+        }
+      }
+    });
   </script>
 
   <!-- Member Zero-Trust Pass Auth & Claim Module -->

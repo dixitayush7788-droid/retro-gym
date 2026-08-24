@@ -2117,8 +2117,38 @@ _Login to your admin portal to customize gym passes, timings & member notices._`
     }
 
     // ----------------------------------------------------
-    // INITIALIZATION DISPATCHER
+    // INITIALIZATION DISPATCHER & KEYBOARD SHORTCUTS
     // ----------------------------------------------------
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const onboardSuccessModal = document.getElementById('onboard-success-modal');
+        if (onboardSuccessModal && !onboardSuccessModal.classList.contains('hidden')) {
+          closeOnboardSuccessModal();
+          return;
+        }
+        const onboardModal = document.getElementById('onboard-modal');
+        if (onboardModal && !onboardModal.classList.contains('hidden')) {
+          closeOnboardModal();
+          return;
+        }
+        const standeeModal = document.getElementById('standee-modal');
+        if (standeeModal && !standeeModal.classList.contains('hidden')) {
+          closeStandeeModal();
+          return;
+        }
+        const telemetryModal = document.getElementById('telemetry-modal');
+        if (telemetryModal && !telemetryModal.classList.contains('hidden')) {
+          closeTelemetryModal();
+          return;
+        }
+        const detailsModal = document.getElementById('gym-details-modal');
+        if (detailsModal && !detailsModal.classList.contains('hidden')) {
+          closeGymDetailsModal();
+          return;
+        }
+      }
+    });
+
     window.addEventListener('DOMContentLoaded', () => {
       initMasterSecurityEngine();
     });
