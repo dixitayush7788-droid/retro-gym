@@ -1353,6 +1353,19 @@
     }
 
     // ----------------------------------------------------
+    // HTML SANITIZATION & SECURITY UTILITY
+    // ----------------------------------------------------
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // ----------------------------------------------------
     // AUDIO SYNTHESIZER CHIRP
     // ----------------------------------------------------
     let audioCtx = null;
@@ -2225,7 +2238,7 @@
     async function executeDossierFreeze(days) {
       if (!activeDossierMember || !db) return;
       const member = activeDossierMember;
-      const gymIntId = (currentGymConfig && currentGymConfig.id && !isNaN(parseInt(currentGymConfig.id, 10))) ? parseInt(currentGymConfig.id, 10) : 1;
+      const gymIntId = (currentGymConfig && currentGymConfig.id && !isNaN(parseInt(currentGymConfig.id, 10))) ? parseInt(currentGymConfig.id, 10) : null;
 
       try {
         let baseDate = new Date();
@@ -2237,8 +2250,6 @@
         baseDate.setDate(baseDate.getDate() + days);
         const newExpiryIso = baseDate.toISOString();
         const newExpiryDateStr = newExpiryIso.split('T')[0];
-
-        const gymIntId = (currentGymConfig && currentGymConfig.id && !isNaN(parseInt(currentGymConfig.id, 10))) ? parseInt(currentGymConfig.id, 10) : null;
 
         // 1. Update member_memberships if exists
         if (member.membershipId) {

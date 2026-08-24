@@ -3,15 +3,23 @@ import { requireAuth, handleSignOut } from './authGuard.js';
 
 export async function initAdminConsole() {
   const urlParams = new URLSearchParams(window.location.search);
-  const targetGymSlug = urlParams.get('gym') || 'rahul-fitness';
+  let targetGymSlug = urlParams.get('gym');
 
   try {
     const userContext = await requireAuth(
-      ['GYM_OWNER', 'MANAGER'],
+      ['GYM_OWNER', 'MANAGER', 'SUPER_ADMIN'],
       targetGymSlug
     );
 
     if (!userContext) return;
+
+    if (!targetGymSlug && userContext.gym_slug) {
+      targetGymSlug = userContext.gym_slug;
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('gym', targetGymSlug);
+      window.history.replaceState({}, '', newUrl.toString());
+    }
+
     bindDeskLockHandler(userContext, targetGymSlug);
   } catch (error) {
     console.warn('[ADMIN AUTH] Halt console execution:', error.message);
@@ -19,8 +27,8 @@ export async function initAdminConsole() {
 }
 
 function bindDeskLockHandler(userContext, gymSlug) {
-  const gymData = userContext.roles.find(r => r.gym_slug === gymSlug);
-  const gymId = gymData?.gym_id;
+  const gymData = Array.isArray(userContext.roles) ? userContext.roles.find(r => r.gym_slug === gymSlug) : null;
+  const gymId = gymData?.gym_id || userContext.gym_id;
 
   const quickPinBtn = document.getElementById('deskQuickPinBtn');
   if (!quickPinBtn) return;
@@ -30,7 +38,7 @@ function bindDeskLockHandler(userContext, gymSlug) {
     if (!enteredPin || !gymId) return;
 
     const { data, error } = await supabase.rpc('rpc_staff_quick_pin_unlock', {
-      p_gym_id: gymId,
+      p_gym_id: typeof gymId === 'number' ? gymId : parseInt(gymId, 10) || 1,
       p_pin: enteredPin
     });
 
@@ -42,3 +50,4 @@ function bindDeskLockHandler(userContext, gymSlug) {
     }
   });
 }
+
