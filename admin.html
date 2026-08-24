@@ -2816,54 +2816,27 @@
           } catch (rErr) {}
         }
 
-        // 2. Insert into members table (resilient to schema column variants)
-        let createdMembers = null;
-        let memErr = null;
+        // 2. Insert into members table using phone (normalized_phone is a generated column)
+        const { data: createdMembers, error: memErr } = await db
+          .from('members')
+          .insert([{
+            gym_id: gymIntId,
+            full_name: fullName,
+            phone: cleanPhone,
+            age: parseInt(age, 10) || null,
+            address: address,
+            baseline_photo_path: newMemberPhotoBase64 || null,
+            referral_code: cleanPhone,
+            referred_by_member_id: refMemberId,
+            is_active: true
+          }])
+          .select();
 
-        try {
-          const res1 = await db
-            .from('members')
-            .insert([{
-              gym_id: gymIntId,
-              full_name: fullName,
-              phone: cleanPhone,
-              age: parseInt(age, 10) || null,
-              address: address,
-              baseline_photo_path: newMemberPhotoBase64 || null,
-              referral_code: cleanPhone,
-              referred_by_member_id: refMemberId,
-              is_active: true
-            }])
-            .select();
-          
-          if (!res1.error && res1.data && res1.data.length > 0) {
-            createdMembers = res1.data;
-          } else {
-            memErr = res1.error;
+        if (memErr) {
+          if (memErr.code === '23505' || memErr.message?.includes('duplicate key') || memErr.message?.includes('unique constraint')) {
+            throw new Error(`An athlete with phone +91 ${cleanPhone} is already registered in this gym.`);
           }
-        } catch (e) {
-          memErr = e;
-        }
-
-        if (!createdMembers) {
-          // Fallback with normalized_phone in case phone column was replaced
-          const res2 = await db
-            .from('members')
-            .insert([{
-              gym_id: gymIntId,
-              full_name: fullName,
-              normalized_phone: cleanPhone,
-              age: parseInt(age, 10) || null,
-              address: address,
-              baseline_photo_path: newMemberPhotoBase64 || null,
-              referral_code: cleanPhone,
-              referred_by_member_id: refMemberId,
-              is_active: true
-            }])
-            .select();
-
-          if (res2.error) throw res2.error;
-          createdMembers = res2.data;
+          throw memErr;
         }
 
         const createdMember = createdMembers?.[0];
