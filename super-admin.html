@@ -1001,7 +1001,9 @@
     // ----------------------------------------------------
     const SUPABASE_URL = "https://zfvkvrhuovvbfbrutpph.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpmdmt2cmh1b3Z2YmZicnV0cHBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMzIyODQsImV4cCI6MjEwMjcwODI4NH0.M-WK1bgZDLXcuMTldMSwptx5XRpRnLAi-BxMFEoph4U";
-    const GITHUB_REPO_BASE = "https://dixitayush7788-droid.github.io/retro-gym";
+    const APP_BASE_URL = (typeof window !== 'undefined' && window.location?.origin)
+      ? `${window.location.origin}${window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1)}`.replace(/\/+$/, '')
+      : "https://dixitayush7788-droid.github.io/retro-gym";
 
     let db = null;
     try {
@@ -1679,7 +1681,7 @@
     // ----------------------------------------------------
     function copyActiveMemberLink() {
       if (!selectedGymForTelemetry) return;
-      const link = `${GITHUB_REPO_BASE}/?gym=${encodeURIComponent(selectedGymForTelemetry.slug)}`;
+      const link = `${APP_BASE_URL}/index.html?gym=${encodeURIComponent(selectedGymForTelemetry.slug)}`;
       navigator.clipboard.writeText(link).then(() => {
         playAudioChirp(1000, 0.08);
         showToast("📱 Copied Athlete Pass Link to Clipboard!", "success");
@@ -1688,7 +1690,7 @@
 
     function copyActiveAdminLink() {
       if (!selectedGymForTelemetry) return;
-      const link = `${GITHUB_REPO_BASE}/admin.html?gym=${encodeURIComponent(selectedGymForTelemetry.slug)}`;
+      const link = `${APP_BASE_URL}/admin.html?gym=${encodeURIComponent(selectedGymForTelemetry.slug)}`;
       navigator.clipboard.writeText(link).then(() => {
         playAudioChirp(1000, 0.08);
         showToast("🏢 Copied Owner Admin Link to Clipboard!", "success");

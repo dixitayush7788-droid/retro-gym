@@ -297,14 +297,17 @@ async function dbLookupSuperAdmin(userId, userEmail) {
   return { data: null };
 }
 
+let superAdminAuthSubscription = null;
 function setupSuperAdminAuthListener() {
-  supabase.auth.onAuthStateChange((event, session) => {
-    if (event === 'SIGNED_OUT' || !session) {
+  if (superAdminAuthSubscription) return;
+  const { data } = supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_OUT' || (!session && event !== 'INITIAL_SESSION')) {
       cachedSuperAdminContext = null;
       sessionStorage.removeItem('nexus_master_auth');
       window.location.href = './admin-login.html?redirect=super-admin.html';
     }
   });
+  superAdminAuthSubscription = data?.subscription;
 }
 
 export async function handleSignOut() {
