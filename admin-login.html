@@ -65,6 +65,12 @@
   </style>
 </head>
 <body class="min-h-screen bg-void text-zinc-100 flex items-center justify-center p-4 relative selection:bg-gold selection:text-black">
+  <!-- Offline Status Banner -->
+  <div id="nexus-offline-banner" class="fixed top-0 left-0 right-0 z-[9999] bg-amber-500 text-black text-xs font-mono font-bold py-1.5 px-4 text-center transform -translate-y-full transition-transform duration-300 shadow-lg flex items-center justify-center gap-2">
+    <span class="animate-pulse">⚠️</span>
+    <span>OFFLINE MODE — Authentication requires active internet connection.</span>
+  </div>
+
   <div class="fixed inset-0 pointer-events-none scanlines-overlay z-0 opacity-40"></div>
 
   <div class="w-full max-w-md bg-surfaceCard/95 border border-gold/30 rounded-3xl p-6 sm:p-8 shadow-glow-card relative z-10 space-y-6 backdrop-blur-xl">
@@ -293,6 +299,16 @@
         submitBtn.disabled = false;
         submitBtn.innerText = "Sign In To Console ⚡";
       }
+    });
+
+    window.addEventListener('offline', () => {
+      const banner = document.getElementById('nexus-offline-banner');
+      if (banner) banner.classList.remove('-translate-y-full');
+    });
+
+    window.addEventListener('online', () => {
+      const banner = document.getElementById('nexus-offline-banner');
+      if (banner) banner.classList.add('-translate-y-full');
     });
   </script>
 </body>

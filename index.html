@@ -169,6 +169,12 @@
 </head>
 <body class="h-full bg-void text-zinc-100 font-sans antialiased selection:bg-cyberVolt selection:text-black overflow-x-hidden relative">
 
+  <!-- Offline Status Banner -->
+  <div id="nexus-offline-banner" class="fixed top-0 left-0 right-0 z-[9999] bg-amber-500 text-black text-xs font-mono font-bold py-1.5 px-4 text-center transform -translate-y-full transition-transform duration-300 shadow-lg flex items-center justify-center gap-2">
+    <span class="animate-pulse">⚠️</span>
+    <span>OFFLINE MODE — Network disconnected. Reconnecting automatically...</span>
+  </div>
+
   <!-- Scanline Cyber Texture -->
   <div class="fixed inset-0 pointer-events-none scanlines-overlay z-0 opacity-40"></div>
 
@@ -3147,6 +3153,22 @@
     document.addEventListener('visibilitychange', () => {
       if (document.hidden && typeof stopScannerSafely === 'function') {
         stopScannerSafely();
+      }
+    });
+
+    window.addEventListener('offline', () => {
+      const banner = document.getElementById('nexus-offline-banner');
+      if (banner) banner.classList.remove('-translate-y-full');
+      showToast("⚠️ Network disconnected — displaying cached pass.", "warning");
+    });
+
+    window.addEventListener('online', () => {
+      const banner = document.getElementById('nexus-offline-banner');
+      if (banner) banner.classList.add('-translate-y-full');
+      showToast("⚡ Connection restored! Syncing pass data...", "success");
+      if (currentAthlete && currentAthlete.phone) {
+        fetchFreshAthleteData(currentAthlete.phone);
+        checkTodayAttendancePunchState();
       }
     });
 

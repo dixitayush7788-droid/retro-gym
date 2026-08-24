@@ -172,11 +172,14 @@ function renderForbiddenState(gymSlug) {
   document.getElementById('nexusSignOutBtn')?.addEventListener('click', handleSignOut);
 }
 
+let authSubscription = null;
 function setupAuthStateListener(redirectTarget = null) {
-  supabase.auth.onAuthStateChange((event, session) => {
-    if (event === 'SIGNED_OUT' || !session) {
+  if (authSubscription) return;
+  const { data } = supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_OUT' || (!session && event !== 'INITIAL_SESSION')) {
       cachedUserContext = null;
       redirectToLogin(null, redirectTarget);
     }
   });
+  authSubscription = data?.subscription;
 }

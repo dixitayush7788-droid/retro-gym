@@ -137,6 +137,12 @@
 </head>
 <body class="h-full bg-obsidian text-zinc-100 font-sans antialiased selection:bg-gold selection:text-black overflow-x-hidden">
 
+  <!-- Offline Status Banner -->
+  <div id="nexus-offline-banner" class="fixed top-0 left-0 right-0 z-[9999] bg-amber-500 text-black text-xs font-mono font-bold py-1.5 px-4 text-center transform -translate-y-full transition-transform duration-300 shadow-lg flex items-center justify-center gap-2">
+    <span class="animate-pulse">⚠️</span>
+    <span>OFFLINE MODE — Network disconnected. Live sync will resume when online.</span>
+  </div>
+
   <!-- Toast Notification Overlay -->
   <div id="toast-container" class="fixed top-4 right-4 z-50 pointer-events-none flex flex-col gap-2 max-w-sm w-11/12"></div>
 
@@ -3455,6 +3461,23 @@ _Old School Iron • Modern Discipline_`;
           return;
         }
       }
+    });
+
+    // ----------------------------------------------------
+    // NETWORK RESILIENCE & OFFLINE DETECTION
+    // ----------------------------------------------------
+    window.addEventListener('offline', () => {
+      const banner = document.getElementById('nexus-offline-banner');
+      if (banner) banner.classList.remove('-translate-y-full');
+      showToast("⚠️ Network disconnected — operating in offline cache mode.", "error");
+    });
+
+    window.addEventListener('online', () => {
+      const banner = document.getElementById('nexus-offline-banner');
+      if (banner) banner.classList.add('-translate-y-full');
+      showToast("⚡ Network restored! Re-syncing live terminal...", "success");
+      fetchAttendanceFeed(true);
+      fetchMembersData();
     });
 
     // ----------------------------------------------------

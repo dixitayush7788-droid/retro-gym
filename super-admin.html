@@ -173,6 +173,12 @@
 </head>
 <body class="light-mesh-bg min-h-screen flex flex-col items-center justify-start antialiased selection:bg-skyLight selection:text-skyPrimary">
 
+  <!-- Offline Status Banner -->
+  <div id="nexus-offline-banner" class="fixed top-0 left-0 right-0 z-[9999] bg-amber-500 text-black text-xs font-mono font-bold py-1.5 px-4 text-center transform -translate-y-full transition-transform duration-300 shadow-lg flex items-center justify-center gap-2">
+    <span class="animate-pulse">⚠️</span>
+    <span>OFFLINE MODE — Network disconnected. Live fleet telemetry paused.</span>
+  </div>
+
   <!-- ======================================================== -->
   <!-- 1. LIGHT LUXURY MASTER PIN SECURITY OVERLAY              -->
   <!-- ======================================================== -->
@@ -2119,6 +2125,19 @@ _Login to your admin portal to customize gym passes, timings & member notices._`
     // ----------------------------------------------------
     // INITIALIZATION DISPATCHER & KEYBOARD SHORTCUTS
     // ----------------------------------------------------
+    window.addEventListener('offline', () => {
+      const banner = document.getElementById('nexus-offline-banner');
+      if (banner) banner.classList.remove('-translate-y-full');
+      showToast("⚠️ Network disconnected — fleet status cached.", "error");
+    });
+
+    window.addEventListener('online', () => {
+      const banner = document.getElementById('nexus-offline-banner');
+      if (banner) banner.classList.add('-translate-y-full');
+      showToast("⚡ Network restored! Re-syncing fleet status...", "success");
+      fetchMasterFleetData();
+    });
+
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         const onboardSuccessModal = document.getElementById('onboard-success-modal');
