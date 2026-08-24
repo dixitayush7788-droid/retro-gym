@@ -856,8 +856,11 @@
         <button onclick="closeAthleteDossier()" class="w-8 h-8 rounded-xl bg-surfaceCard hover:bg-surfaceMuted text-zinc-400 hover:text-white flex items-center justify-center cursor-pointer">✕</button>
       </div>
 
-      <!-- Live Quick Action Header Hub (Direct Call, WhatsApp, PIN Reset) -->
-      <div class="grid grid-cols-3 gap-2">
+      <!-- Live Quick Action Header Hub (Desk Punch, Direct Call, WhatsApp, PIN Reset) -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <button onclick="executeDossierQuickPunch()" class="py-2.5 rounded-2xl bg-emeraldCustom/20 hover:bg-emeraldCustom text-emeraldCustom hover:text-black border border-emeraldCustom/40 text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-glow-card">
+          <span>⚡ Desk Check-In</span>
+        </button>
         <a id="dossier-call-btn" href="tel:" class="py-2.5 rounded-2xl bg-cyanCustom/15 hover:bg-cyanCustom/25 text-cyanCustom border border-cyanCustom/30 text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95">
           <span>📞 Direct Call</span>
         </a>
@@ -1976,10 +1979,19 @@
               </div>
             </div>
 
-            <!-- Bottom Action Hub: 1-Tap Calling, WhatsApp, +1 Mo, +3 Mo -->
+            <!-- Bottom Action Hub: Desk Punch, Call, WhatsApp, +1 Mo -->
             <div class="pt-2 border-t border-white/10 grid grid-cols-4 gap-1.5 font-mono text-xs">
               
-              <!-- 1. Direct Call -->
+              <!-- 1. Desk Quick Punch -->
+              <button 
+                onclick="deskQuickPunch('${m.phone}')"
+                class="py-2 rounded-xl bg-emeraldCustom/20 hover:bg-emeraldCustom text-emeraldCustom hover:text-black border border-emeraldCustom/40 text-[11px] font-bold flex items-center justify-center gap-0.5 transition-all cursor-pointer active:scale-95 shadow-glow-card"
+                title="1-Tap Front Desk Attendance Check-In"
+              >
+                ⚡ Punch
+              </button>
+
+              <!-- 2. Direct Call -->
               <a 
                 href="tel:${m.phone}"
                 class="py-2 rounded-xl bg-cyanCustom/15 hover:bg-cyanCustom/30 text-cyanCustom border border-cyanCustom/30 text-[11px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95"
@@ -1988,7 +2000,7 @@
                 📞 Call
               </a>
 
-              <!-- 2. Smart WhatsApp -->
+              <!-- 3. Smart WhatsApp -->
               <a 
                 href="https://wa.me/91${m.phone}?text=${smartWaText}"
                 target="_blank"
@@ -1998,22 +2010,13 @@
                 💬 WA
               </a>
 
-              <!-- 3. +1 Mo Extender -->
+              <!-- 4. +1 Mo Extender -->
               <button 
                 onclick="directExtend('${m.phone}', 1)"
                 class="py-2 rounded-xl bg-gold/15 hover:bg-gold hover:text-black text-goldLight border border-gold/30 text-[11px] font-bold text-center transition-all cursor-pointer active:scale-95"
                 title="Add 30 Days"
               >
                 +1 Mo
-              </button>
-
-              <!-- 4. +3 Mo Extender -->
-              <button 
-                onclick="directExtend('${m.phone}', 3)"
-                class="py-2 rounded-xl bg-gold/15 hover:bg-gold hover:text-black text-goldLight border border-gold/30 text-[11px] font-bold text-center transition-all cursor-pointer active:scale-95"
-                title="Add 90 Days"
-              >
-                +3 Mo
               </button>
 
             </div>
@@ -2120,6 +2123,7 @@
 
       try {
         if (!db || !currentGymSlug) return;
+        const targetMember = activeDossierMember || allMembers.find(m => m.phone === phone);
         let punches = [];
         const gymIntId = (currentGymConfig && currentGymConfig.id && !isNaN(parseInt(currentGymConfig.id, 10))) ? parseInt(currentGymConfig.id, 10) : null;
         try {
@@ -2132,8 +2136,8 @@
           if (gymIntId !== null) {
             query = query.eq('gym_id', gymIntId);
           }
-          if (member.id && typeof member.id === 'string' && member.id.includes('-')) {
-            query = query.eq('member_id', member.id);
+          if (targetMember && targetMember.id && typeof targetMember.id === 'string' && targetMember.id.includes('-')) {
+            query = query.eq('member_id', targetMember.id);
           }
 
           const { data: logs, error } = await query;
@@ -2436,8 +2440,78 @@
         console.warn("Telemetry feed note:", e);
       }
     }
-        console.warn("Telemetry feed note:", e);
+
+    // ----------------------------------------------------
+    // 1-TAP DESK QUICK PUNCH & CHECK-IN ENGINE
+    // ----------------------------------------------------
+    async function deskQuickPunch(phone) {
+      const member = allMembers.find(m => m.phone === phone);
+      if (!member) {
+        showToast("Athlete record not found", "error");
+        return;
       }
+      if (!db) {
+        showToast("Database not connected", "error");
+        return;
+      }
+
+      const gymIntId = (currentGymConfig && currentGymConfig.id && !isNaN(parseInt(currentGymConfig.id, 10))) ? parseInt(currentGymConfig.id, 10) : 1;
+      const nowIso = new Date().toISOString();
+      const todayStr = nowIso.split('T')[0];
+
+      // Check if already checked in today
+      const alreadyLogged = allAttendanceLogs.some(l => 
+        (l.phone === phone || (l.member_id && member.id && l.member_id === member.id)) && 
+        l.checkin_time && l.checkin_time.startsWith(todayStr)
+      );
+
+      if (alreadyLogged) {
+        if (!confirm(`Athlete ${member.fullName} is ALREADY checked in today. Log an additional session punch?`)) {
+          return;
+        }
+      }
+
+      try {
+        let punchPayload = {
+          gym_id: gymIntId,
+          check_in: nowIso,
+          created_at: nowIso
+        };
+
+        if (member.id && typeof member.id === 'string' && member.id.includes('-')) {
+          punchPayload.member_id = member.id;
+        }
+
+        const { error: insErr } = await db.from('attendance').insert([punchPayload]);
+        if (insErr) {
+          console.warn("Desk punch direct insert note:", insErr);
+        }
+
+        playAudioChirp(880, 0.15);
+        showToast(`⚡ ${member.fullName} checked in at Front Desk!`, "success");
+
+        // Increment streak locally if applicable
+        member.streak = (member.streak || 0) + 1;
+
+        // Auto-refresh feeds and telemetry
+        await fetchAttendanceFeed();
+        updateKpisAndTelemetry();
+        renderMembersCards();
+
+        if (activeDossierMember && (activeDossierMember.phone === member.phone || activeDossierMember.id === member.id)) {
+          fetchAthleteAttendanceIntelligence(member.phone);
+          const streakEl = document.getElementById('dossier-streak');
+          if (streakEl) streakEl.innerText = `🔥 ${member.streak} Days`;
+        }
+      } catch (err) {
+        console.error("Desk quick punch failed:", err);
+        showToast("Check-in error: " + (err.message || err), "error");
+      }
+    }
+
+    async function executeDossierQuickPunch() {
+      if (!activeDossierMember) return;
+      await deskQuickPunch(activeDossierMember.phone);
     }
 
     function timeAgo(date) {
@@ -2742,23 +2816,55 @@
           } catch (rErr) {}
         }
 
-        // 2. Insert into members table
-        const { data: createdMembers, error: memErr } = await db
-          .from('members')
-          .insert([{
-            gym_id: gymIntId,
-            full_name: fullName,
-            normalized_phone: cleanPhone,
-            age: parseInt(age, 10) || null,
-            address: address,
-            baseline_photo_path: newMemberPhotoBase64 || null,
-            referral_code: cleanPhone,
-            referred_by_member_id: refMemberId,
-            is_active: true
-          }])
-          .select();
+        // 2. Insert into members table (resilient to schema column variants)
+        let createdMembers = null;
+        let memErr = null;
 
-        if (memErr) throw memErr;
+        try {
+          const res1 = await db
+            .from('members')
+            .insert([{
+              gym_id: gymIntId,
+              full_name: fullName,
+              phone: cleanPhone,
+              age: parseInt(age, 10) || null,
+              address: address,
+              baseline_photo_path: newMemberPhotoBase64 || null,
+              referral_code: cleanPhone,
+              referred_by_member_id: refMemberId,
+              is_active: true
+            }])
+            .select();
+          
+          if (!res1.error && res1.data && res1.data.length > 0) {
+            createdMembers = res1.data;
+          } else {
+            memErr = res1.error;
+          }
+        } catch (e) {
+          memErr = e;
+        }
+
+        if (!createdMembers) {
+          // Fallback with normalized_phone in case phone column was replaced
+          const res2 = await db
+            .from('members')
+            .insert([{
+              gym_id: gymIntId,
+              full_name: fullName,
+              normalized_phone: cleanPhone,
+              age: parseInt(age, 10) || null,
+              address: address,
+              baseline_photo_path: newMemberPhotoBase64 || null,
+              referral_code: cleanPhone,
+              referred_by_member_id: refMemberId,
+              is_active: true
+            }])
+            .select();
+
+          if (res2.error) throw res2.error;
+          createdMembers = res2.data;
+        }
 
         const createdMember = createdMembers?.[0];
         const newMemberId = createdMember?.id;
