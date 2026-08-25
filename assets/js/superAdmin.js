@@ -97,6 +97,32 @@ export async function onboardGymNode({
     throw new Error('All required onboarding fields (Gym Name, Slug, Phone, Email, UPI) must be filled.');
   }
 
+  // 1. Verify Active Authenticated Super Admin Session
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  const session = sessionData?.session;
+
+  if (sessionError || !session || !session.user) {
+    console.error('[ONBOARDING] No active session found during onboarding:', sessionError);
+    throw new Error('Authentication Required: Your Super Admin session is missing or expired. Please sign in again.');
+  }
+
+  // 2. Authoritative SUPER_ADMIN context verification
+  let isSuperAdmin = checkIsSuperAdmin(session.user, cachedSuperAdminContext);
+  
+  try {
+    const { data: rpcContext, error: contextErr } = await supabase.rpc('rpc_get_current_user_context');
+    if (!contextErr && rpcContext) {
+      isSuperAdmin = isSuperAdmin || checkIsSuperAdmin(session.user, rpcContext);
+    }
+  } catch (ctxErr) {
+    console.warn('[ONBOARDING] User context RPC check note:', ctxErr);
+  }
+
+  if (!isSuperAdmin) {
+    console.error('[ONBOARDING] User is authenticated but lacks SUPER_ADMIN context:', session.user.id);
+    throw new Error('Access Denied: Current user does not hold the SUPER_ADMIN role required to onboard new gym nodes.');
+  }
+
   const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
   const finalPassword = password || generateInitialPassword(phone);
   const finalPin = String(adminPin || '1234').padStart(4, '0').slice(-4);
@@ -107,12 +133,7 @@ export async function onboardGymNode({
     plan_12m_price: Number(p12)
   };
 
-  let authUserId = null;
-  let createdGym = null;
-  let gymId = cleanSlug;
-  let authNotice = null;
-
-  // 1. Authoritative Atomic RPC: rpc_create_gym_with_owner
+  // 3. Authoritative Atomic RPC: rpc_create_gym_with_owner using the canonical authenticated client
   const { data: rpcRes, error: rpcErr } = await supabase.rpc('rpc_create_gym_with_owner', {
     p_gym_name: gymName,
     p_slug: cleanSlug,
@@ -129,19 +150,27 @@ export async function onboardGymNode({
 
   if (rpcErr) {
     console.error('[ONBOARDING] Atomic RPC execution error:', rpcErr);
-    if (rpcErr.code === '42501' || rpcErr.message?.includes('permission denied')) {
-      throw new Error(`Database Permission Error (42501): Please ensure migration /supabase/migrations/20260825000001_grant_rpc_permissions.sql is applied to the live database, and that you are signed in with a SUPER_ADMIN account.`);
+
+    // Differentiate specific error conditions
+    if (rpcErr.code === '42501' || rpcErr.message?.includes('permission denied') || rpcErr.message?.includes('Access Denied')) {
+      throw new Error(`Database Authorization Error (42501): The database rejected this call (${rpcErr.message || 'Permission denied'}). Ensure you are signed in with a SUPER_ADMIN account with active session.`);
     }
-    throw new Error(`Onboarding failed: ${rpcErr.message}`);
+    if (rpcErr.code === '23505' || rpcErr.message?.includes('already registered') || rpcErr.message?.includes('duplicate key') || rpcErr.message?.includes('unique constraint')) {
+      throw new Error(`Duplicate Entry Error: Gym handle "@${cleanSlug}" or email "${email}" is already registered. Please choose a different handle or email.`);
+    }
+    if (rpcErr.code === '22P02' || rpcErr.message?.includes('invalid input syntax')) {
+      throw new Error(`Invalid Parameter Format: Please ensure all numeric and text fields are properly formatted (${rpcErr.message}).`);
+    }
+    throw new Error(`Onboarding failed: ${rpcErr.message || 'Database error occurred during provisioning'}`);
   }
 
   if (!rpcRes) {
     throw new Error('Onboarding failed: No response returned from rpc_create_gym_with_owner.');
   }
 
-  createdGym = rpcRes.gym || rpcRes;
-  gymId = createdGym.id || rpcRes.gym_id || cleanSlug;
-  authUserId = rpcRes.user_id || rpcRes.auth_user_id || (rpcRes.user && rpcRes.user.id) || null;
+  const createdGym = rpcRes.gym || rpcRes;
+  const gymId = createdGym.id || rpcRes.gym_id || cleanSlug;
+  const authUserId = rpcRes.user_id || rpcRes.auth_user_id || (rpcRes.user && rpcRes.user.id) || null;
 
   return {
     success: true,

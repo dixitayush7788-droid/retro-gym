@@ -1007,8 +1007,18 @@
 
     let db = null;
     try {
-      if (window.supabase) {
-        db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      if (window.supabaseClient) {
+        db = window.supabaseClient;
+      } else if (window.supabase) {
+        db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+          auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
+            storage: window.localStorage
+          }
+        });
+        window.supabaseClient = db;
       }
     } catch (e) {
       console.warn("Supabase initialization error:", e);
@@ -1993,47 +2003,73 @@ _Keep these credentials secure._`;
           submitBtn.innerText = "DEPLOYING GYM NODE... ⚡";
         }
 
-        // 1. Authoritative Atomic RPC: rpc_create_gym_with_owner
-        let authUserId = null;
-        let createdGym = null;
-        let gymId = cleanSlug;
-
-        const pricingPayload = {
-          plan_1m_price: Number(p1),
-          plan_3m_price: Number(p3),
-          plan_6m_price: Number(p6),
-          plan_12m_price: Number(p12)
-        };
-
-        const { data: rpcRes, error: rpcErr } = await db.rpc('rpc_create_gym_with_owner', {
-          p_gym_name: gymName,
-          p_slug: cleanSlug,
-          p_owner_phone: phone,
-          p_owner_email: email,
-          p_owner_password: password,
-          p_admin_pin: adminPin,
-          p_owner_upi_id: upi,
-          p_saas_fee: Number(saasFee),
-          p_validity_days: Number(validityDays),
-          p_pricing: pricingPayload,
-          p_feature_gates: selectedFeatures
-        });
-
-        if (rpcErr) {
-          console.error("Atomic RPC error:", rpcErr);
-          if (rpcErr.code === '42501' || rpcErr.message?.includes('permission denied')) {
-            throw new Error(`Database Permission Error (42501): Please ensure migration /supabase/migrations/20260825000001_grant_rpc_permissions.sql is applied to the live database, and that you are signed in with a SUPER_ADMIN account.`);
+        // 1. Authoritative Atomic RPC: onboardGymNode using the authenticated Super Admin session
+        let onboardResult = null;
+        if (typeof window.onboardGymNode === 'function') {
+          onboardResult = await window.onboardGymNode({
+            gymName,
+            slug: cleanSlug,
+            phone,
+            email,
+            adminPin,
+            password,
+            upi,
+            saasFee,
+            validityDays,
+            p1, p3, p6, p12,
+            features: selectedFeatures
+          });
+        } else {
+          const client = window.supabaseClient || db;
+          if (!client) throw new Error('Database client not initialized.');
+          const pricingPayload = {
+            plan_1m_price: Number(p1),
+            plan_3m_price: Number(p3),
+            plan_6m_price: Number(p6),
+            plan_12m_price: Number(p12)
+          };
+          const { data: rpcRes, error: rpcErr } = await client.rpc('rpc_create_gym_with_owner', {
+            p_gym_name: gymName,
+            p_slug: cleanSlug,
+            p_owner_phone: phone,
+            p_owner_email: email,
+            p_owner_password: password,
+            p_admin_pin: adminPin,
+            p_owner_upi_id: upi,
+            p_saas_fee: Number(saasFee),
+            p_validity_days: Number(validityDays),
+            p_pricing: pricingPayload,
+            p_feature_gates: selectedFeatures
+          });
+          if (rpcErr) {
+            console.error("Atomic RPC error:", rpcErr);
+            if (rpcErr.code === '42501' || rpcErr.message?.includes('permission denied') || rpcErr.message?.includes('Access Denied')) {
+              throw new Error(`Database Authorization Error (42501): The database rejected this call (${rpcErr.message || 'Permission denied'}). Ensure your session is authenticated as a SUPER_ADMIN.`);
+            }
+            if (rpcErr.code === '23505' || rpcErr.message?.includes('already registered') || rpcErr.message?.includes('duplicate key')) {
+              throw new Error(`Duplicate Entry Error: Gym handle "@${cleanSlug}" or email "${email}" is already registered.`);
+            }
+            throw new Error(`Onboarding failed: ${rpcErr.message || 'Database error'}`);
           }
-          throw new Error(`Onboarding failed: ${rpcErr.message}`);
+          if (!rpcRes) {
+            throw new Error('Onboarding failed: No response from rpc_create_gym_with_owner.');
+          }
+          const createdGym = rpcRes.gym || rpcRes;
+          const gymId = createdGym.id || rpcRes.gym_id || cleanSlug;
+          const authUserId = rpcRes.user_id || rpcRes.auth_user_id || (rpcRes.user && rpcRes.user.id) || null;
+          onboardResult = {
+            success: true,
+            gym: createdGym,
+            gymId,
+            authUserId,
+            email,
+            password,
+            adminPin,
+            slug: cleanSlug,
+            gymName,
+            phone
+          };
         }
-
-        if (!rpcRes) {
-          throw new Error('Onboarding failed: No response from rpc_create_gym_with_owner.');
-        }
-
-        createdGym = rpcRes.gym || rpcRes;
-        gymId = createdGym.id || rpcRes.gym_id || cleanSlug;
-        authUserId = rpcRes.user_id || rpcRes.auth_user_id || (rpcRes.user && rpcRes.user.id) || null;
 
         // Close onboarding modal and give audio feedback
         closeOnboardModal();
@@ -2197,7 +2233,20 @@ _Login to your admin portal to customize gym passes, timings & member notices._`
 
   <!-- Super Admin Zero-Trust Auth Enforcement -->
   <script type="module">
-    import { initSuperAdmin, handleSignOut } from './assets/js/superAdmin.js';
+    import { supabase } from './assets/js/supabaseClient.js';
+    import { initSuperAdmin, handleSignOut, onboardGymNode, checkIsSuperAdmin } from './assets/js/superAdmin.js';
+
+    window.supabaseClient = supabase;
+    window.onboardGymNode = onboardGymNode;
+    window.initSuperAdmin = initSuperAdmin;
+    window.handleSignOut = handleSignOut;
+    window.checkIsSuperAdmin = checkIsSuperAdmin;
+
+    // Sync global db variable to authenticated supabase client
+    if (typeof db !== 'undefined') {
+      window.db = supabase;
+      db = supabase;
+    }
 
     document.addEventListener('DOMContentLoaded', async () => {
       try {
@@ -2207,6 +2256,9 @@ _Login to your admin portal to customize gym passes, timings & member notices._`
           sessionStorage.setItem('nexus_master_auth', 'true');
           if (typeof unlockConsole === 'function') {
             unlockConsole();
+          }
+          if (typeof fetchAndRenderFleet === 'function') {
+            fetchAndRenderFleet();
           }
         }
       } catch (err) {
