@@ -2,13 +2,56 @@ import { supabase } from './supabaseClient.js';
 
 let cachedUserContext = null;
 
-/**
- * Validates active Supabase session and enforces tenant-scoped RBAC via RPC.
- */
+const ROLE_MAP = {
+  owner: 'GYM_OWNER', gym_owner: 'GYM_OWNER', gymowner: 'GYM_OWNER',
+  manager: 'MANAGER', staff: 'STAFF',
+  super_admin: 'SUPER_ADMIN', superadmin: 'SUPER_ADMIN'
+};
+
+function normalizeRole(role) {
+  const raw = String(role || '').trim();
+  if (!raw) return '';
+  return ROLE_MAP[raw.toLowerCase()] || raw.toUpperCase();
+}
+
+function normalizeRoles(roles = []) {
+  return (Array.isArray(roles) ? roles : []).map(r => {
+    if (typeof r === 'string') return normalizeRole(r);
+    if (!r || typeof r !== 'object') return r;
+    return { ...r, role: normalizeRole(r.role || r.role_name || r.name) };
+  });
+}
+
+function isRoleAllowed(role, allowedRoles) {
+  const normalizedRole = normalizeRole(role);
+  return allowedRoles.some(r => normalizeRole(r) === normalizedRole);
+}
+
+function isSuperAdminContext(context, user) {
+  return Boolean(
+    context?.is_super_admin === true || context?.is_admin === true ||
+    normalizeRole(context?.role) === 'SUPER_ADMIN' ||
+    normalizeRoles(context?.roles).some(r => normalizeRole(typeof r === 'string' ? r : r?.role) === 'SUPER_ADMIN') ||
+    normalizeRole(user?.app_metadata?.role) === 'SUPER_ADMIN' ||
+    normalizeRole(user?.user_metadata?.role) === 'SUPER_ADMIN' ||
+    user?.app_metadata?.is_super_admin === true || user?.user_metadata?.is_super_admin === true
+  );
+}
+
+function derivePrimaryTenant(context, requestedGymSlug = null) {
+  const requested = String(requestedGymSlug || '').trim().toLowerCase();
+  const roles = normalizeRoles(context?.roles).filter(r => r && typeof r === 'object');
+  if (requested) {
+    const matching = roles.find(r => String(r.gym_slug || '').toLowerCase() === requested);
+    if (matching) return matching.gym_slug;
+  }
+  const tenantRole = roles.find(r => r.gym_slug && normalizeRole(r.role) !== 'SUPER_ADMIN');
+  return context?.gym_slug || tenantRole?.gym_slug || null;
+}
+
 export async function requireAuth(allowedRoles = [], requestedGymSlug = null, redirectTarget = null) {
   try {
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
     if (sessionError || !session) {
       redirectToLogin(requestedGymSlug, redirectTarget);
       return null;
@@ -16,117 +59,81 @@ export async function requireAuth(allowedRoles = [], requestedGymSlug = null, re
 
     let context = null;
     try {
-      const { data: rpcContext, error: contextError } = await supabase.rpc('rpc_get_current_user_context');
-      if (rpcContext && rpcContext.authenticated) {
-        context = rpcContext;
-      }
+      const { data: rpcContext } = await supabase.rpc('rpc_get_current_user_context');
+      if (rpcContext && rpcContext.authenticated) context = rpcContext;
     } catch (rpcErr) {
       console.warn('[AUTH GUARD] RPC context resolution note:', rpcErr);
     }
 
-    // Fallback: Build context directly from session, metadata, and user_roles table
     if (!context && session.user) {
       const user = session.user;
       let userRoles = [];
       try {
-        const { data: dbRoles } = await supabase
-          .from('user_roles')
-          .select('*')
-          .or(`user_id.eq.${user.id},email.eq.${user.email}`);
+        const { data: dbRoles } = await supabase.from('user_roles').select('*').eq('user_id', user.id);
         if (dbRoles) userRoles = dbRoles;
       } catch (dbErr) {
         console.warn('[AUTH GUARD] user_roles lookup note:', dbErr);
       }
 
-      // Map gym slugs if user_roles has gym_id
       const gymIds = userRoles.map(r => r.gym_id).filter(Boolean);
-      let gymsMap = {};
+      const gymsMap = {};
       if (gymIds.length > 0) {
         try {
-          const { data: gymRecords } = await supabase
-            .from('gyms')
-            .select('id, slug, name')
-            .in('id', gymIds);
-          if (gymRecords) {
-            gymRecords.forEach(g => { gymsMap[g.id] = g; });
-          }
+          const { data: gymRecords } = await supabase.from('gyms').select('id, slug, name').in('id', gymIds);
+          if (gymRecords) gymRecords.forEach(g => { gymsMap[g.id] = g; });
         } catch (gErr) {}
       }
 
       userRoles = userRoles.map(r => {
         const g = gymsMap[r.gym_id];
-        return {
-          ...r,
-          gym_slug: g ? g.slug : r.gym_slug,
-          gym_name: g ? g.name : undefined
-        };
+        return { ...r, role: normalizeRole(r.role), gym_slug: g ? g.slug : r.gym_slug, gym_name: g?.name };
       });
 
-      const metaRole = user.user_metadata?.role || user.app_metadata?.role || 'GYM_OWNER';
-      const metaSlug = user.user_metadata?.gym_slug || user.app_metadata?.gym_slug;
-      
-      if (metaRole && !userRoles.some(r => r.role === metaRole && (r.gym_slug === metaSlug || !metaSlug))) {
-        userRoles.push({ role: metaRole, gym_slug: metaSlug, gym_id: metaSlug });
+      const metaRole = normalizeRole(user.user_metadata?.role || user.app_metadata?.role || 'GYM_OWNER');
+      const metaSlug = user.user_metadata?.gym_slug || user.app_metadata?.gym_slug || null;
+      if (metaRole && !userRoles.some(r => normalizeRole(r.role) === metaRole && (!metaSlug || r.gym_slug === metaSlug))) {
+        userRoles.push({ role: metaRole, gym_slug: metaSlug, gym_id: null });
       }
 
       context = {
-        authenticated: true,
-        user_id: user.id,
-        email: user.email,
-        roles: userRoles,
+        authenticated: true, user_id: user.id, email: user.email, roles: userRoles,
         role: userRoles[0]?.role || metaRole,
         gym_id: userRoles[0]?.gym_id || null,
-        gym_slug: metaSlug || userRoles[0]?.gym_slug || requestedGymSlug,
-        is_super_admin: user.user_metadata?.is_super_admin === true || user.app_metadata?.is_super_admin === true || userRoles.some(r => r.role === 'SUPER_ADMIN')
+        gym_slug: metaSlug || userRoles.find(r => r.gym_slug)?.gym_slug || requestedGymSlug || null,
+        is_super_admin: userRoles.some(r => normalizeRole(r.role) === 'SUPER_ADMIN') ||
+          user.app_metadata?.is_super_admin === true || user.user_metadata?.is_super_admin === true
       };
     }
 
     if (!context || !context.authenticated) {
-      console.error('[AUTH GUARD] Context resolution failed.');
       await supabase.auth.signOut();
       redirectToLogin(requestedGymSlug, redirectTarget);
       return null;
     }
 
+    context.roles = normalizeRoles(context.roles);
+    context.role = normalizeRole(context.role || context.roles?.[0]?.role);
+    context.gym_slug = derivePrimaryTenant(context, requestedGymSlug);
+    if (!context.gym_id && context.gym_slug) {
+      const tenantRole = context.roles.find(r => r?.gym_slug === context.gym_slug);
+      if (tenantRole) context.gym_id = tenantRole.gym_id || null;
+    }
     cachedUserContext = context;
 
-    // Super Admin has global cross-tenant platform authorization
-    const user = session?.user;
-    const isSuperAdmin = context.is_super_admin === true ||
-      context.is_admin === true ||
-      (context.role && String(context.role).toUpperCase() === 'SUPER_ADMIN') ||
-      (user?.app_metadata?.role && String(user.app_metadata.role).toUpperCase() === 'SUPER_ADMIN') ||
-      (user?.user_metadata?.role && String(user.user_metadata.role).toUpperCase() === 'SUPER_ADMIN') ||
-      (user?.app_metadata?.is_super_admin === true) ||
-      (user?.user_metadata?.is_super_admin === true) ||
-      (Array.isArray(context.roles) && context.roles.some(r => {
-        if (typeof r === 'string') return r.toUpperCase() === 'SUPER_ADMIN';
-        if (typeof r === 'object' && r !== null) {
-          const roleStr = r.role || r.role_name || r.name;
-          return roleStr && String(roleStr).toUpperCase() === 'SUPER_ADMIN';
-        }
-        return false;
-      }));
-
+    const isSuperAdmin = isSuperAdminContext(context, session.user);
     if (isSuperAdmin) {
       setupAuthStateListener(redirectTarget);
       return context;
     }
 
-    // Tenant and Role Verification
     if (allowedRoles.length > 0) {
-      let isAuthorized = false;
-
-      if (requestedGymSlug) {
-        isAuthorized = Array.isArray(context.roles) && context.roles.some(
-          r => r.gym_slug === requestedGymSlug && allowedRoles.includes(r.role)
-        );
-      } else {
-        isAuthorized = Array.isArray(context.roles) && context.roles.some(r => allowedRoles.includes(r.role));
-      }
+      const requested = String(requestedGymSlug || '').trim().toLowerCase();
+      const isAuthorized = requested
+        ? context.roles.some(r => String(r?.gym_slug || '').toLowerCase() === requested && isRoleAllowed(r?.role, allowedRoles))
+        : context.roles.some(r => isRoleAllowed(r?.role, allowedRoles));
 
       if (!isAuthorized) {
-        renderForbiddenState(requestedGymSlug);
+        renderForbiddenState(requestedGymSlug || context.gym_slug || null);
         throw new Error('403 Forbidden: Access denied for target tenant.');
       }
     }
@@ -139,9 +146,7 @@ export async function requireAuth(allowedRoles = [], requestedGymSlug = null, re
   }
 }
 
-export function getCurrentContext() {
-  return cachedUserContext;
-}
+export function getCurrentContext() { return cachedUserContext; }
 
 export async function handleSignOut() {
   cachedUserContext = null;
@@ -161,16 +166,11 @@ function redirectToLogin(gymSlug = null, redirectTarget = null) {
 
 function escapeHtml(str) {
   if (str === null || str === undefined) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;').replace(/'/g, '&#039;');
 }
 
 function renderForbiddenState(gymSlug) {
-  const safeSlug = escapeHtml(gymSlug) || 'General';
+  const safeSlug = escapeHtml(gymSlug) || 'your assigned gym';
   document.body.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0f172a;color:#f8fafc;font-family:sans-serif;">
       <div style="text-align:center;padding:2rem;background:#1e293b;border-radius:8px;border:1px solid #ef4444;max-width:480px;">
@@ -178,8 +178,7 @@ function renderForbiddenState(gymSlug) {
         <p style="margin-bottom:1.5rem;color:#94a3b8;">You are not authorized to access tenant: <strong>${safeSlug}</strong></p>
         <button id="nexusSignOutBtn" style="background:#ef4444;color:white;border:none;padding:0.75rem 1.5rem;border-radius:4px;cursor:pointer;font-weight:bold;">Sign Out & Switch Account</button>
       </div>
-    </div>
-  `;
+    </div>`;
   document.getElementById('nexusSignOutBtn')?.addEventListener('click', handleSignOut);
 }
 
