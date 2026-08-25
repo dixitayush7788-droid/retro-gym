@@ -9,7 +9,7 @@
   <script>
     window.NEXUS_CONFIG = {
       SUPABASE_URL: 'https://zfvkvrhuovvbfbrutpph.supabase.co',
-      SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpmdmt2cmh1b3Z2YmZicnV0cHBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMzIyODQsImV4cCI6MjEwMjcwODI4NH0.M-WK1bgZDLXcuMTldMSwptx5XRpRnLAi-BxMFEoph4U'
+      SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmF0ZSIsInJlZiI6Inpmdmt2cmh1b3Z2YmZicnV0cHBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMzIyODQsImV4cCI6MjEwMjcwODI4NH0.M-WK1bgZDLXcuMTldMSwptx5XRpRnLAi-BxMFEoph4U'
     };
   </script>
 
@@ -67,6 +67,7 @@
       <div class="space-y-1.5"><label for="adminPassword" class="block text-[11px] font-mono uppercase tracking-wider text-zinc-400">Password</label><input type="password" id="adminPassword" name="password" required placeholder="••••••••••••" autocomplete="current-password" class="w-full bg-surfaceMuted/80 border border-white/15 focus:border-gold rounded-2xl px-4 py-3 text-sm text-white placeholder-zinc-500 outline-none transition-all" /></div>
       <button type="submit" id="loginSubmitBtn" class="w-full py-3.5 bg-gradient-to-r from-gold via-goldLight to-cyanCustom text-black font-display text-lg tracking-wider rounded-2xl shadow-glow-gold hover:brightness-110 active:scale-95 transition-all uppercase cursor-pointer font-bold mt-2">Sign In To Console ⚡</button>
     </form>
+    <div class="text-center -mt-2"><a id="forgotPasswordLink" href="./reset-password.html" class="text-goldLight hover:text-white hover:underline text-xs font-mono">Forgot password? Reset securely →</a></div>
     <div class="pt-3 border-t border-white/10 flex items-center justify-between text-xs font-mono text-zinc-400"><a id="backToPassLink" href="./index.html" class="text-goldLight hover:underline">← Member Pass</a><span class="text-zinc-500 text-[10px]">Zero-Trust Guard v2.0</span></div>
   </div>
 
@@ -90,6 +91,8 @@
     if (badge) badge.innerText = redirectParam && redirectParam.includes('super-admin.html') ? 'Platform Control: Master Fleet' : (requestedGymSlug ? `Tenant Station: @${requestedGymSlug}` : 'Tenant Station: Resolving from account…');
     const backLink = document.getElementById('backToPassLink');
     if (backLink) backLink.href = requestedGymSlug ? `./index.html?gym=${encodeURIComponent(requestedGymSlug)}` : './index.html';
+    const forgotLink = document.getElementById('forgotPasswordLink');
+    if (forgotLink && redirectParam) forgotLink.href = `./reset-password.html?redirect=${encodeURIComponent(rawRedirect || '')}`;
 
     const form = document.getElementById('adminLoginForm');
     const errBox = document.getElementById('loginErrorAlert');
