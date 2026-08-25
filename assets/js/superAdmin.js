@@ -5,6 +5,20 @@ const SUPABASE_URL = window.NEXUS_CONFIG?.SUPABASE_URL || 'https://zfvkvrhuovvbf
 const SUPABASE_ANON_KEY = window.NEXUS_CONFIG?.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpmdmt2cmh1b3Z2YmZicnV0cHBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMzIyODQsImV4cCI6MjEwMjcwODI4NH0.M-WK1bgZDLXcuMTldMSwptx5XRpRnLAi-BxMFEoph4U';
 
 let cachedSuperAdminContext = null;
+let bootstrapPromise = null;
+
+/**
+ * Helper to enforce a strict timeout on async Supabase operations.
+ * Prevents UI deadlock / hanging spinners.
+ */
+export function withTimeout(promise, timeoutMs = 8000, operationName = 'Operation') {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`[TIMEOUT] ${operationName} timed out after ${timeoutMs}ms`)), timeoutMs)
+    )
+  ]);
+}
 
 /**
  * Creates an isolated Supabase client without persisting sessions to localStorage.
@@ -228,92 +242,142 @@ export function checkIsSuperAdmin(user, context) {
 }
 
 /**
- * Initializes and verifies the Super Admin authorization context.
+ * Initializes and verifies the Super Admin authorization context with deterministic single-flight execution and hard timeouts.
  * Super Admin page BYPASSES tenant-level authorization checks entirely.
  * It ONLY checks if the authenticated user has is_super_admin: true or role === 'SUPER_ADMIN'.
- * Does NOT query for tenant 'General' or require a specific gym_id.
- * If user is SUPER_ADMIN, returns context to render Master Fleet Dashboard directly.
+ * Returns context to render Master Fleet Dashboard directly, or explicit error states.
  */
 export async function initSuperAdmin() {
-  try {
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError || !session || !session.user) {
-      console.warn('[SUPER ADMIN] No active session found, redirecting to login.');
-      window.location.href = './admin-login.html?redirect=super-admin.html';
-      return null;
-    }
-
-    const user = session.user;
-    let context = null;
-
-    // Attempt RPC context check if available
-    try {
-      const { data: rpcContext, error: rpcErr } = await supabase.rpc('rpc_get_current_user_context');
-      if (!rpcErr && rpcContext) {
-        context = rpcContext;
-      }
-    } catch (rpcErr) {
-      console.warn('[SUPER ADMIN] RPC context check note:', rpcErr);
-    }
-
-    // Evaluate Super Admin status
-    let isSuperAdmin = checkIsSuperAdmin(user, context);
-
-    // Fallback database lookup if needed
-    if (!isSuperAdmin) {
-      try {
-        const { data: superAdminRows } = await dbLookupSuperAdmin(user.id, user.email);
-        if (superAdminRows && superAdminRows.length > 0) {
-          isSuperAdmin = true;
-        }
-      } catch (dbErr) {
-        console.warn('[SUPER ADMIN] DB fallback check note:', dbErr);
-      }
-    }
-
-    // If still not explicitly super admin, verify if user role in user_roles is SUPER_ADMIN
-    if (!isSuperAdmin) {
-      try {
-        const { data: roleRows } = await supabase
-          .from('user_roles')
-          .select('*')
-          .eq('user_id', user.id)
-          .ilike('role', '%SUPER_ADMIN%')
-          .limit(1);
-
-        if (roleRows && roleRows.length > 0) {
-          isSuperAdmin = true;
-        }
-      } catch (roleErr) {
-        console.warn('[SUPER ADMIN] user_roles table note:', roleErr);
-      }
-    }
-
-    if (!isSuperAdmin) {
-      console.warn('[SUPER ADMIN] User is authenticated but does not hold SUPER_ADMIN role:', user.email);
-      return {
-        error: 'ACCESS_DENIED',
-        user,
-        email: user.email
-      };
-    }
-
-    cachedSuperAdminContext = {
-      authenticated: true,
-      is_super_admin: true,
-      user,
-      email: user.email,
-      ...(context || {})
-    };
-
-    setupSuperAdminAuthListener();
-    return cachedSuperAdminContext;
-  } catch (error) {
-    console.error('[SUPER ADMIN AUTH] Verification error:', error.message);
-    window.location.href = './admin-login.html?redirect=super-admin.html';
-    return null;
+  if (bootstrapPromise) {
+    return bootstrapPromise;
   }
+
+  bootstrapPromise = (async () => {
+    console.debug('[SUPER_ADMIN_BOOT] start');
+    try {
+      console.debug('[SUPER_ADMIN_BOOT] checking session...');
+      const sessionResult = await withTimeout(
+        supabase.auth.getSession(),
+        7000,
+        'supabase.auth.getSession()'
+      );
+      
+      const session = sessionResult?.data?.session;
+      const sessionError = sessionResult?.error;
+
+      if (sessionError) {
+        console.error('[SUPER_ADMIN_BOOT] session error:', sessionError);
+        return {
+          error: 'SESSION_ERROR',
+          message: sessionError.message || 'Session verification error'
+        };
+      }
+
+      if (!session || !session.user || !session.access_token) {
+        console.warn('[SUPER_ADMIN_BOOT] No active session found. Redirecting to login.');
+        return {
+          error: 'NO_SESSION'
+        };
+      }
+
+      const user = session.user;
+      console.debug('[SUPER_ADMIN_BOOT] session confirmed for user:', user.email, 'id:', user.id);
+
+      let context = null;
+      console.debug('[SUPER_ADMIN_BOOT] checking role context via rpc_get_current_user_context...');
+      try {
+        const { data: rpcContext, error: rpcErr } = await withTimeout(
+          supabase.rpc('rpc_get_current_user_context'),
+          6000,
+          'rpc_get_current_user_context'
+        );
+        if (!rpcErr && rpcContext) {
+          context = rpcContext;
+          console.debug('[SUPER_ADMIN_CONTEXT]', rpcContext);
+        } else if (rpcErr) {
+          console.warn('[SUPER_ADMIN_BOOT] RPC context returned error:', rpcErr);
+        }
+      } catch (rpcErr) {
+        console.warn('[SUPER_ADMIN_BOOT] RPC context lookup note (timed out or failed):', rpcErr?.message || rpcErr);
+      }
+
+      // Evaluate Super Admin status
+      let isSuperAdmin = checkIsSuperAdmin(user, context);
+
+      // Fallback database lookup if needed
+      if (!isSuperAdmin) {
+        console.debug('[SUPER_ADMIN_BOOT] checking DB user_roles fallback...');
+        try {
+          const { data: superAdminRows } = await withTimeout(
+            dbLookupSuperAdmin(user.id, user.email),
+            4000,
+            'dbLookupSuperAdmin'
+          );
+          if (superAdminRows && superAdminRows.length > 0) {
+            isSuperAdmin = true;
+          }
+        } catch (dbErr) {
+          console.warn('[SUPER_ADMIN_BOOT] DB fallback check note:', dbErr?.message || dbErr);
+        }
+      }
+
+      // Additional user_roles query check if still not verified
+      if (!isSuperAdmin) {
+        try {
+          const { data: roleRows } = await withTimeout(
+            supabase
+              .from('user_roles')
+              .select('*')
+              .eq('user_id', user.id)
+              .ilike('role', '%SUPER_ADMIN%')
+              .limit(1),
+            4000,
+            'user_roles ilike check'
+          );
+
+          if (roleRows && roleRows.length > 0) {
+            isSuperAdmin = true;
+          }
+        } catch (roleErr) {
+          console.warn('[SUPER_ADMIN_BOOT] user_roles table note:', roleErr?.message || roleErr);
+        }
+      }
+
+      if (!isSuperAdmin) {
+        console.warn('[SUPER_ADMIN_BOOT] User is authenticated but does not hold SUPER_ADMIN role:', user.email);
+        return {
+          error: 'ACCESS_DENIED',
+          user,
+          email: user.email
+        };
+      }
+
+      console.debug('[SUPER_ADMIN_BOOT] SUPER_ADMIN verified for:', user.email);
+
+      cachedSuperAdminContext = {
+        authenticated: true,
+        is_super_admin: true,
+        user,
+        email: user.email,
+        session,
+        ...(context || {})
+      };
+
+      setupSuperAdminAuthListener();
+      return cachedSuperAdminContext;
+    } catch (error) {
+      console.error('[SUPER_ADMIN_BOOT] ERROR:', error);
+      return {
+        error: error.message?.includes('TIMEOUT') ? 'TIMEOUT' : 'BOOT_ERROR',
+        message: error.message || 'Authentication initialization error'
+      };
+    } finally {
+      // allow subsequent re-verification if explicit retry called
+      bootstrapPromise = null;
+    }
+  })();
+
+  return bootstrapPromise;
 }
 
 async function dbLookupSuperAdmin(userId, userEmail) {

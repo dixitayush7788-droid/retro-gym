@@ -185,10 +185,10 @@
   
   <!-- Loading Security Clearance Barrier -->
   <div id="auth-guard-overlay" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4">
-    <div class="w-full max-w-[360px] bg-white rounded-3xl p-8 shadow-ios-float border border-slate-200/80 text-center space-y-6">
+    <div class="w-full max-w-[380px] bg-white rounded-3xl p-8 shadow-ios-float border border-slate-200/80 text-center space-y-6">
       
       <!-- Animated Shield Icon -->
-      <div class="w-14 h-14 rounded-2xl bg-skySoft text-skyPrimary flex items-center justify-center text-2xl mx-auto shadow-ios-sm border border-skyLight animate-pulse">
+      <div id="auth-guard-icon" class="w-14 h-14 rounded-2xl bg-skySoft text-skyPrimary flex items-center justify-center text-2xl mx-auto shadow-ios-sm border border-skyLight animate-pulse">
         <svg class="w-7 h-7 text-skyPrimary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
         </svg>
@@ -196,17 +196,54 @@
 
       <div class="space-y-1.5">
         <h2 class="text-xl font-bold text-charcoal tracking-tight">NEXUS PLATFORM</h2>
-        <p class="text-xs text-charcoalSubtle font-medium">Verifying Super Admin Authorization & Session Clearance...</p>
+        <p id="auth-guard-status-text" class="text-xs text-charcoalSubtle font-medium">Verifying Super Admin Authorization & Session Clearance...</p>
       </div>
 
       <!-- Loading Spinner Bar -->
-      <div class="flex justify-center items-center py-2">
+      <div id="auth-guard-spinner" class="flex justify-center items-center py-2">
         <div class="w-6 h-6 border-2 border-skyPrimary border-t-transparent rounded-full animate-spin"></div>
       </div>
 
       <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-charcoalSubtle">
-        <span>Security Tier: Master Fleet</span>
-        <span class="text-skyPrimary font-mono text-[10px] font-bold">SUPABASE JWT VERIFIED</span>
+        <span>Security Clearance</span>
+        <span id="auth-guard-badge" class="text-charcoalSubtle font-mono text-[10px] font-bold">CHECKING SESSION...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Auth Error / Timeout Recovery Modal -->
+  <div id="auth-error-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="w-full max-w-[380px] bg-white rounded-3xl p-7 shadow-ios-float border border-amber-200 text-center space-y-5">
+      <div class="w-14 h-14 rounded-2xl bg-amberSoft text-amber-600 flex items-center justify-center text-2xl mx-auto border border-amber-200">
+        <svg class="w-7 h-7 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+      </div>
+
+      <div class="space-y-2">
+        <div class="inline-block px-2.5 py-0.5 rounded-full bg-amberSoft text-amber-700 text-[10px] font-mono font-bold tracking-wider uppercase border border-amber-200">
+          Authorization Timeout / Error
+        </div>
+        <h3 id="auth-error-title" class="text-lg font-extrabold text-charcoal">Session Verification Failed</h3>
+        <p id="auth-error-desc" class="text-xs text-charcoalSubtle leading-relaxed">
+          Unable to verify your Super Admin session within the required time window.
+        </p>
+      </div>
+
+      <div class="space-y-2 pt-2 border-t border-slate-100">
+        <button 
+          id="authRetryBtn"
+          onclick="window.location.reload()"
+          class="w-full py-2.5 rounded-xl bg-skyPrimary hover:bg-skyHover text-white text-xs font-bold shadow-ios-sm active:scale-95 transition-all cursor-pointer"
+        >
+          🔄 Retry Authorization Check
+        </button>
+        <a 
+          href="./admin-login.html?redirect=super-admin.html"
+          class="block w-full py-2.5 rounded-xl bg-surfaceMuted hover:bg-slate-200/80 text-charcoal text-xs font-bold active:scale-95 transition-all cursor-pointer text-center"
+        >
+          Go to Admin Login →
+        </a>
       </div>
     </div>
   </div>
@@ -1071,10 +1108,12 @@
     function unlockConsole() {
       const guardOverlay = document.getElementById('auth-guard-overlay');
       const deniedModal = document.getElementById('auth-denied-modal');
+      const errorModal = document.getElementById('auth-error-modal');
       const consoleMain = document.getElementById('main-console');
 
       if (guardOverlay) guardOverlay.classList.add('hidden');
       if (deniedModal) deniedModal.classList.add('hidden');
+      if (errorModal) errorModal.classList.add('hidden');
       if (consoleMain) consoleMain.classList.remove('hidden');
 
       loadInitialData();
@@ -1083,14 +1122,34 @@
     function showAccessDenied(email) {
       const guardOverlay = document.getElementById('auth-guard-overlay');
       const deniedModal = document.getElementById('auth-denied-modal');
+      const errorModal = document.getElementById('auth-error-modal');
       const consoleMain = document.getElementById('main-console');
 
       if (guardOverlay) guardOverlay.classList.add('hidden');
       if (consoleMain) consoleMain.classList.add('hidden');
+      if (errorModal) errorModal.classList.add('hidden');
       if (deniedModal) {
         const emailEl = document.getElementById('denied-user-email');
         if (emailEl) emailEl.textContent = email || 'Unknown';
         deniedModal.classList.remove('hidden');
+      }
+    }
+
+    function showAuthError(title, desc) {
+      const guardOverlay = document.getElementById('auth-guard-overlay');
+      const deniedModal = document.getElementById('auth-denied-modal');
+      const errorModal = document.getElementById('auth-error-modal');
+      const consoleMain = document.getElementById('main-console');
+
+      if (guardOverlay) guardOverlay.classList.add('hidden');
+      if (consoleMain) consoleMain.classList.add('hidden');
+      if (deniedModal) deniedModal.classList.add('hidden');
+      if (errorModal) {
+        const titleEl = document.getElementById('auth-error-title');
+        const descEl = document.getElementById('auth-error-desc');
+        if (titleEl && title) titleEl.textContent = title;
+        if (descEl && desc) descEl.textContent = desc;
+        errorModal.classList.remove('hidden');
       }
     }
 
@@ -2075,24 +2134,69 @@ _Login to your admin portal to customize gym passes, timings & member notices._`
       db = supabase;
     }
 
+    let isInitializing = false;
+
     async function checkAuthAndInit() {
+      if (isInitializing) return;
+      isInitializing = true;
+
+      const badgeEl = document.getElementById('auth-guard-badge');
+      const statusText = document.getElementById('auth-guard-status-text');
+
       try {
+        if (badgeEl) {
+          badgeEl.textContent = 'CHECKING SESSION...';
+          badgeEl.className = 'text-charcoalSubtle font-mono text-[10px] font-bold';
+        }
+
         const ctx = await initSuperAdmin();
-        if (!ctx) {
-          // Unauthenticated: initSuperAdmin automatically redirects to admin-login.html?redirect=super-admin.html
+
+        if (!ctx || ctx.error === 'NO_SESSION') {
+          console.warn('[SUPER_ADMIN_BOOT] No session, redirecting to login');
+          if (badgeEl) {
+            badgeEl.textContent = 'UNAUTHENTICATED';
+            badgeEl.className = 'text-amber-600 font-mono text-[10px] font-bold';
+          }
+          window.location.href = './admin-login.html?redirect=super-admin.html';
           return;
         }
 
         if (ctx.error === 'ACCESS_DENIED') {
+          console.warn('[SUPER_ADMIN_BOOT] Access denied for:', ctx.email);
+          if (badgeEl) {
+            badgeEl.textContent = 'ACCESS DENIED';
+            badgeEl.className = 'text-roseRed font-mono text-[10px] font-bold';
+          }
           showAccessDenied(ctx.email || ctx.user?.email || 'Unknown Account');
           return;
         }
 
-        // Verified Super Admin! Unlock console and populate fleet telemetry
+        if (ctx.error === 'TIMEOUT' || ctx.error === 'SESSION_ERROR' || ctx.error === 'BOOT_ERROR') {
+          console.error('[SUPER_ADMIN_BOOT] Verification failed with status:', ctx.error, ctx.message);
+          if (badgeEl) {
+            badgeEl.textContent = 'VERIFICATION FAILED';
+            badgeEl.className = 'text-roseRed font-mono text-[10px] font-bold';
+          }
+          showAuthError('Session Clearance Failed', ctx.message || 'Unable to confirm Super Admin session. Please retry or sign in again.');
+          return;
+        }
+
+        // Successfully verified Super Admin!
+        if (badgeEl) {
+          badgeEl.textContent = 'SUPABASE JWT VERIFIED ✓';
+          badgeEl.className = 'text-emeraldMint font-mono text-[10px] font-bold';
+        }
+        if (statusText) {
+          statusText.textContent = 'Authorization Granted. Loading Telemetry Fleet...';
+        }
+
+        console.debug('[SUPER_ADMIN_BOOT] dashboard rendered');
         unlockConsole();
       } catch (err) {
-        console.error('[SUPER ADMIN AUTH CRITICAL]', err);
-        window.location.href = './admin-login.html?redirect=super-admin.html';
+        console.error('[SUPER_ADMIN_BOOT] CRITICAL ERROR:', err);
+        showAuthError('Authorization Error', err.message || 'An unexpected error occurred during security handshake.');
+      } finally {
+        isInitializing = false;
       }
     }
 
