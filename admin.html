@@ -19,6 +19,7 @@ try {
     ["currentGymAdminPin = gym.admin_pin || null;","currentGymAdminPin = gym.pin_configured ? true : null;"],
     ["const { error } = await db\n              .from('gyms')\n              .update({ admin_pin: newPin })\n              .eq('slug', currentGymSlug);\n\n            if (error) throw error;","const { data, error } = await db.rpc('rpc_set_admin_pin', { p_gym_id: currentGymConfig.id, p_pin: newPin });\n            if (error) throw error;\n            if (!data?.success) throw new Error(data?.error || 'Failed to configure Admin PIN');"],
     ["if (adminPinBuffer === currentGymAdminPin) {","const { data: pinResult, error: pinError } = await db.rpc('rpc_staff_quick_pin_unlock', { p_gym_id: currentGymConfig.id, p_pin: adminPinBuffer });\n      if (!pinError && pinResult?.success) {"],
+    ["status: gym.status || \"OPEN\",","status: ['OPEN','DELAYED','CLOSED','HOLIDAY'].includes(String(gym.status || '').toUpperCase()) ? String(gym.status).toUpperCase() : 'OPEN',"],
     ["status: 'ACTIVE'","status: 'active'"],
     ["payment_method: 'CASH',","payment_method: 'cash',\n              payment_status: 'completed',"],
     ["select('id, duration_months').eq('gym_id', gymIntId)","select('id, duration_days').eq('gym_id', gymIntId).eq('is_active', true)"],
