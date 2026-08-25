@@ -1,0 +1,60 @@
+name: Repair admin runtime compatibility
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Patch admin runtime
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('admin.html')
+          s = p.read_text()
+          replacements = [
+          ('''      const { data: gymData, error } = await db\n          .from('gyms')\n          .select('*')\n          .eq('slug', currentGymSlug)\n          .maybeSingle();\n\n        if (error || !gymData) {''', '''      // Wait for Supabase Auth to hydrate before any RLS-protected tenant query.\n        const { data: { session } } = await db.auth.getSession();\n        if (!session?.user) {\n          window.location.replace(`./admin-login.html?gym=${encodeURIComponent(currentGymSlug)}`);\n          return;\n        }\n\n        const { data: tenantResult, error: tenantError } = await db.rpc('rpc_get_admin_tenant', { p_slug: currentGymSlug });\n        const gymData = tenantResult?.success ? tenantResult.gym : null;\n        const error = tenantError || (tenantResult?.success ? null : new Error(tenantResult?.error || 'Tenant resolution failed'));\n\n        if (error || !gymData) {'''),
+          ('''      currentGymAdminPin = gym.admin_pin || null;''', '''      // admin_pin_hash is never exposed to the browser; only keep a boolean configured state.\n      currentGymAdminPin = gym.admin_pin_hash ? true : null;'''),
+          ('''            const { error } = await db\n              .from('gyms')\n              .update({ admin_pin: newPin })\n              .eq('slug', currentGymSlug);\n\n            if (error) throw error;''', '''            const { data, error } = await db.rpc('rpc_set_admin_pin', { p_gym_id: currentGymConfig.id, p_pin: newPin });\n            if (error) throw error;\n            if (!data?.success) throw new Error(data?.error || 'Failed to configure Admin PIN');'''),
+          ('''      // mode === 'unlock'\n      if (adminPinBuffer === currentGymAdminPin) {\n        playAudioChirp(880, 0.2);\n        sessionStorage.setItem(`retrogym_admin_auth_${currentGymSlug}`, 'true');\n        sessionStorage.setItem('retrogym_admin_auth', 'true');\n        sessionStorage.setItem('retrogym_admin_pin', adminPinBuffer);\n        const lockModal = document.getElementById('admin-lock-modal');\n        if (lockModal) lockModal.classList.add('hidden');\n        showToast(`✓ Welcome to ${gymDisplayName} Security Command ⚡`, "success");\n        fetchAllData();\n      } else {\n        playAudioChirp(220, 0.3);\n        triggerPinCardShake("Invalid Admin PIN. Access Denied.");\n        adminPinBuffer = "";\n        updatePinDisplay();\n      }''', '''      // mode === 'unlock' — verify the PIN server-side; never compare/hash in the browser.\n      try {\n        const { data, error } = await db.rpc('rpc_staff_quick_pin_unlock', { p_gym_id: currentGymConfig.id, p_pin: adminPinBuffer });\n        if (error) throw error;\n        if (!data?.success) throw new Error(data?.error || 'Invalid Admin PIN. Access Denied.');\n        playAudioChirp(880, 0.2);\n        sessionStorage.setItem(`retrogym_admin_auth_${currentGymSlug}`, 'true');\n        sessionStorage.setItem('retrogym_admin_auth', 'true');\n        const lockModal = document.getElementById('admin-lock-modal');\n        if (lockModal) lockModal.classList.add('hidden');\n        showToast(`✓ Welcome to ${gymDisplayName} Security Command ⚡`, "success");\n        fetchAllData();\n      } catch (err) {\n        playAudioChirp(220, 0.3);\n        triggerPinCardShake(err.message || "Invalid Admin PIN. Access Denied.");\n        adminPinBuffer = "";\n        updatePinDisplay();\n      }'''),
+          ('''          const { data: plans } = await db.from('plans').select('id, duration_months').eq('gym_id', gymIntId);\n          const matched = (plans || []).find(p => p.duration_months === selectedPlanMonths);''', '''          const targetDays = selectedPlanMonths * 30;\n          const { data: plans } = await db.from('plans').select('id, duration_days').eq('gym_id', gymIntId).eq('is_active', true);\n          const matched = (plans || []).find(p => Math.abs(Number(p.duration_days) - targetDays) <= 2);'''),
+          ('''                status: 'ACTIVE'\n              }])''', '''                status: 'active'\n              }])'''),
+          ('''              payment_method: 'CASH',\n              payment_date: new Date().toISOString()''', '''              payment_method: 'cash',\n              payment_status: 'completed',\n              payment_date: new Date().toISOString()'''),
+          ('''        gym_id: currentGymSlug,\n        name: name,''', '''        name: name,'''),
+          ('''      fetchMembersData();''', '''      fetchAllData();'''),
+          ('''        updateKpisAndTelemetry();''', '''        calculateKPIs(new Date().toISOString().split('T')[0]);'''),
+          ]
+          for old, new in replacements:
+              if old not in s:
+                  raise SystemExit('Required patch target not found: ' + old[:120].replace('\n',' '))
+              s = s.replace(old, new, 1)
+          p.write_text(s)
+          PY
+
+      - name: Verify patched runtime
+        run: |
+          grep -q "rpc_get_admin_tenant" admin.html
+          grep -q "rpc_staff_quick_pin_unlock" admin.html
+          grep -q "rpc_set_admin_pin" admin.html
+          grep -q "duration_days" admin.html
+          grep -q "payment_method: 'cash'" admin.html
+
+      - name: Commit repair
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add admin.html
+          git diff --cached --quiet && exit 0
+          git commit -m "fix: stabilize admin tenant and transaction runtime"
+          git push
