@@ -8,12 +8,17 @@ function initializeCanonicalClient() {
     return window.__NEXUS_CANONICAL_SUPABASE_CLIENT__;
   }
 
+  const isAdminSurface = typeof window !== 'undefined' && /(?:^|\/)admin(?:-login|\.html)|(?:^|\/)super-admin\.html$/i.test(window.location.pathname);
+  const authStorage = typeof window !== 'undefined'
+    ? (isAdminSurface ? window.sessionStorage : window.localStorage)
+    : undefined;
+
   const clientConfig = {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
-      storage: typeof window !== 'undefined' ? window.localStorage : undefined
+      storage: authStorage
     }
   };
 

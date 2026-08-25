@@ -1271,7 +1271,7 @@
     const SUPABASE_URL = "https://zfvkvrhuovvbfbrutpph.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpmdmt2cmh1b3Z2YmZicnV0cHBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMzIyODQsImV4cCI6MjEwMjcwODI4NH0.M-WK1bgZDLXcuMTldMSwptx5XRpRnLAi-BxMFEoph4U";
 
-    const db = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+    const db = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storage: window.sessionStorage } }) : null;
 
     // Parse URL parameter for multi-tenant isolation (?gym=slug) — STRICT: ZERO DEFAULT FALLBACKS
     const urlParams = new URLSearchParams(window.location.search);
@@ -1719,7 +1719,7 @@
       }
 
       const streak = m.streak_count !== undefined ? m.streak_count : (m.streak || 0);
-      const hasPin = Boolean(m.password || m.profile_id);
+      const hasPin = Boolean(m.pin_hash || m.password || m.profile_id);
       const feesPaid = m.fees_paid !== undefined ? m.fees_paid : (activeMembership?.plans?.price || 1200);
       const planDuration = activeMembership?.plans?.duration_months || m.plan_duration_months || 1;
       const gymId = m.gym_id || (currentGymConfig && currentGymConfig.id) || currentGymSlug;
@@ -2398,7 +2398,7 @@
       try {
         let query = db
           .from('members')
-          .update({ password: null })
+          .update({ pin_hash: null })
           .eq('normalized_phone', phone);
 
         if (gymIntId !== null) {
@@ -2913,19 +2913,11 @@
             console.warn("Payment record note:", pErr);
           }
 
-          // 6. Record Referral Reward in referral_ledger
+          // 6. Referral reward is applied atomically by the database trigger on
+          // member_memberships insert. Do not duplicate it from the browser.
+          // This keeps the 7-day reward idempotent and prevents schema drift.
           if (refMemberId) {
-            try {
-              await db.from('referral_ledger').insert([{
-                gym_id: gymIntId,
-                referrer_member_id: refMemberId,
-                referred_member_id: newMemberId,
-                reward_days: 7,
-                reward_applied_at: new Date().toISOString()
-              }]);
-            } catch (rErr) {
-              console.warn("Referral ledger note:", rErr);
-            }
+            console.info('[REFERRAL] 7-day reward handled by database transaction.');
           }
         }
 
