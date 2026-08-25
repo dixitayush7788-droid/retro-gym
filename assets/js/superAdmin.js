@@ -129,6 +129,9 @@ export async function onboardGymNode({
 
   if (rpcErr) {
     console.error('[ONBOARDING] Atomic RPC execution error:', rpcErr);
+    if (rpcErr.code === '42501' || rpcErr.message?.includes('permission denied')) {
+      throw new Error(`Database Permission Error (42501): Please ensure migration /supabase/migrations/20260825000001_grant_rpc_permissions.sql is applied to the live database, and that you are signed in with a SUPER_ADMIN account.`);
+    }
     throw new Error(`Onboarding failed: ${rpcErr.message}`);
   }
 
