@@ -1561,12 +1561,9 @@
 
         try {
           if (db) {
-            const { error } = await db
-              .from('gyms')
-              .update({ admin_pin: newPin })
-              .eq('slug', currentGymSlug);
-
+            const { data, error } = await db.rpc('rpc_set_admin_pin', { p_gym_id: currentGymConfig.id, p_pin: newPin });
             if (error) throw error;
+            if (!data?.success) throw new Error(data?.error || 'Failed to configure Admin PIN');
           }
 
           currentGymAdminPin = newPin;
@@ -1590,19 +1587,21 @@
         return;
       }
 
-      // mode === 'unlock'
-      if (adminPinBuffer === currentGymAdminPin) {
+      // mode === 'unlock' — verify the PIN server-side; never compare/hash in the browser.
+      try {
+        const { data, error } = await db.rpc('rpc_staff_quick_pin_unlock', { p_gym_id: currentGymConfig.id, p_pin: adminPinBuffer });
+        if (error) throw error;
+        if (!data?.success) throw new Error(data?.error || 'Invalid Admin PIN. Access Denied.');
         playAudioChirp(880, 0.2);
         sessionStorage.setItem(`retrogym_admin_auth_${currentGymSlug}`, 'true');
         sessionStorage.setItem('retrogym_admin_auth', 'true');
-        sessionStorage.setItem('retrogym_admin_pin', adminPinBuffer);
         const lockModal = document.getElementById('admin-lock-modal');
         if (lockModal) lockModal.classList.add('hidden');
         showToast(`✓ Welcome to ${gymDisplayName} Security Command ⚡`, "success");
         fetchAllData();
-      } else {
+      } catch (err) {
         playAudioChirp(220, 0.3);
-        triggerPinCardShake("Invalid Admin PIN. Access Denied.");
+        triggerPinCardShake(err.message || "Invalid Admin PIN. Access Denied.");
         adminPinBuffer = "";
         updatePinDisplay();
       }
@@ -2521,7 +2520,7 @@
 
         // Auto-refresh feeds and telemetry
         await fetchAttendanceFeed();
-        updateKpisAndTelemetry();
+        calculateKPIs(new Date().toISOString().split('T')[0]);
         renderMembersCards();
 
         if (activeDossierMember && (activeDossierMember.phone === member.phone || activeDossierMember.id === member.id)) {
@@ -2873,8 +2872,9 @@
         // 3. Match or find plan
         let planId = null;
         try {
-          const { data: plans } = await db.from('plans').select('id, duration_months').eq('gym_id', gymIntId);
-          const matched = (plans || []).find(p => p.duration_months === selectedPlanMonths);
+          const targetDays = selectedPlanMonths * 30;
+          const { data: plans } = await db.from('plans').select('id, duration_days').eq('gym_id', gymIntId).eq('is_active', true);
+          const matched = (plans || []).find(p => Math.abs(Number(p.duration_days) - targetDays) <= 2);
           if (matched) planId = matched.id;
         } catch (pErr) {}
 
@@ -2890,7 +2890,7 @@
                 plan_id: planId,
                 start_date: todayDateStr,
                 end_date: calculatedExpiryDateStr,
-                status: 'ACTIVE'
+                status: 'active'
               }])
               .select();
             if (mRows && mRows.length > 0) newMembershipId = mRows[0].id;
@@ -2905,7 +2905,8 @@
               member_id: newMemberId,
               membership_id: newMembershipId,
               amount: parseFloat(collectedAmount) || 0,
-              payment_method: 'CASH',
+              payment_method: 'cash',
+              payment_status: 'completed',
               payment_date: new Date().toISOString()
             }]);
           } catch (pErr) {
@@ -3032,7 +3033,6 @@
 
       const updatedPayload = {
         slug: currentGymSlug,
-        gym_id: currentGymSlug,
         name: name,
         gym_name: name,
         tagline: tagline,
@@ -3282,7 +3282,8 @@
       };
 
       localStorage.setItem(`retro_gym_config_${currentGymSlug}`, JSON.stringify(currentGymConfig));
-      currentGymAdminPin = gym.admin_pin || null;
+      // admin_pin_hash is never exposed to the browser; only keep a boolean configured state.
+      currentGymAdminPin = gym.admin_pin_hash ? true : null;
 
       if (!currentGymAdminPin) {
         setAdminPinMode('setup-enter');
@@ -3491,7 +3492,7 @@ _Old School Iron • Modern Discipline_`;
       if (banner) banner.classList.add('-translate-y-full');
       showToast("⚡ Network restored! Re-syncing live terminal...", "success");
       fetchAttendanceFeed(true);
-      fetchMembersData();
+      fetchAllData();
     });
 
     // ----------------------------------------------------
@@ -3522,11 +3523,16 @@ _Old School Iron • Modern Discipline_`;
 
       try {
         // 2. Query Supabase gyms table
-        const { data: gymData, error } = await db
-          .from('gyms')
-          .select('*')
-          .eq('slug', currentGymSlug)
-          .maybeSingle();
+        // Wait for Supabase Auth to hydrate before any RLS-protected tenant query.
+        const { data: { session } } = await db.auth.getSession();
+        if (!session?.user) {
+          window.location.replace(`./admin-login.html?gym=${encodeURIComponent(currentGymSlug)}`);
+          return;
+        }
+
+        const { data: tenantResult, error: tenantError } = await db.rpc('rpc_get_admin_tenant', { p_slug: currentGymSlug });
+        const gymData = tenantResult?.success ? tenantResult.gym : null;
+        const error = tenantError || (tenantResult?.success ? null : new Error(tenantResult?.error || 'Tenant resolution failed'));
 
         if (error || !gymData) {
           renderGatekeeperError(
