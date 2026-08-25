@@ -232,7 +232,7 @@ export function checkIsSuperAdmin(user, context) {
  * Super Admin page BYPASSES tenant-level authorization checks entirely.
  * It ONLY checks if the authenticated user has is_super_admin: true or role === 'SUPER_ADMIN'.
  * Does NOT query for tenant 'General' or require a specific gym_id.
- * If user is SUPER_ADMIN, renders Master Fleet Dashboard directly without showing 403 modal.
+ * If user is SUPER_ADMIN, returns context to render Master Fleet Dashboard directly.
  */
 export async function initSuperAdmin() {
   try {
@@ -249,12 +249,12 @@ export async function initSuperAdmin() {
 
     // Attempt RPC context check if available
     try {
-      const { data: rpcContext } = await supabase.rpc('rpc_get_current_user_context');
-      if (rpcContext) {
+      const { data: rpcContext, error: rpcErr } = await supabase.rpc('rpc_get_current_user_context');
+      if (!rpcErr && rpcContext) {
         context = rpcContext;
       }
     } catch (rpcErr) {
-      console.warn('[SUPER ADMIN] RPC context check skipped/failed:', rpcErr);
+      console.warn('[SUPER ADMIN] RPC context check note:', rpcErr);
     }
 
     // Evaluate Super Admin status
@@ -272,8 +272,7 @@ export async function initSuperAdmin() {
       }
     }
 
-    // If still not explicitly super admin, but user has valid authenticated session,
-    // verify if user role in user_roles or profiles is SUPER_ADMIN
+    // If still not explicitly super admin, verify if user role in user_roles is SUPER_ADMIN
     if (!isSuperAdmin) {
       try {
         const { data: roleRows } = await supabase
@@ -292,20 +291,21 @@ export async function initSuperAdmin() {
     }
 
     if (!isSuperAdmin) {
-      console.warn('[SUPER ADMIN] User is authenticated but does not hold SUPER_ADMIN role.');
-      window.location.href = './admin-login.html?redirect=super-admin.html';
-      return null;
+      console.warn('[SUPER ADMIN] User is authenticated but does not hold SUPER_ADMIN role:', user.email);
+      return {
+        error: 'ACCESS_DENIED',
+        user,
+        email: user.email
+      };
     }
 
     cachedSuperAdminContext = {
       authenticated: true,
       is_super_admin: true,
       user,
+      email: user.email,
       ...(context || {})
     };
-
-    // Mark master authorization session for Super Admin console
-    sessionStorage.setItem('nexus_master_auth', 'true');
 
     setupSuperAdminAuthListener();
     return cachedSuperAdminContext;
@@ -347,7 +347,7 @@ export async function handleSignOut() {
   sessionStorage.removeItem('nexus_master_auth');
   localStorage.removeItem('nexus_desk_unlocked');
   await supabase.auth.signOut();
-  window.location.href = './admin-login.html';
+  window.location.href = './admin-login.html?redirect=super-admin.html';
 }
 
 export function getCurrentContext() {

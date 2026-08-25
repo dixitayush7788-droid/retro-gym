@@ -180,54 +180,70 @@
   </div>
 
   <!-- ======================================================== -->
-  <!-- 1. LIGHT LUXURY MASTER PIN SECURITY OVERLAY              -->
+  <!-- 1. ZERO-TRUST SUPER ADMIN AUTH GUARD OVERLAYS             -->
   <!-- ======================================================== -->
-  <div id="pin-lock-overlay" class="fixed inset-0 z-50 bg-slate-900/20 backdrop-blur-md flex items-center justify-center p-4">
-    <div id="pin-card-box" class="w-full max-w-[360px] bg-white rounded-3xl p-7 shadow-ios-float border border-slate-200/80 text-center space-y-6">
+  
+  <!-- Loading Security Clearance Barrier -->
+  <div id="auth-guard-overlay" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="w-full max-w-[360px] bg-white rounded-3xl p-8 shadow-ios-float border border-slate-200/80 text-center space-y-6">
       
-      <!-- Icon & Title -->
+      <!-- Animated Shield Icon -->
+      <div class="w-14 h-14 rounded-2xl bg-skySoft text-skyPrimary flex items-center justify-center text-2xl mx-auto shadow-ios-sm border border-skyLight animate-pulse">
+        <svg class="w-7 h-7 text-skyPrimary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+        </svg>
+      </div>
+
       <div class="space-y-1.5">
-        <div id="pin-icon-badge" class="w-12 h-12 rounded-2xl bg-skySoft text-skyPrimary flex items-center justify-center text-xl mx-auto shadow-ios-sm border border-skyLight">
-          <svg class="w-6 h-6 text-skyPrimary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-          </svg>
+        <h2 class="text-xl font-bold text-charcoal tracking-tight">NEXUS PLATFORM</h2>
+        <p class="text-xs text-charcoalSubtle font-medium">Verifying Super Admin Authorization & Session Clearance...</p>
+      </div>
+
+      <!-- Loading Spinner Bar -->
+      <div class="flex justify-center items-center py-2">
+        <div class="w-6 h-6 border-2 border-skyPrimary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+
+      <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-charcoalSubtle">
+        <span>Security Tier: Master Fleet</span>
+        <span class="text-skyPrimary font-mono text-[10px] font-bold">SUPABASE JWT VERIFIED</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 403 Forbidden / Access Denied Modal -->
+  <div id="auth-denied-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="w-full max-w-[380px] bg-white rounded-3xl p-7 shadow-ios-float border border-rose-200 text-center space-y-5">
+      <div class="w-14 h-14 rounded-2xl bg-roseSoft text-roseRed flex items-center justify-center text-2xl mx-auto border border-rose-200">
+        <svg class="w-7 h-7 text-roseRed" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+        </svg>
+      </div>
+
+      <div class="space-y-2">
+        <div class="inline-block px-2.5 py-0.5 rounded-full bg-roseSoft text-roseRed text-[10px] font-mono font-bold tracking-wider uppercase border border-rose-200">
+          403 Access Denied
         </div>
-        <h2 id="pin-card-title" class="text-xl font-bold text-charcoal tracking-tight">Nexus Master Control</h2>
-        <p id="pin-card-subtitle" class="text-xs text-charcoalSubtle font-medium">Enter 4-digit master security PIN</p>
+        <h3 class="text-lg font-extrabold text-charcoal">Super Admin Clearance Required</h3>
+        <p class="text-xs text-charcoalSubtle leading-relaxed">
+          Your account (<span id="denied-user-email" class="font-mono font-semibold text-charcoal">user@example.com</span>) is authenticated, but does not possess the <code class="bg-slate-100 text-roseRed px-1 rounded font-bold">SUPER_ADMIN</code> role required to access Platform Master Control.
+        </p>
       </div>
 
-      <!-- PIN Indicator Dots -->
-      <div class="flex justify-center items-center gap-3.5 py-1">
-        <div id="pin-dot-1" class="w-3.5 h-3.5 rounded-full border-2 border-slate-300 bg-transparent transition-all"></div>
-        <div id="pin-dot-2" class="w-3.5 h-3.5 rounded-full border-2 border-slate-300 bg-transparent transition-all"></div>
-        <div id="pin-dot-3" class="w-3.5 h-3.5 rounded-full border-2 border-slate-300 bg-transparent transition-all"></div>
-        <div id="pin-dot-4" class="w-3.5 h-3.5 rounded-full border-2 border-slate-300 bg-transparent transition-all"></div>
+      <div class="space-y-2 pt-2 border-t border-slate-100">
+        <button 
+          id="deniedSignOutBtn"
+          class="w-full py-2.5 rounded-xl bg-skyPrimary hover:bg-skyHover text-white text-xs font-bold shadow-ios-sm active:scale-95 transition-all cursor-pointer"
+        >
+          Sign In With Super Admin Account ⚡
+        </button>
+        <a 
+          href="./admin.html"
+          class="block w-full py-2.5 rounded-xl bg-surfaceMuted hover:bg-slate-200/80 text-charcoal text-xs font-bold active:scale-95 transition-all cursor-pointer text-center"
+        >
+          Return to Gym Station Console
+        </a>
       </div>
-
-      <p id="pin-error-msg" class="text-xs font-semibold text-roseRed hidden">Invalid Security PIN. Try again.</p>
-
-      <!-- Clean Numeric Keypad -->
-      <div class="grid grid-cols-3 gap-2.5 max-w-[260px] mx-auto font-mono text-lg font-semibold text-charcoal">
-        <button onclick="pressPinDigit('1')" class="h-12 rounded-2xl bg-surfaceMuted hover:bg-slate-200/80 active:scale-95 transition-all cursor-pointer">1</button>
-        <button onclick="pressPinDigit('2')" class="h-12 rounded-2xl bg-surfaceMuted hover:bg-slate-200/80 active:scale-95 transition-all cursor-pointer">2</button>
-        <button onclick="pressPinDigit('3')" class="h-12 rounded-2xl bg-surfaceMuted hover:bg-slate-200/80 active:scale-95 transition-all cursor-pointer">3</button>
-        <button onclick="pressPinDigit('4')" class="h-12 rounded-2xl bg-surfaceMuted hover:bg-slate-200/80 active:scale-95 transition-all cursor-pointer">4</button>
-        <button onclick="pressPinDigit('5')" class="h-12 rounded-2xl bg-surfaceMuted hover:bg-slate-200/80 active:scale-95 transition-all cursor-pointer">5</button>
-        <button onclick="pressPinDigit('6')" class="h-12 rounded-2xl bg-surfaceMuted hover:bg-slate-200/80 active:scale-95 transition-all cursor-pointer">6</button>
-        <button onclick="pressPinDigit('7')" class="h-12 rounded-2xl bg-surfaceMuted hover:bg-slate-200/80 active:scale-95 transition-all cursor-pointer">7</button>
-        <button onclick="pressPinDigit('8')" class="h-12 rounded-2xl bg-surfaceMuted hover:bg-slate-200/80 active:scale-95 transition-all cursor-pointer">8</button>
-        <button onclick="pressPinDigit('9')" class="h-12 rounded-2xl bg-surfaceMuted hover:bg-slate-200/80 active:scale-95 transition-all cursor-pointer">9</button>
-        <button onclick="clearPinInput()" class="h-12 rounded-2xl bg-roseSoft text-roseRed hover:bg-rose-100 font-sans text-xs font-bold active:scale-95 transition-all cursor-pointer">CLR</button>
-        <button onclick="pressPinDigit('0')" class="h-12 rounded-2xl bg-surfaceMuted hover:bg-slate-200/80 active:scale-95 transition-all cursor-pointer">0</button>
-        <button onclick="deletePinDigit()" class="h-12 rounded-2xl bg-surfaceMuted hover:bg-slate-200/80 active:scale-95 transition-all cursor-pointer">⌫</button>
-      </div>
-
-      <!-- Security Status Bar -->
-      <div id="pin-footer-status" class="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-charcoalSubtle">
-        <span>Security Tier: Master Console</span>
-        <span class="text-skyPrimary font-mono text-[10px] font-bold">256-BIT ENCRYPTED</span>
-      </div>
-
     </div>
   </div>
 
@@ -1050,218 +1066,33 @@
     }
 
     // ----------------------------------------------------
-    // DYNAMIC MASTER PIN SECURITY ENGINE (SUPABASE PLATFORM_CONFIG)
+    // CONSOLE UNLOCK & INITIALIZATION
     // ----------------------------------------------------
-    let configuredMasterPin = null;
-    let pinMode = "loading"; // "unlock" | "setup-enter" | "setup-confirm"
-    let firstEnteredPin = "";
-    let pinBuffer = "";
-    let isVerifying = false;
-
-    async function initMasterSecurityEngine() {
-      const isAuthSession = sessionStorage.getItem('nexus_master_auth') === 'true';
-
-      if (!db) {
-        setPinOverlayMode('unlock');
-        if (isAuthSession) unlockConsole();
-        return;
-      }
-
-      try {
-        const savedPin = localStorage.getItem('nexus_master_pin');
-        if (savedPin) {
-          configuredMasterPin = String(savedPin).trim();
-          setPinOverlayMode('unlock');
-          if (isAuthSession) {
-            unlockConsole();
-          }
-        } else {
-          // Scenario A: First-time Setup / No PIN set
-          configuredMasterPin = null;
-          setPinOverlayMode('setup-enter');
-        }
-      } catch (err) {
-        console.error("Error checking master security PIN:", err);
-        setPinOverlayMode('unlock');
-        if (isAuthSession) unlockConsole();
-      }
-    }
-
-    function setPinOverlayMode(mode) {
-      pinMode = mode;
-      pinBuffer = "";
-      renderPinDots();
-      
-      const iconBadge = document.getElementById('pin-icon-badge');
-      const titleEl = document.getElementById('pin-card-title');
-      const subtitleEl = document.getElementById('pin-card-subtitle');
-      const errorMsg = document.getElementById('pin-error-msg');
-      const footerStatus = document.getElementById('pin-footer-status');
-
-      if (errorMsg) errorMsg.classList.add('hidden');
-
-      if (mode === 'unlock') {
-        if (iconBadge) {
-          iconBadge.className = "w-12 h-12 rounded-2xl bg-skySoft text-skyPrimary flex items-center justify-center text-xl mx-auto shadow-ios-sm border border-skyLight";
-          iconBadge.innerHTML = `<svg class="w-6 h-6 text-skyPrimary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>`;
-        }
-        if (titleEl) titleEl.innerText = "Nexus Master Control";
-        if (subtitleEl) subtitleEl.innerText = "Enter 4-digit master security PIN";
-        if (footerStatus) {
-          footerStatus.innerHTML = `<span>Security Tier: Master Console</span><span class="text-skyPrimary font-mono text-[10px] font-bold">256-BIT ENCRYPTED</span>`;
-        }
-      } else if (mode === 'setup-enter') {
-        if (iconBadge) {
-          iconBadge.className = "w-12 h-12 rounded-2xl bg-emeraldSoft text-emeraldMint flex items-center justify-center text-xl mx-auto shadow-ios-sm border border-emerald-200";
-          iconBadge.innerHTML = `<span class="text-2xl">🔐</span>`;
-        }
-        if (titleEl) titleEl.innerText = "Create Master Security PIN";
-        if (subtitleEl) subtitleEl.innerText = "Set a 4-digit PIN for your platform console";
-        if (footerStatus) {
-          footerStatus.innerHTML = `<span>First-Time Security Setup</span><span class="text-emeraldMint font-mono text-[10px] font-bold">STEP 1 / 2</span>`;
-        }
-      } else if (mode === 'setup-confirm') {
-        if (iconBadge) {
-          iconBadge.className = "w-12 h-12 rounded-2xl bg-skySoft text-skyPrimary flex items-center justify-center text-xl mx-auto shadow-ios-sm border border-skyLight";
-          iconBadge.innerHTML = `<span class="text-2xl">🛡️</span>`;
-        }
-        if (titleEl) titleEl.innerText = "Confirm Master Security PIN";
-        if (subtitleEl) subtitleEl.innerText = "Re-enter the 4-digit PIN to confirm";
-        if (footerStatus) {
-          footerStatus.innerHTML = `<span>First-Time Security Setup</span><span class="text-skyPrimary font-mono text-[10px] font-bold">STEP 2 / 2</span>`;
-        }
-      }
-    }
-
-    function pressPinDigit(digit) {
-      if (isVerifying) return;
-      if (pinBuffer.length < 4) {
-        pinBuffer += digit;
-        playAudioChirp(700 + pinBuffer.length * 80, 0.05);
-        renderPinDots();
-        if (pinBuffer.length === 4) {
-          isVerifying = true;
-          setTimeout(handlePinComplete, 120);
-        }
-      }
-    }
-
-    function deletePinDigit() {
-      if (isVerifying) return;
-      if (pinBuffer.length > 0) {
-        pinBuffer = pinBuffer.slice(0, -1);
-        playAudioChirp(500, 0.05);
-        renderPinDots();
-        document.getElementById('pin-error-msg')?.classList.add('hidden');
-      }
-    }
-
-    function clearPinInput() {
-      if (isVerifying) return;
-      pinBuffer = "";
-      playAudioChirp(400, 0.06);
-      renderPinDots();
-      document.getElementById('pin-error-msg')?.classList.add('hidden');
-    }
-
-    function renderPinDots() {
-      for (let i = 1; i <= 4; i++) {
-        const dot = document.getElementById(`pin-dot-${i}`);
-        if (dot) {
-          if (i <= pinBuffer.length) {
-            dot.className = "w-3.5 h-3.5 rounded-full bg-skyPrimary border-2 border-skyPrimary shadow-ios-glow transition-all scale-110";
-          } else {
-            dot.className = "w-3.5 h-3.5 rounded-full border-2 border-slate-300 bg-transparent transition-all";
-          }
-        }
-      }
-    }
-
-    async function handlePinComplete() {
-      const card = document.getElementById('pin-card-box');
-      const errMsg = document.getElementById('pin-error-msg');
-
-      if (pinMode === 'unlock') {
-        // Scenario B: Validate against configured master_pin
-        if (configuredMasterPin && pinBuffer === configuredMasterPin) {
-          playAudioChirp(1050, 0.2);
-          sessionStorage.setItem('nexus_master_auth', 'true');
-          isVerifying = false;
-          unlockConsole();
-        } else {
-          playAudioChirp(220, 0.3);
-          if (errMsg) {
-            errMsg.innerText = "Invalid Master PIN. Access Denied.";
-            errMsg.classList.remove('hidden');
-          }
-          if (card) {
-            card.classList.add('pin-shake-anim');
-            setTimeout(() => card.classList.remove('pin-shake-anim'), 400);
-          }
-          setTimeout(() => {
-            pinBuffer = "";
-            renderPinDots();
-            isVerifying = false;
-          }, 500);
-        }
-      } else if (pinMode === 'setup-enter') {
-        // First step of PIN creation: record first entered pin & prompt confirmation
-        playAudioChirp(880, 0.1);
-        firstEnteredPin = pinBuffer;
-        isVerifying = false;
-        setPinOverlayMode('setup-confirm');
-      } else if (pinMode === 'setup-confirm') {
-        // Second step of PIN creation: confirm match
-        if (pinBuffer === firstEnteredPin) {
-          const finalPin = pinBuffer;
-          playAudioChirp(1200, 0.25);
-
-          localStorage.setItem('nexus_master_pin', finalPin);
-          configuredMasterPin = finalPin;
-          sessionStorage.setItem('nexus_master_auth', 'true');
-          isVerifying = false;
-          showToast("✓ Master PIN Set Successfully", "success");
-          unlockConsole();
-        } else {
-          playAudioChirp(220, 0.3);
-          if (errMsg) {
-            errMsg.innerText = "PINs do not match. Please try again.";
-            errMsg.classList.remove('hidden');
-          }
-          if (card) {
-            card.classList.add('pin-shake-anim');
-            setTimeout(() => card.classList.remove('pin-shake-anim'), 400);
-          }
-          setTimeout(() => {
-            firstEnteredPin = "";
-            isVerifying = false;
-            setPinOverlayMode('setup-enter');
-          }, 600);
-        }
-      }
-    }
-
     function unlockConsole() {
-      const overlay = document.getElementById('pin-lock-overlay');
+      const guardOverlay = document.getElementById('auth-guard-overlay');
+      const deniedModal = document.getElementById('auth-denied-modal');
       const consoleMain = document.getElementById('main-console');
-      if (overlay) overlay.classList.add('hidden');
+
+      if (guardOverlay) guardOverlay.classList.add('hidden');
+      if (deniedModal) deniedModal.classList.add('hidden');
       if (consoleMain) consoleMain.classList.remove('hidden');
+
       loadInitialData();
     }
 
-    // Keyboard Listener
-    window.addEventListener('keydown', (e) => {
-      const overlay = document.getElementById('pin-lock-overlay');
-      if (!overlay || overlay.classList.contains('hidden')) return;
+    function showAccessDenied(email) {
+      const guardOverlay = document.getElementById('auth-guard-overlay');
+      const deniedModal = document.getElementById('auth-denied-modal');
+      const consoleMain = document.getElementById('main-console');
 
-      if (e.key >= '0' && e.key <= '9') {
-        pressPinDigit(e.key);
-      } else if (e.key === 'Backspace') {
-        deletePinDigit();
-      } else if (e.key === 'Escape') {
-        clearPinInput();
+      if (guardOverlay) guardOverlay.classList.add('hidden');
+      if (consoleMain) consoleMain.classList.add('hidden');
+      if (deniedModal) {
+        const emailEl = document.getElementById('denied-user-email');
+        if (emailEl) emailEl.textContent = email || 'Unknown';
+        deniedModal.classList.remove('hidden');
       }
-    });
+    }
 
     // ----------------------------------------------------
     // INITIALIZATION & DIRECT SUPABASE SYNC (FLEET ENGINE)
@@ -2225,10 +2056,6 @@ _Login to your admin portal to customize gym passes, timings & member notices._`
         }
       }
     });
-
-    window.addEventListener('DOMContentLoaded', () => {
-      initMasterSecurityEngine();
-    });
   </script>
 
   <!-- Super Admin Zero-Trust Auth Enforcement -->
@@ -2243,30 +2070,40 @@ _Login to your admin portal to customize gym passes, timings & member notices._`
     window.checkIsSuperAdmin = checkIsSuperAdmin;
 
     // Sync global db variable to authenticated supabase client
+    window.db = supabase;
     if (typeof db !== 'undefined') {
-      window.db = supabase;
       db = supabase;
     }
 
-    document.addEventListener('DOMContentLoaded', async () => {
+    async function checkAuthAndInit() {
       try {
         const ctx = await initSuperAdmin();
-        if (ctx) {
-          // If user is verified super admin, ensure console is ready and unlocked
-          sessionStorage.setItem('nexus_master_auth', 'true');
-          if (typeof unlockConsole === 'function') {
-            unlockConsole();
-          }
-          if (typeof fetchAndRenderFleet === 'function') {
-            fetchAndRenderFleet();
-          }
+        if (!ctx) {
+          // Unauthenticated: initSuperAdmin automatically redirects to admin-login.html?redirect=super-admin.html
+          return;
         }
+
+        if (ctx.error === 'ACCESS_DENIED') {
+          showAccessDenied(ctx.email || ctx.user?.email || 'Unknown Account');
+          return;
+        }
+
+        // Verified Super Admin! Unlock console and populate fleet telemetry
+        unlockConsole();
       } catch (err) {
-        console.warn('[SUPER ADMIN AUTH]', err.message);
+        console.error('[SUPER ADMIN AUTH CRITICAL]', err);
+        window.location.href = './admin-login.html?redirect=super-admin.html';
       }
-    });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', checkAuthAndInit);
+    } else {
+      checkAuthAndInit();
+    }
 
     document.getElementById('superAdminSignOutBtn')?.addEventListener('click', handleSignOut);
+    document.getElementById('deniedSignOutBtn')?.addEventListener('click', handleSignOut);
   </script>
 </body>
 </html>
