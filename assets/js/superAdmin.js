@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { supabase } from './supabaseClient.js';
 
 const SUPABASE_URL = (typeof window !== 'undefined' && window.NEXUS_CONFIG?.SUPABASE_URL) || 'https://zfvkvrhuovvbfbrutpph.supabase.co';
@@ -7,10 +7,6 @@ const SUPABASE_ANON_KEY = (typeof window !== 'undefined' && window.NEXUS_CONFIG?
 let cachedSuperAdminContext = null;
 let bootstrapPromise = null;
 
-/**
- * Helper to enforce a strict timeout on async Supabase operations.
- * Prevents UI deadlock / hanging spinners.
- */
 export function withTimeout(promise, timeoutMs = 7000, operationName = 'Operation') {
   let timer;
   const timeoutPromise = new Promise((_, reject) => {
@@ -24,10 +20,6 @@ export function withTimeout(promise, timeoutMs = 7000, operationName = 'Operatio
   });
 }
 
-/**
- * Creates an isolated Supabase client without persisting sessions to localStorage.
- * Ensures creating new gym owners via auth.signUp does not overwrite the Super Admin's session.
- */
 export function createIsolatedAuthClient() {
   const opts = {
     auth: {
@@ -43,11 +35,6 @@ export function createIsolatedAuthClient() {
   return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, opts);
 }
 
-
-/**
- * Automatically generates a unique gym slug from business name and owner phone.
- * Appends last 4 digits of phone if available (e.g. manish-fitness-6456).
- */
 export function generateGymSlug(name = '', phone = '') {
   const cleanName = (name || '')
     .trim()
@@ -58,92 +45,50 @@ export function generateGymSlug(name = '', phone = '') {
   const cleanPhone = (phone || '').replace(/\D/g, '');
   const last4 = cleanPhone.length >= 4 ? cleanPhone.slice(-4) : (cleanPhone.length > 0 ? cleanPhone : '');
 
-  if (!cleanName) {
-    return last4 ? `gym-${last4}` : '';
-  }
-
-  if (last4) {
-    return `${cleanName}-${last4}`;
-  }
-
+  if (!cleanName) return last4 ? `gym-${last4}` : '';
+  if (last4) return `${cleanName}-${last4}`;
   return cleanName;
 }
 
-/**
- * Generates a default email address for a gym owner.
- */
 export function generateDefaultEmail(slug = '', phone = '') {
   const cleanSlug = (slug || '').trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
-  if (cleanSlug) {
-    return `owner@${cleanSlug}.nexusgym.io`;
-  }
+  if (cleanSlug) return `owner@${cleanSlug}.nexusgym.io`;
   const cleanPhone = (phone || '').replace(/\D/g, '');
-  if (cleanPhone) {
-    return `owner.${cleanPhone.slice(-4)}@nexusgym.io`;
-  }
+  if (cleanPhone) return `owner.${cleanPhone.slice(-4)}@nexusgym.io`;
   return 'owner@gym.nexusgym.io';
 }
 
-/**
- * Generates a secure, memorable initial password.
- */
 export function generateInitialPassword(phone = '') {
   const cleanPhone = (phone || '').replace(/\D/g, '');
   const last4 = cleanPhone.length >= 4 ? cleanPhone.slice(-4) : '2026';
   return `Nexus@${last4}!`;
 }
 
-/**
- * Full Automated 1-Click Gym Onboarding Engine:
- * 1. Calls isolated client auth.signUp({ email, password }) without switching Super Admin's active session
- * 2. Extracts created user.id from auth response
- * 3. Inserts new gym into public.gyms table with admin_pin, owner_phone, owner_email, owner_upi_id, pricing, feature gates, and gets gym.id
- * 4. Inserts into public.user_roles (user_id, gym_id, role) linking user.id and gym.id with role: 'GYM_OWNER'
- * 5. Returns all credentials for WhatsApp summary modal
- */
 export async function onboardGymNode({
-  gymName,
-  slug,
-  phone,
-  email,
-  adminPin = '1234',
-  password,
-  upi,
-  saasFee = 2499,
-  validityDays = 365,
-  p1 = 1200,
-  p3 = 3200,
-  p6 = 5800,
-  p12 = 10500,
+  gymName, slug, phone, email, adminPin = '1234', password, upi,
+  saasFee = 2499, validityDays = 365,
+  p1 = 1200, p3 = 3200, p6 = 5800, p12 = 10500,
   features = { workouts: true, nutrition: true, qr_attendance: true, notices: true }
 }) {
   if (!gymName || !slug || !phone || !email || !upi) {
     throw new Error('All required onboarding fields (Gym Name, Slug, Phone, Email, UPI) must be filled.');
   }
 
-  // 1. Verify Active Authenticated Super Admin Session
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
   const session = sessionData?.session;
-
   if (sessionError || !session || !session.user) {
-    console.error('[ONBOARDING] No active session found during onboarding:', sessionError);
     throw new Error('Authentication Required: Your Super Admin session is missing or expired. Please sign in again.');
   }
 
-  // 2. Authoritative SUPER_ADMIN context verification
   let isSuperAdmin = checkIsSuperAdmin(session.user, cachedSuperAdminContext);
-  
   try {
     const { data: rpcContext, error: contextErr } = await supabase.rpc('rpc_get_current_user_context');
-    if (!contextErr && rpcContext) {
-      isSuperAdmin = isSuperAdmin || checkIsSuperAdmin(session.user, rpcContext);
-    }
+    if (!contextErr && rpcContext) isSuperAdmin = isSuperAdmin || checkIsSuperAdmin(session.user, rpcContext);
   } catch (ctxErr) {
     console.warn('[ONBOARDING] User context RPC check note:', ctxErr);
   }
 
   if (!isSuperAdmin) {
-    console.error('[ONBOARDING] User is authenticated but lacks SUPER_ADMIN context:', session.user.id);
     throw new Error('Access Denied: Current user does not hold the SUPER_ADMIN role required to onboard new gym nodes.');
   }
 
@@ -151,80 +96,54 @@ export async function onboardGymNode({
   const finalPassword = password || generateInitialPassword(phone);
   const finalPin = String(adminPin || '1234').padStart(4, '0').slice(-4);
   const pricingPayload = {
-    plan_1m_price: Number(p1),
-    plan_3m_price: Number(p3),
-    plan_6m_price: Number(p6),
-    plan_12m_price: Number(p12)
+    plan_1m_price: Number(p1), plan_3m_price: Number(p3),
+    plan_6m_price: Number(p6), plan_12m_price: Number(p12)
   };
 
-  // 3. Authoritative Atomic RPC: rpc_create_gym_with_owner using the canonical authenticated client
   const { data: rpcRes, error: rpcErr } = await supabase.rpc('rpc_create_gym_with_owner', {
-    p_gym_name: gymName,
-    p_slug: cleanSlug,
-    p_owner_phone: phone,
-    p_owner_email: email,
-    p_owner_password: finalPassword,
-    p_admin_pin: finalPin,
-    p_owner_upi_id: upi,
-    p_saas_fee: Number(saasFee),
-    p_validity_days: Number(validityDays),
-    p_pricing: pricingPayload,
+    p_gym_name: gymName, p_slug: cleanSlug, p_owner_phone: phone,
+    p_owner_email: email, p_owner_password: finalPassword, p_admin_pin: finalPin,
+    p_owner_upi_id: upi, p_saas_fee: Number(saasFee),
+    p_validity_days: Number(validityDays), p_pricing: pricingPayload,
     p_feature_gates: features
   });
 
   if (rpcErr) {
     console.error('[ONBOARDING] Atomic RPC execution error:', rpcErr);
-
-    // Differentiate specific error conditions
     if (rpcErr.code === '42501' || rpcErr.message?.includes('permission denied') || rpcErr.message?.includes('Access Denied')) {
-      throw new Error(`Database Authorization Error (42501): The database rejected this call (${rpcErr.message || 'Permission denied'}). Ensure you are signed in with a SUPER_ADMIN account with active session.`);
+      throw new Error(`Database Authorization Error (42501): ${rpcErr.message || 'Permission denied'}`);
     }
     if (rpcErr.code === '23505' || rpcErr.message?.includes('already registered') || rpcErr.message?.includes('duplicate key') || rpcErr.message?.includes('unique constraint')) {
-      throw new Error(`Duplicate Entry Error: Gym handle "@${cleanSlug}" or email "${email}" is already registered. Please choose a different handle or email.`);
+      throw new Error(`Duplicate Entry Error: Gym handle "@${cleanSlug}" or email "${email}" is already registered.`);
     }
     if (rpcErr.code === '22P02' || rpcErr.message?.includes('invalid input syntax')) {
-      throw new Error(`Invalid Parameter Format: Please ensure all numeric and text fields are properly formatted (${rpcErr.message}).`);
+      throw new Error(`Invalid Parameter Format: ${rpcErr.message}`);
     }
     throw new Error(`Onboarding failed: ${rpcErr.message || 'Database error occurred during provisioning'}`);
   }
 
-  if (!rpcRes) {
-    throw new Error('Onboarding failed: No response returned from rpc_create_gym_with_owner.');
-  }
+  if (!rpcRes) throw new Error('Onboarding failed: No response returned from rpc_create_gym_with_owner.');
 
   const createdGym = rpcRes.gym || rpcRes;
   const gymId = createdGym.id || rpcRes.gym_id || cleanSlug;
   const authUserId = rpcRes.user_id || rpcRes.auth_user_id || (rpcRes.user && rpcRes.user.id) || null;
 
   return {
-    success: true,
-    gym: createdGym,
-    gymId,
-    authUserId,
-    email,
-    password: finalPassword,
-    adminPin: finalPin,
-    slug: cleanSlug,
-    gymName,
-    phone,
-    authNotice: null
+    success: true, gym: createdGym, gymId, authUserId, email,
+    password: finalPassword, adminPin: finalPin, slug: cleanSlug,
+    gymName, phone, authNotice: null
   };
 }
 
-/**
- * Helper to determine if a given user/context object holds Super Admin authorization.
- */
 export function checkIsSuperAdmin(user, context) {
   if (!user && !context) return false;
 
-  // 1. Context level checks
+  // Authorization is database-context driven. Never trust user-editable metadata.
   if (context) {
-    if (context.is_super_admin === true || context.is_admin === true) return true;
+    if (context.is_super_admin === true) return true;
     if (context.role && String(context.role).toUpperCase() === 'SUPER_ADMIN') return true;
-    
-    // Check roles array (array of strings or array of objects)
     if (Array.isArray(context.roles)) {
-      const hasRole = context.roles.some(r => {
+      return context.roles.some(r => {
         if (typeof r === 'string') return r.toUpperCase() === 'SUPER_ADMIN';
         if (typeof r === 'object' && r !== null) {
           const roleStr = r.role || r.role_name || r.name;
@@ -232,157 +151,55 @@ export function checkIsSuperAdmin(user, context) {
         }
         return false;
       });
-      if (hasRole) return true;
     }
   }
-
-  // 2. Auth user level checks (metadata, email, app_metadata)
-  if (user) {
-    const appMeta = user.app_metadata || {};
-    const userMeta = user.user_metadata || {};
-
-    if (appMeta.is_super_admin === true || userMeta.is_super_admin === true) return true;
-    if (appMeta.role && String(appMeta.role).toUpperCase() === 'SUPER_ADMIN') return true;
-    if (userMeta.role && String(userMeta.role).toUpperCase() === 'SUPER_ADMIN') return true;
-    if (Array.isArray(appMeta.roles) && appMeta.roles.some(r => String(r).toUpperCase() === 'SUPER_ADMIN')) return true;
-    if (Array.isArray(userMeta.roles) && userMeta.roles.some(r => String(r).toUpperCase() === 'SUPER_ADMIN')) return true;
-  }
-
   return false;
 }
 
-/**
- * Initializes and verifies the Super Admin authorization context with deterministic single-flight execution and hard timeouts.
- * Super Admin page BYPASSES tenant-level authorization checks entirely.
- * It ONLY checks if the authenticated user has is_super_admin: true or role === 'SUPER_ADMIN'.
- * Returns context to render Master Fleet Dashboard directly, or explicit error states.
- */
 export async function initSuperAdmin() {
-  if (bootstrapPromise) {
-    return bootstrapPromise;
-  }
+  if (bootstrapPromise) return bootstrapPromise;
 
   bootstrapPromise = (async () => {
     console.debug('[BOOT_START] Starting Super Admin bootstrap process');
     try {
       if (!supabase || !supabase.auth) {
-        console.error('[BOOT_FAILED] Supabase client unavailable');
-        return {
-          error: 'BOOT_ERROR',
-          message: 'Supabase client could not be initialized.'
-        };
+        return { error: 'BOOT_ERROR', message: 'Supabase client could not be initialized.' };
       }
 
-      console.debug('[SUPABASE_CLIENT_READY] Supabase canonical client ready');
-      console.debug('[SESSION_CHECK_START] Checking Supabase Auth session...');
-
-      const sessionResult = await withTimeout(
-        supabase.auth.getSession(),
-        6000,
-        'supabase.auth.getSession()'
-      );
-      
+      const sessionResult = await withTimeout(supabase.auth.getSession(), 6000, 'supabase.auth.getSession()');
       const session = sessionResult?.data?.session;
       const sessionError = sessionResult?.error;
 
       if (sessionError) {
-        console.error('[BOOT_FAILED] Session check error:', sessionError.message || sessionError);
-        return {
-          error: 'SESSION_ERROR',
-          message: sessionError.message || 'Session verification error'
-        };
+        return { error: 'SESSION_ERROR', message: sessionError.message || 'Session verification error' };
       }
-
-      if (!session || !session.user || !session.access_token) {
-        console.debug('[NO_SESSION] No active Supabase Auth session found');
-        return {
-          error: 'NO_SESSION'
-        };
-      }
+      if (!session || !session.user || !session.access_token) return { error: 'NO_SESSION' };
 
       const user = session.user;
-      console.debug('[SESSION_FOUND] Active session confirmed for user ID:', user.id);
-
       let context = null;
-      console.debug('[ROLE_CONTEXT_START] Invoking rpc_get_current_user_context...');
+
       try {
         const { data: rpcContext, error: rpcErr } = await withTimeout(
-          supabase.rpc('rpc_get_current_user_context'),
-          5000,
-          'rpc_get_current_user_context'
+          supabase.rpc('rpc_get_current_user_context'), 5000, 'rpc_get_current_user_context'
         );
-        if (!rpcErr && rpcContext) {
-          context = rpcContext;
-          console.debug('[ROLE_CONTEXT_RESULT] Context resolved', {
-            is_super_admin: rpcContext.is_super_admin,
-            role: rpcContext.role
-          });
-        } else if (rpcErr) {
-          console.warn('[ROLE_CONTEXT_RESULT] RPC returned warning/error:', rpcErr.message || rpcErr);
+        if (rpcErr) {
+          return { error: 'SESSION_ERROR', message: `Unable to verify Super Admin role: ${rpcErr.message || 'role context RPC failed'}` };
         }
+        context = rpcContext;
       } catch (rpcErr) {
-        console.warn('[ROLE_CONTEXT_RESULT] RPC context call skipped or timed out:', rpcErr?.message || rpcErr);
-      }
-
-      // Evaluate Super Admin status
-      let isSuperAdmin = checkIsSuperAdmin(user, context);
-
-      // Fallback database lookup if needed
-      if (!isSuperAdmin) {
-        try {
-          const { data: superAdminRows } = await withTimeout(
-            dbLookupSuperAdmin(user.id, user.email),
-            3500,
-            'dbLookupSuperAdmin'
-          );
-          if (superAdminRows && superAdminRows.length > 0) {
-            isSuperAdmin = true;
-          }
-        } catch (dbErr) {
-          console.warn('[ROLE_CONTEXT_RESULT] DB fallback check note:', dbErr?.message || dbErr);
-        }
-      }
-
-      // Additional user_roles query check if still not verified
-      if (!isSuperAdmin) {
-        try {
-          const { data: roleRows } = await withTimeout(
-            supabase
-              .from('user_roles')
-              .select('*')
-              .eq('user_id', user.id)
-              .ilike('role', '%SUPER_ADMIN%')
-              .limit(1),
-            3500,
-            'user_roles ilike check'
-          );
-
-          if (roleRows && roleRows.length > 0) {
-            isSuperAdmin = true;
-          }
-        } catch (roleErr) {
-          console.warn('[ROLE_CONTEXT_RESULT] user_roles table note:', roleErr?.message || roleErr);
-        }
-      }
-
-      if (!isSuperAdmin) {
-        console.warn('[BOOT_FAILED] User is authenticated but does not hold SUPER_ADMIN role:', user.id);
         return {
-          error: 'ACCESS_DENIED',
-          user,
-          email: user.email
+          error: rpcErr?.message?.includes('TIMEOUT') ? 'TIMEOUT' : 'SESSION_ERROR',
+          message: rpcErr?.message || 'Unable to verify Super Admin role.'
         };
       }
 
-      console.debug('[SUPER_ADMIN_VERIFIED] Super Admin authorization confirmed for user:', user.id);
+      if (!checkIsSuperAdmin(user, context)) {
+        return { error: 'ACCESS_DENIED', user, email: user.email };
+      }
 
       cachedSuperAdminContext = {
-        authenticated: true,
-        is_super_admin: true,
-        user,
-        email: user.email,
-        session,
-        ...(context || {})
+        authenticated: true, is_super_admin: true, user,
+        email: user.email, session, ...(context || {})
       };
 
       setupSuperAdminAuthListener();
@@ -394,25 +211,11 @@ export async function initSuperAdmin() {
         message: error.message || 'Authentication initialization error'
       };
     } finally {
-      // allow subsequent re-verification if explicit retry called
       bootstrapPromise = null;
     }
   })();
 
   return bootstrapPromise;
-}
-
-async function dbLookupSuperAdmin(userId, userEmail) {
-  try {
-    const { data, error } = await supabase
-      .from('user_roles')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('role', 'SUPER_ADMIN')
-      .limit(1);
-    if (!error && data) return { data };
-  } catch (e) {}
-  return { data: null };
 }
 
 let superAdminAuthSubscription = null;
