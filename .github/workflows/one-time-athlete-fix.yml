@@ -1,0 +1,55 @@
+name: One-time athlete tenant fix
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[auto-athlete-fix]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch athlete tenant lookups
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('index.html')
+          lines = path.read_text(encoding='utf-8').splitlines()
+          replacement = "    const { data: gymData, error } = await db.rpc('rpc_get_public_gym_by_slug', { p_slug: currentGymSlug });"
+          out = []
+          i = 0
+          count = 0
+          while i < len(lines):
+              if (i + 4 < len(lines)
+                  and 'const { data: gymData, error } = await db' in lines[i]
+                  and ".from('gyms')" in lines[i + 1]
+                  and ".select('*')" in lines[i + 2]
+                  and ".eq('slug', currentGymSlug)" in lines[i + 3]
+                  and '.maybeSingle();' in lines[i + 4]):
+                  indent = lines[i][:len(lines[i]) - len(lines[i].lstrip())]
+                  out.append(indent + replacement.strip())
+                  i += 5
+                  count += 1
+              else:
+                  out.append(lines[i])
+                  i += 1
+
+          if count == 0:
+              raise SystemExit('No athlete gym lookup blocks found')
+
+          path.write_text('\n'.join(out) + '\n', encoding='utf-8')
+          print(f'Patched {count} athlete tenant lookup(s)')
+          PY
+      - name: Commit and remove one-time workflows
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git rm -f .github/workflows/fix-public-gym-resolver.yml .github/workflows/one-time-athlete-fix.yml
+          git commit -m 'fix: resolve athlete gym through secure public tenant RPC [auto-athlete-fix]'
+          git push
