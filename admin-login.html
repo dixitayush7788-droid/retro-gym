@@ -13,235 +13,154 @@
     };
   </script>
 
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
           colors: {
-            void: '#07090E',
-            surface: '#0E131F',
-            surfaceCard: '#141B2D',
-            surfaceMuted: '#1E293B',
-            gold: '#D4AF37',
-            goldLight: '#F3E5AB',
-            cyanCustom: '#00F0FF',
-            cyberVolt: '#CCFF00',
-            emeraldCustom: '#00FF66',
-            crimsonAlert: '#FF3366'
+            void: '#07090E', surface: '#0E131F', surfaceCard: '#141B2D', surfaceMuted: '#1E293B',
+            gold: '#D4AF37', goldLight: '#F3E5AB', cyanCustom: '#00F0FF', cyberVolt: '#CCFF00',
+            emeraldCustom: '#00FF66', crimsonAlert: '#FF3366'
           },
           fontFamily: {
             sans: ['"Plus Jakarta Sans"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-            display: ['"Anton"', '"Syne"', 'sans-serif'],
-            mono: ['"JetBrains Mono"', 'monospace']
+            display: ['"Anton"', '"Syne"', 'sans-serif'], mono: ['"JetBrains Mono"', 'monospace']
           },
           boxShadow: {
-            'glow-gold': '0 0 25px rgba(212, 175, 55, 0.25)',
-            'glow-cyan': '0 0 25px rgba(0, 240, 255, 0.25)',
+            'glow-gold': '0 0 25px rgba(212, 175, 55, 0.25)', 'glow-cyan': '0 0 25px rgba(0, 240, 255, 0.25)',
             'glow-card': '0 10px 40px -10px rgba(0, 0, 0, 0.7)'
           }
         }
       }
     }
   </script>
-
-  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
-
   <style>
-    body {
-      background-color: #07090E;
-      color: #F8FAFC;
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      -webkit-font-smoothing: antialiased;
-    }
-    .scanlines-overlay {
-      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
-      background-size: 100% 3px, 6px 100%;
-    }
+    body { background-color:#07090E; color:#F8FAFC; font-family:'Plus Jakarta Sans',sans-serif; -webkit-font-smoothing:antialiased; }
+    .scanlines-overlay { background:linear-gradient(rgba(18,16,16,0) 50%,rgba(0,0,0,.25) 50%),linear-gradient(90deg,rgba(255,0,0,.03),rgba(0,255,0,.01),rgba(0,0,255,.03)); background-size:100% 3px,6px 100%; }
   </style>
 </head>
 <body class="min-h-screen bg-void text-zinc-100 flex items-center justify-center p-4 relative selection:bg-gold selection:text-black">
-  <!-- Offline Status Banner -->
   <div id="nexus-offline-banner" class="fixed top-0 left-0 right-0 z-[9999] bg-amber-500 text-black text-xs font-mono font-bold py-1.5 px-4 text-center transform -translate-y-full transition-transform duration-300 shadow-lg flex items-center justify-center gap-2">
-    <span class="animate-pulse">⚠️</span>
-    <span>OFFLINE MODE — Authentication requires active internet connection.</span>
+    <span class="animate-pulse">⚠️</span><span>OFFLINE MODE — Authentication requires active internet connection.</span>
   </div>
-
   <div class="fixed inset-0 pointer-events-none scanlines-overlay z-0 opacity-40"></div>
-
   <div class="w-full max-w-md bg-surfaceCard/95 border border-gold/30 rounded-3xl p-6 sm:p-8 shadow-glow-card relative z-10 space-y-6 backdrop-blur-xl">
-    <!-- Ambient Holographic Glows -->
     <div class="absolute -top-24 -right-24 w-48 h-48 bg-gold/15 rounded-full blur-3xl pointer-events-none"></div>
     <div class="absolute -bottom-24 -left-24 w-48 h-48 bg-cyanCustom/15 rounded-full blur-3xl pointer-events-none"></div>
-
-    <!-- Header Section -->
     <div class="text-center space-y-2 relative z-10">
       <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-gold/30 via-goldLight/20 to-cyanCustom/20 border border-gold/50 text-goldLight flex items-center justify-center mx-auto shadow-glow-gold">
-        <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-        </svg>
+        <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
       </div>
       <h1 class="font-display text-3xl text-white tracking-wider leading-none">NEXUS COMMAND</h1>
       <p id="targetGymBadge" class="text-xs font-mono uppercase tracking-wider text-amber-300/80">Staff & Admin Zero-Trust Portal</p>
     </div>
-
-    <!-- Error Alert Box -->
     <div id="loginErrorAlert" class="hidden p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-xs font-mono text-rose-300 space-y-1">
-      <div class="flex items-center gap-2 font-bold text-rose-400">
-        <span>⚠️</span>
-        <span id="loginErrorTitle">Authentication Failed</span>
-      </div>
+      <div class="flex items-center gap-2 font-bold text-rose-400"><span>⚠️</span><span id="loginErrorTitle">Authentication Failed</span></div>
       <p id="loginErrorText" class="text-[11px] text-rose-200/90 leading-relaxed"></p>
     </div>
-
-    <!-- Login Form -->
     <form id="adminLoginForm" class="space-y-4 relative z-10">
-      <div class="space-y-1.5">
-        <label for="adminEmail" class="block text-[11px] font-mono uppercase tracking-wider text-zinc-400">Staff Email Address</label>
-        <input 
-          type="email" 
-          id="adminEmail" 
-          name="email"
-          required
-          placeholder="admin@nexusgym.io" 
-          autocomplete="email"
-          class="w-full bg-surfaceMuted/80 border border-white/15 focus:border-gold rounded-2xl px-4 py-3 text-sm text-white placeholder-zinc-500 outline-none transition-all"
-        />
-      </div>
-
-      <div class="space-y-1.5">
-        <div class="flex items-center justify-between">
-          <label for="adminPassword" class="block text-[11px] font-mono uppercase tracking-wider text-zinc-400">Password</label>
-        </div>
-        <input 
-          type="password" 
-          id="adminPassword" 
-          name="password"
-          required
-          placeholder="••••••••••••" 
-          autocomplete="current-password"
-          class="w-full bg-surfaceMuted/80 border border-white/15 focus:border-gold rounded-2xl px-4 py-3 text-sm text-white placeholder-zinc-500 outline-none transition-all"
-        />
-      </div>
-
-      <button 
-        type="submit" 
-        id="loginSubmitBtn"
-        class="w-full py-3.5 bg-gradient-to-r from-gold via-goldLight to-cyanCustom text-black font-display text-lg tracking-wider rounded-2xl shadow-glow-gold hover:brightness-110 active:scale-95 transition-all uppercase cursor-pointer font-bold mt-2"
-      >
-        Sign In To Console ⚡
-      </button>
+      <div class="space-y-1.5"><label for="adminEmail" class="block text-[11px] font-mono uppercase tracking-wider text-zinc-400">Staff Email Address</label><input type="email" id="adminEmail" name="email" required placeholder="admin@nexusgym.io" autocomplete="email" class="w-full bg-surfaceMuted/80 border border-white/15 focus:border-gold rounded-2xl px-4 py-3 text-sm text-white placeholder-zinc-500 outline-none transition-all" /></div>
+      <div class="space-y-1.5"><label for="adminPassword" class="block text-[11px] font-mono uppercase tracking-wider text-zinc-400">Password</label><input type="password" id="adminPassword" name="password" required placeholder="••••••••••••" autocomplete="current-password" class="w-full bg-surfaceMuted/80 border border-white/15 focus:border-gold rounded-2xl px-4 py-3 text-sm text-white placeholder-zinc-500 outline-none transition-all" /></div>
+      <button type="submit" id="loginSubmitBtn" class="w-full py-3.5 bg-gradient-to-r from-gold via-goldLight to-cyanCustom text-black font-display text-lg tracking-wider rounded-2xl shadow-glow-gold hover:brightness-110 active:scale-95 transition-all uppercase cursor-pointer font-bold mt-2">Sign In To Console ⚡</button>
     </form>
-
-    <!-- Footer Links -->
-    <div class="pt-3 border-t border-white/10 flex items-center justify-between text-xs font-mono text-zinc-400">
-      <a id="backToPassLink" href="./index.html" class="text-goldLight hover:underline">← Member Pass</a>
-      <span class="text-zinc-500 text-[10px]">Zero-Trust Guard v2.0</span>
-    </div>
+    <div class="pt-3 border-t border-white/10 flex items-center justify-between text-xs font-mono text-zinc-400"><a id="backToPassLink" href="./index.html" class="text-goldLight hover:underline">← Member Pass</a><span class="text-zinc-500 text-[10px]">Zero-Trust Guard v2.0</span></div>
   </div>
 
   <script type="module">
     import { supabase } from './assets/js/supabaseClient.js';
 
     const urlParams = new URLSearchParams(window.location.search);
-    const gymSlug = urlParams.get('gym') || 'rahul-fitness';
+    // NEVER invent a tenant. A missing gym parameter must be resolved from the authenticated user's DB role.
+    const requestedGymSlug = (urlParams.get('gym') || '').trim().toLowerCase() || null;
     const rawRedirect = urlParams.get('redirect');
     function getSafeRedirect(param) {
       if (!param) return null;
       const clean = param.trim();
-      if (clean.startsWith('http://') || clean.startsWith('https://') || clean.startsWith('//') || clean.startsWith('javascript:') || clean.includes(':')) {
-        return null;
-      }
-      if (clean === 'super-admin.html' || clean === 'admin.html' || clean === 'index.html' || clean.endsWith('.html')) {
-        return clean.startsWith('./') ? clean : `./${clean}`;
-      }
+      if (clean.startsWith('http://') || clean.startsWith('https://') || clean.startsWith('//') || clean.startsWith('javascript:') || clean.includes(':')) return null;
+      if (clean === 'super-admin.html' || clean === 'admin.html' || clean === 'index.html' || clean.endsWith('.html')) return clean.startsWith('./') ? clean : `./${clean}`;
       return null;
     }
     const redirectParam = getSafeRedirect(rawRedirect);
 
-    // Hydrate Tenant Badge and Links
     const badge = document.getElementById('targetGymBadge');
-    if (badge) {
-      if (redirectParam && redirectParam.includes('super-admin.html')) {
-        badge.innerText = `Platform Control: Master Fleet`;
-      } else {
-        badge.innerText = `Tenant Station: @${gymSlug}`;
-      }
-    }
-
+    if (badge) badge.innerText = redirectParam && redirectParam.includes('super-admin.html') ? 'Platform Control: Master Fleet' : (requestedGymSlug ? `Tenant Station: @${requestedGymSlug}` : 'Tenant Station: Resolving from account…');
     const backLink = document.getElementById('backToPassLink');
-    if (backLink) backLink.href = `./index.html?gym=${encodeURIComponent(gymSlug)}`;
+    if (backLink) backLink.href = requestedGymSlug ? `./index.html?gym=${encodeURIComponent(requestedGymSlug)}` : './index.html';
 
     const form = document.getElementById('adminLoginForm');
     const errBox = document.getElementById('loginErrorAlert');
     const errText = document.getElementById('loginErrorText');
     const submitBtn = document.getElementById('loginSubmitBtn');
 
-    // Check if user object/context represents a SUPER_ADMIN
     function isSuperAdminUser(user, context) {
       if (context) {
         if (context.is_super_admin === true || context.is_admin === true) return true;
         if (context.role && String(context.role).toUpperCase() === 'SUPER_ADMIN') return true;
-        if (Array.isArray(context.roles)) {
-          const hasRole = context.roles.some(r => {
-            if (typeof r === 'string') return r.toUpperCase() === 'SUPER_ADMIN';
-            if (typeof r === 'object' && r !== null) {
-              const roleStr = r.role || r.role_name || r.name;
-              return roleStr && String(roleStr).toUpperCase() === 'SUPER_ADMIN';
-            }
-            return false;
-          });
-          if (hasRole) return true;
-        }
+        if (Array.isArray(context.roles) && context.roles.some(r => String(typeof r === 'string' ? r : (r?.role || r?.role_name || r?.name || '')).toUpperCase() === 'SUPER_ADMIN')) return true;
       }
       if (user) {
-        const appMeta = user.app_metadata || {};
-        const userMeta = user.user_metadata || {};
+        const appMeta = user.app_metadata || {}, userMeta = user.user_metadata || {};
         if (appMeta.is_super_admin === true || userMeta.is_super_admin === true) return true;
-        if (appMeta.role && String(appMeta.role).toUpperCase() === 'SUPER_ADMIN') return true;
-        if (userMeta.role && String(userMeta.role).toUpperCase() === 'SUPER_ADMIN') return true;
+        if (String(appMeta.role || '').toUpperCase() === 'SUPER_ADMIN' || String(userMeta.role || '').toUpperCase() === 'SUPER_ADMIN') return true;
         if (Array.isArray(appMeta.roles) && appMeta.roles.some(r => String(r).toUpperCase() === 'SUPER_ADMIN')) return true;
         if (Array.isArray(userMeta.roles) && userMeta.roles.some(r => String(r).toUpperCase() === 'SUPER_ADMIN')) return true;
       }
       return false;
     }
 
-    // Check if user already has an authenticated session
+    async function resolveTenantForUser(user, context) {
+      const roles = Array.isArray(context?.roles) ? context.roles : [];
+      const normalizedRequested = requestedGymSlug;
+      const matching = normalizedRequested ? roles.find(r => String(r?.gym_slug || '').toLowerCase() === normalizedRequested) : null;
+      if (matching?.gym_slug) return matching.gym_slug;
+      const tenantRole = roles.find(r => r?.gym_slug && String(r?.role || '').toUpperCase() !== 'SUPER_ADMIN');
+      if (tenantRole?.gym_slug) return tenantRole.gym_slug;
+      if (context?.gym_slug) return context.gym_slug;
+      const metaSlug = user?.user_metadata?.gym_slug || user?.app_metadata?.gym_slug;
+      if (metaSlug) return metaSlug;
+      try {
+        const { data: rows } = await supabase.from('user_roles').select('gym_id').eq('user_id', user.id).not('gym_id', 'is', null).limit(1);
+        const gymId = rows?.[0]?.gym_id;
+        if (gymId) {
+          const { data: gym } = await supabase.from('gyms').select('slug').eq('id', gymId).maybeSingle();
+          if (gym?.slug) return gym.slug;
+        }
+      } catch (e) { console.warn('[ADMIN LOGIN] Tenant fallback lookup note:', e); }
+      return null;
+    }
+
+    async function routeAuthenticatedUser(user, context) {
+      const isSuperAdmin = isSuperAdminUser(user, context);
+      if (isSuperAdmin || redirectParam === './super-admin.html' || redirectParam === 'super-admin.html') {
+        window.location.href = './super-admin.html';
+        return;
+      }
+      if (redirectParam && redirectParam !== './admin.html' && redirectParam !== 'admin.html') {
+        window.location.href = redirectParam;
+        return;
+      }
+      const targetGym = await resolveTenantForUser(user, context);
+      if (!targetGym) throw new Error('Gym tenant could not be resolved for this account. Please open the gym admin link generated by Super Admin.');
+      if (requestedGymSlug && requestedGymSlug !== targetGym) throw new Error(`Account is not assigned to tenant @${requestedGymSlug}. Please use the assigned gym admin link.`);
+      window.location.href = `./admin.html?gym=${encodeURIComponent(targetGym)}`;
+    }
+
     async function checkExistingSession() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (session && session.user) {
-          let context = null;
-          try {
-            const { data: rpcContext } = await supabase.rpc('rpc_get_current_user_context');
-            context = rpcContext;
-          } catch (e) {}
-
-          let isSuperAdmin = isSuperAdminUser(session.user, context);
-
-          if (!isSuperAdmin) {
-            try {
-              const { data: rows } = await supabase.from('user_roles').select('id, role').eq('user_id', session.user.id).eq('role', 'SUPER_ADMIN').limit(1);
-              if (rows && rows.length > 0) isSuperAdmin = true;
-            } catch (e) {}
-          }
-
-          if (isSuperAdmin || redirectParam === './super-admin.html' || redirectParam === 'super-admin.html') {
-            window.location.href = './super-admin.html';
-          } else if (redirectParam) {
-            window.location.href = redirectParam;
-          } else if (context && context.authenticated) {
-            let targetGym = gymSlug || session.user.user_metadata?.gym_slug || session.user.app_metadata?.gym_slug || context?.gym_slug;
-            window.location.href = `./admin.html?gym=${encodeURIComponent(targetGym || 'rahul-fitness')}`;
-          }
+        if (!session?.user) return;
+        let context = null;
+        try { const { data: rpcContext } = await supabase.rpc('rpc_get_current_user_context'); context = rpcContext; } catch (e) { console.warn('[ADMIN LOGIN] Context resolution note:', e); }
+        try {
+          await routeAuthenticatedUser(session.user, context);
+        } catch (e) {
+          console.warn('[ADMIN LOGIN] Existing session routing stopped:', e.message);
         }
-      } catch (e) {
-        console.warn('Session check note:', e);
-      }
+      } catch (e) { console.warn('Session check note:', e); }
     }
     checkExistingSession();
 
@@ -249,79 +168,28 @@
       e.preventDefault();
       errBox.classList.add('hidden');
       submitBtn.disabled = true;
-      submitBtn.innerText = "AUTHENTICATING...";
-
+      submitBtn.innerText = 'AUTHENTICATING...';
       const email = document.getElementById('adminEmail').value.trim();
       const password = document.getElementById('adminPassword').value;
-
       try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        });
-
-        if (error) {
-          throw error;
-        }
-
-        if (data?.session && data?.user) {
-          submitBtn.innerText = "SUCCESS! REDIRECTING...";
-
-          // Resolve User Context & Role Privileges
-          let isSuperAdmin = false;
-          let context = null;
-          try {
-            const { data: rpcContext } = await supabase.rpc('rpc_get_current_user_context');
-            context = rpcContext;
-          } catch (ctxErr) {
-            console.warn('Context role resolution note:', ctxErr);
-          }
-
-          isSuperAdmin = isSuperAdminUser(data.user, context);
-
-          if (!isSuperAdmin) {
-            try {
-              const { data: saRows } = await supabase.from('user_roles').select('id, role').eq('user_id', data.user.id).eq('role', 'SUPER_ADMIN').limit(1);
-              if (saRows && saRows.length > 0) isSuperAdmin = true;
-            } catch (e) {}
-          }
-
-          // If user is SUPER_ADMIN, redirect directly to super-admin.html without tenant param
-          if (isSuperAdmin || redirectParam === './super-admin.html' || redirectParam === 'super-admin.html') {
-            window.location.href = './super-admin.html';
-          } else if (redirectParam) {
-            window.location.href = redirectParam;
-          } else {
-            let targetGym = gymSlug || data.user.user_metadata?.gym_slug || data.user.app_metadata?.gym_slug || context?.gym_slug;
-            if (!targetGym) {
-              try {
-                const { data: userRole } = await supabase.from('user_roles').select('gym_slug').eq('user_id', data.user.id).limit(1).maybeSingle();
-                if (userRole && userRole.gym_slug) targetGym = userRole.gym_slug;
-              } catch (e) {}
-            }
-            window.location.href = `./admin.html?gym=${encodeURIComponent(targetGym || 'rahul-fitness')}`;
-          }
-        } else {
-          throw new Error('Could not establish session. Please verify credentials.');
-        }
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        if (!data?.session || !data?.user) throw new Error('Could not establish session. Please verify credentials.');
+        submitBtn.innerText = 'SUCCESS! RESOLVING GYM...';
+        let context = null;
+        try { const { data: rpcContext, error: ctxErr } = await supabase.rpc('rpc_get_current_user_context'); if (!ctxErr) context = rpcContext; } catch (e) { console.warn('[ADMIN LOGIN] Context role resolution note:', e); }
+        await routeAuthenticatedUser(data.user, context);
       } catch (err) {
         console.error('[ADMIN LOGIN] Error:', err);
         errText.innerText = err.message || 'Invalid login credentials. Please try again.';
         errBox.classList.remove('hidden');
         submitBtn.disabled = false;
-        submitBtn.innerText = "Sign In To Console ⚡";
+        submitBtn.innerText = 'Sign In To Console ⚡';
       }
     });
 
-    window.addEventListener('offline', () => {
-      const banner = document.getElementById('nexus-offline-banner');
-      if (banner) banner.classList.remove('-translate-y-full');
-    });
-
-    window.addEventListener('online', () => {
-      const banner = document.getElementById('nexus-offline-banner');
-      if (banner) banner.classList.add('-translate-y-full');
-    });
+    window.addEventListener('offline', () => document.getElementById('nexus-offline-banner')?.classList.remove('-translate-y-full'));
+    window.addEventListener('online', () => document.getElementById('nexus-offline-banner')?.classList.add('-translate-y-full'));
   </script>
 </body>
 </html>
