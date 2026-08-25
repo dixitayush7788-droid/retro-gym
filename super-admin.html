@@ -1052,17 +1052,19 @@
     // ----------------------------------------------------
     // SUPABASE & CONFIG CONSTANTS
     // ----------------------------------------------------
-    const SUPABASE_URL = "https://zfvkvrhuovvbfbrutpph.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpmdmt2cmh1b3Z2YmZicnV0cHBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMzIyODQsImV4cCI6MjEwMjcwODI4NH0.M-WK1bgZDLXcuMTldMSwptx5XRpRnLAi-BxMFEoph4U";
+    const SUPABASE_URL = (typeof window !== 'undefined' && window.NEXUS_CONFIG?.SUPABASE_URL) || "https://zfvkvrhuovvbfbrutpph.supabase.co";
+    const SUPABASE_KEY = (typeof window !== 'undefined' && window.NEXUS_CONFIG?.SUPABASE_ANON_KEY) || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpmdmt2cmh1b3Z2YmZicnV0cHBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMzIyODQsImV4cCI6MjEwMjcwODI4NH0.M-WK1bgZDLXcuMTldMSwptx5XRpRnLAi-BxMFEoph4U";
     const APP_BASE_URL = (typeof window !== 'undefined' && window.location?.origin)
       ? `${window.location.origin}${window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1)}`.replace(/\/+$/, '')
       : "https://dixitayush7788-droid.github.io/retro-gym";
 
     let db = null;
     try {
-      if (window.supabaseClient) {
+      if (window.__NEXUS_CANONICAL_SUPABASE_CLIENT__) {
+        db = window.__NEXUS_CANONICAL_SUPABASE_CLIENT__;
+      } else if (window.supabaseClient) {
         db = window.supabaseClient;
-      } else if (window.supabase) {
+      } else if (typeof window !== 'undefined' && window.supabase?.createClient) {
         db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
           auth: {
             persistSession: true,
@@ -1071,6 +1073,7 @@
             storage: window.localStorage
           }
         });
+        window.__NEXUS_CANONICAL_SUPABASE_CLIENT__ = db;
         window.supabaseClient = db;
       }
     } catch (e) {
@@ -2152,17 +2155,15 @@ _Login to your admin portal to customize gym passes, timings & member notices._`
         const ctx = await initSuperAdmin();
 
         if (!ctx || ctx.error === 'NO_SESSION') {
-          console.warn('[SUPER_ADMIN_BOOT] No session, redirecting to login');
           if (badgeEl) {
             badgeEl.textContent = 'UNAUTHENTICATED';
             badgeEl.className = 'text-amber-600 font-mono text-[10px] font-bold';
           }
-          window.location.href = './admin-login.html?redirect=super-admin.html';
+          window.location.replace('./admin-login.html?redirect=super-admin.html');
           return;
         }
 
         if (ctx.error === 'ACCESS_DENIED') {
-          console.warn('[SUPER_ADMIN_BOOT] Access denied for:', ctx.email);
           if (badgeEl) {
             badgeEl.textContent = 'ACCESS DENIED';
             badgeEl.className = 'text-roseRed font-mono text-[10px] font-bold';
@@ -2172,7 +2173,6 @@ _Login to your admin portal to customize gym passes, timings & member notices._`
         }
 
         if (ctx.error === 'TIMEOUT' || ctx.error === 'SESSION_ERROR' || ctx.error === 'BOOT_ERROR') {
-          console.error('[SUPER_ADMIN_BOOT] Verification failed with status:', ctx.error, ctx.message);
           if (badgeEl) {
             badgeEl.textContent = 'VERIFICATION FAILED';
             badgeEl.className = 'text-roseRed font-mono text-[10px] font-bold';
@@ -2190,10 +2190,9 @@ _Login to your admin portal to customize gym passes, timings & member notices._`
           statusText.textContent = 'Authorization Granted. Loading Telemetry Fleet...';
         }
 
-        console.debug('[SUPER_ADMIN_BOOT] dashboard rendered');
         unlockConsole();
       } catch (err) {
-        console.error('[SUPER_ADMIN_BOOT] CRITICAL ERROR:', err);
+        console.error('[BOOT_FAILED] Critical bootstrap exception:', err);
         showAuthError('Authorization Error', err.message || 'An unexpected error occurred during security handshake.');
       } finally {
         isInitializing = false;

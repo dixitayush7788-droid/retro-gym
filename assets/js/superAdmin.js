@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from './supabaseClient.js';
 
-const SUPABASE_URL = window.NEXUS_CONFIG?.SUPABASE_URL || 'https://zfvkvrhuovvbfbrutpph.supabase.co';
-const SUPABASE_ANON_KEY = window.NEXUS_CONFIG?.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpmdmt2cmh1b3Z2YmZicnV0cHBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMzIyODQsImV4cCI6MjEwMjcwODI4NH0.M-WK1bgZDLXcuMTldMSwptx5XRpRnLAi-BxMFEoph4U';
+const SUPABASE_URL = (typeof window !== 'undefined' && window.NEXUS_CONFIG?.SUPABASE_URL) || 'https://zfvkvrhuovvbfbrutpph.supabase.co';
+const SUPABASE_ANON_KEY = (typeof window !== 'undefined' && window.NEXUS_CONFIG?.SUPABASE_ANON_KEY) || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpmdmt2cmh1b3Z2YmZicnV0cHBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMzIyODQsImV4cCI6MjEwMjcwODI4NH0.M-WK1bgZDLXcuMTldMSwptx5XRpRnLAi-BxMFEoph4U';
 
 let cachedSuperAdminContext = null;
 let bootstrapPromise = null;
@@ -11,13 +11,17 @@ let bootstrapPromise = null;
  * Helper to enforce a strict timeout on async Supabase operations.
  * Prevents UI deadlock / hanging spinners.
  */
-export function withTimeout(promise, timeoutMs = 8000, operationName = 'Operation') {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error(`[TIMEOUT] ${operationName} timed out after ${timeoutMs}ms`)), timeoutMs)
-    )
-  ]);
+export function withTimeout(promise, timeoutMs = 7000, operationName = 'Operation') {
+  let timer;
+  const timeoutPromise = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error(`[TIMEOUT] ${operationName} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
+
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
 }
 
 /**
@@ -25,14 +29,20 @@ export function withTimeout(promise, timeoutMs = 8000, operationName = 'Operatio
  * Ensures creating new gym owners via auth.signUp does not overwrite the Super Admin's session.
  */
 export function createIsolatedAuthClient() {
-  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  const opts = {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
       detectSessionInUrl: false
     }
-  });
+  };
+
+  if (typeof window !== 'undefined' && window.supabase?.createClient) {
+    return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, opts);
+  }
+  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, opts);
 }
+
 
 /**
  * Automatically generates a unique gym slug from business name and owner phone.
@@ -253,12 +263,22 @@ export async function initSuperAdmin() {
   }
 
   bootstrapPromise = (async () => {
-    console.debug('[SUPER_ADMIN_BOOT] start');
+    console.debug('[BOOT_START] Starting Super Admin bootstrap process');
     try {
-      console.debug('[SUPER_ADMIN_BOOT] checking session...');
+      if (!supabase || !supabase.auth) {
+        console.error('[BOOT_FAILED] Supabase client unavailable');
+        return {
+          error: 'BOOT_ERROR',
+          message: 'Supabase client could not be initialized.'
+        };
+      }
+
+      console.debug('[SUPABASE_CLIENT_READY] Supabase canonical client ready');
+      console.debug('[SESSION_CHECK_START] Checking Supabase Auth session...');
+
       const sessionResult = await withTimeout(
         supabase.auth.getSession(),
-        7000,
+        6000,
         'supabase.auth.getSession()'
       );
       
@@ -266,7 +286,7 @@ export async function initSuperAdmin() {
       const sessionError = sessionResult?.error;
 
       if (sessionError) {
-        console.error('[SUPER_ADMIN_BOOT] session error:', sessionError);
+        console.error('[BOOT_FAILED] Session check error:', sessionError.message || sessionError);
         return {
           error: 'SESSION_ERROR',
           message: sessionError.message || 'Session verification error'
@@ -274,31 +294,34 @@ export async function initSuperAdmin() {
       }
 
       if (!session || !session.user || !session.access_token) {
-        console.warn('[SUPER_ADMIN_BOOT] No active session found. Redirecting to login.');
+        console.debug('[NO_SESSION] No active Supabase Auth session found');
         return {
           error: 'NO_SESSION'
         };
       }
 
       const user = session.user;
-      console.debug('[SUPER_ADMIN_BOOT] session confirmed for user:', user.email, 'id:', user.id);
+      console.debug('[SESSION_FOUND] Active session confirmed for user ID:', user.id);
 
       let context = null;
-      console.debug('[SUPER_ADMIN_BOOT] checking role context via rpc_get_current_user_context...');
+      console.debug('[ROLE_CONTEXT_START] Invoking rpc_get_current_user_context...');
       try {
         const { data: rpcContext, error: rpcErr } = await withTimeout(
           supabase.rpc('rpc_get_current_user_context'),
-          6000,
+          5000,
           'rpc_get_current_user_context'
         );
         if (!rpcErr && rpcContext) {
           context = rpcContext;
-          console.debug('[SUPER_ADMIN_CONTEXT]', rpcContext);
+          console.debug('[ROLE_CONTEXT_RESULT] Context resolved', {
+            is_super_admin: rpcContext.is_super_admin,
+            role: rpcContext.role
+          });
         } else if (rpcErr) {
-          console.warn('[SUPER_ADMIN_BOOT] RPC context returned error:', rpcErr);
+          console.warn('[ROLE_CONTEXT_RESULT] RPC returned warning/error:', rpcErr.message || rpcErr);
         }
       } catch (rpcErr) {
-        console.warn('[SUPER_ADMIN_BOOT] RPC context lookup note (timed out or failed):', rpcErr?.message || rpcErr);
+        console.warn('[ROLE_CONTEXT_RESULT] RPC context call skipped or timed out:', rpcErr?.message || rpcErr);
       }
 
       // Evaluate Super Admin status
@@ -306,18 +329,17 @@ export async function initSuperAdmin() {
 
       // Fallback database lookup if needed
       if (!isSuperAdmin) {
-        console.debug('[SUPER_ADMIN_BOOT] checking DB user_roles fallback...');
         try {
           const { data: superAdminRows } = await withTimeout(
             dbLookupSuperAdmin(user.id, user.email),
-            4000,
+            3500,
             'dbLookupSuperAdmin'
           );
           if (superAdminRows && superAdminRows.length > 0) {
             isSuperAdmin = true;
           }
         } catch (dbErr) {
-          console.warn('[SUPER_ADMIN_BOOT] DB fallback check note:', dbErr?.message || dbErr);
+          console.warn('[ROLE_CONTEXT_RESULT] DB fallback check note:', dbErr?.message || dbErr);
         }
       }
 
@@ -331,7 +353,7 @@ export async function initSuperAdmin() {
               .eq('user_id', user.id)
               .ilike('role', '%SUPER_ADMIN%')
               .limit(1),
-            4000,
+            3500,
             'user_roles ilike check'
           );
 
@@ -339,12 +361,12 @@ export async function initSuperAdmin() {
             isSuperAdmin = true;
           }
         } catch (roleErr) {
-          console.warn('[SUPER_ADMIN_BOOT] user_roles table note:', roleErr?.message || roleErr);
+          console.warn('[ROLE_CONTEXT_RESULT] user_roles table note:', roleErr?.message || roleErr);
         }
       }
 
       if (!isSuperAdmin) {
-        console.warn('[SUPER_ADMIN_BOOT] User is authenticated but does not hold SUPER_ADMIN role:', user.email);
+        console.warn('[BOOT_FAILED] User is authenticated but does not hold SUPER_ADMIN role:', user.id);
         return {
           error: 'ACCESS_DENIED',
           user,
@@ -352,7 +374,7 @@ export async function initSuperAdmin() {
         };
       }
 
-      console.debug('[SUPER_ADMIN_BOOT] SUPER_ADMIN verified for:', user.email);
+      console.debug('[SUPER_ADMIN_VERIFIED] Super Admin authorization confirmed for user:', user.id);
 
       cachedSuperAdminContext = {
         authenticated: true,
@@ -366,7 +388,7 @@ export async function initSuperAdmin() {
       setupSuperAdminAuthListener();
       return cachedSuperAdminContext;
     } catch (error) {
-      console.error('[SUPER_ADMIN_BOOT] ERROR:', error);
+      console.error('[BOOT_FAILED] Bootstrap exception:', error);
       return {
         error: error.message?.includes('TIMEOUT') ? 'TIMEOUT' : 'BOOT_ERROR',
         message: error.message || 'Authentication initialization error'
