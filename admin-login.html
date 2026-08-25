@@ -7,15 +7,14 @@
   <script>
     window.NEXUS_CONFIG = {
       SUPABASE_URL: 'https://zfvkvrhuovvbfbrutpph.supabase.co',
-      SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsImV4cCI6MjEwMjcwODI4NH0'
+      SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpmdmt2cmh1b3Z2YmZicnV0cHBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMzIyODQsImV4cCI6MjEwMjcwODI4NH0.M-WK1bgZDLXcuMTldMSwptx5XRpRnLAi-BxMFEoph4U'
     };
   </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config={theme:{extend:{colors:{void:'#07090E',surface:'#0E131F',surfaceCard:'#141B2D',surfaceMuted:'#1E293B',gold:'#D4AF37',goldLight:'#F3E5AB',cyanCustom:'#00F0FF'},fontFamily:{sans:['"Plus Jakarta Sans"','-apple-system','BlinkMacSystemFont','sans-serif'],display:['"Anton"','"Syne"','sans-serif'],mono:['"JetBrains Mono"','monospace']},boxShadow:{'glow-gold':'0 0 25px rgba(212,175,55,.25)','glow-cyan':'0 0 25px rgba(0,240,255,.25)','glow-card':'0 10px 40px -10px rgba(0,0,0,.7)'}}}};
   </script>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
   <style>body{background:#07090E;color:#F8FAFC;font-family:'Plus Jakarta Sans',sans-serif;-webkit-font-smoothing:antialiased}.scanlines-overlay{background:linear-gradient(rgba(18,16,16,0) 50%,rgba(0,0,0,.25) 50%),linear-gradient(90deg,rgba(255,0,0,.03),rgba(0,255,0,.01),rgba(0,0,255,.03));background-size:100% 3px,6px 100%}</style>
 </head>
@@ -36,8 +35,7 @@
     const rawRedirect=urlParams.get('redirect');
     function getSafeRedirect(param){if(!param)return null;const clean=param.trim();if(clean.startsWith('http://')||clean.startsWith('https://')||clean.startsWith('//')||clean.startsWith('javascript:')||clean.includes(':'))return null;if(clean==='super-admin.html'||clean==='admin.html'||clean==='index.html'||clean.endsWith('.html'))return clean.startsWith('./')?clean:`./${clean}`;return null}
     const redirectParam=getSafeRedirect(rawRedirect);
-    const badge=document.getElementById('targetGymBadge');
-    if(badge)badge.innerText=redirectParam&&redirectParam.includes('super-admin.html')?'Platform Control: Master Fleet':(requestedGymSlug?`Tenant Station: @${requestedGymSlug}`:'Tenant Station: Resolving from account…');
+    const badge=document.getElementById('targetGymBadge');if(badge)badge.innerText=redirectParam&&redirectParam.includes('super-admin.html')?'Platform Control: Master Fleet':(requestedGymSlug?`Tenant Station: @${requestedGymSlug}`:'Tenant Station: Resolving from account…');
     const backLink=document.getElementById('backToPassLink');if(backLink)backLink.href=requestedGymSlug?`./index.html?gym=${encodeURIComponent(requestedGymSlug)}`:'./index.html';
     const form=document.getElementById('adminLoginForm'),errBox=document.getElementById('loginErrorAlert'),errText=document.getElementById('loginErrorText'),submitBtn=document.getElementById('loginSubmitBtn');
     function isSuperAdminUser(user,context){if(context){if(context.is_super_admin===true||context.is_admin===true)return true;if(String(context.role||'').toUpperCase()==='SUPER_ADMIN')return true;if(Array.isArray(context.roles)&&context.roles.some(r=>String(typeof r==='string'?r:(r?.role||r?.role_name||r?.name||'')).toUpperCase()==='SUPER_ADMIN'))return true}if(user){const a=user.app_metadata||{},m=user.user_metadata||{};if(a.is_super_admin===true||m.is_super_admin===true)return true;if(String(a.role||'').toUpperCase()==='SUPER_ADMIN'||String(m.role||'').toUpperCase()==='SUPER_ADMIN')return true;if(Array.isArray(a.roles)&&a.roles.some(r=>String(r).toUpperCase()==='SUPER_ADMIN'))return true;if(Array.isArray(m.roles)&&m.roles.some(r=>String(r).toUpperCase()==='SUPER_ADMIN'))return true}return false}
