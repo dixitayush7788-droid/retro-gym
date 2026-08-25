@@ -2854,8 +2854,9 @@
 
         let html = '';
         memberReferralSquad.forEach((friend, idx) => {
-          const name = friend.full_name || friend.name || `Athlete #${idx + 1}`;
-          const initial = name.charAt(0).toUpperCase() || 'A';
+          const rawName = friend.full_name || friend.name || `Athlete #${idx + 1}`;
+          const name = escapeHtml(rawName);
+          const initial = escapeHtml(rawName.charAt(0).toUpperCase() || 'A');
           const joinDate = friend.joining_date || friend.created_at;
           const dateStr = joinDate ? new Date(joinDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recently Joined';
           

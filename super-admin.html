@@ -1426,7 +1426,11 @@
       emptyState.classList.add('hidden');
 
       container.innerHTML = filtered.map(g => {
-        const initials = (g.name || 'RG').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'RG';
+        const rawName = g.name || 'RG';
+        const safeName = escapeHtml(rawName);
+        const safeSlug = escapeHtml(g.slug);
+        const safePhone = escapeHtml(g.owner_phone || 'No phone');
+        const initials = escapeHtml(rawName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'RG');
         
         let statusBadgeHtml = '';
         if (g.status === 'ACTIVE') {
@@ -1448,7 +1452,7 @@
 
         return `
           <div 
-            onclick="openTelemetryDrawer('${g.slug}')" 
+            onclick="openTelemetryDrawer('${safeSlug}')" 
             class="bg-white hover:border-skyPrimary/60 transition-all duration-200 rounded-2xl p-4 border border-borderLight shadow-ios-card cursor-pointer active:scale-[0.99] space-y-3"
           >
             <div class="flex items-center justify-between">
@@ -1458,9 +1462,9 @@
                 </div>
                 <div>
                   <div class="flex items-center gap-2">
-                    <h3 class="text-sm font-extrabold text-charcoal leading-tight">${g.name}</h3>
+                    <h3 class="text-sm font-extrabold text-charcoal leading-tight">${safeName}</h3>
                   </div>
-                  <p class="text-xs font-mono text-skyPrimary font-semibold">@${g.slug}</p>
+                  <p class="text-xs font-mono text-skyPrimary font-semibold">@${safeSlug}</p>
                 </div>
               </div>
               <div>${statusBadgeHtml}</div>
@@ -1482,7 +1486,7 @@
             </div>
 
             <div class="flex items-center justify-between text-[11px] text-charcoalSubtle pt-1">
-              <span>📞 ${g.owner_phone || 'No phone'}</span>
+              <span>📞 ${safePhone}</span>
               <span class="text-skyPrimary font-bold flex items-center gap-0.5">Telemetry ➔</span>
             </div>
           </div>

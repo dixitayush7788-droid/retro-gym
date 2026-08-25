@@ -149,12 +149,24 @@
 
     const urlParams = new URLSearchParams(window.location.search);
     const gymSlug = urlParams.get('gym') || 'rahul-fitness';
-    const redirectParam = urlParams.get('redirect');
+    const rawRedirect = urlParams.get('redirect');
+    function getSafeRedirect(param) {
+      if (!param) return null;
+      const clean = param.trim();
+      if (clean.startsWith('http://') || clean.startsWith('https://') || clean.startsWith('//') || clean.startsWith('javascript:') || clean.includes(':')) {
+        return null;
+      }
+      if (clean === 'super-admin.html' || clean === 'admin.html' || clean === 'index.html' || clean.endsWith('.html')) {
+        return clean.startsWith('./') ? clean : `./${clean}`;
+      }
+      return null;
+    }
+    const redirectParam = getSafeRedirect(rawRedirect);
 
     // Hydrate Tenant Badge and Links
     const badge = document.getElementById('targetGymBadge');
     if (badge) {
-      if (redirectParam === 'super-admin.html') {
+      if (redirectParam && redirectParam.includes('super-admin.html')) {
         badge.innerText = `Platform Control: Master Fleet`;
       } else {
         badge.innerText = `Tenant Station: @${gymSlug}`;
@@ -218,10 +230,10 @@
             } catch (e) {}
           }
 
-          if (isSuperAdmin || redirectParam === 'super-admin.html') {
+          if (isSuperAdmin || redirectParam === './super-admin.html' || redirectParam === 'super-admin.html') {
             window.location.href = './super-admin.html';
           } else if (redirectParam) {
-            window.location.href = `./${redirectParam}`;
+            window.location.href = redirectParam;
           } else if (context && context.authenticated) {
             let targetGym = gymSlug || session.user.user_metadata?.gym_slug || session.user.app_metadata?.gym_slug || context?.gym_slug;
             window.location.href = `./admin.html?gym=${encodeURIComponent(targetGym || 'rahul-fitness')}`;
@@ -275,10 +287,10 @@
           }
 
           // If user is SUPER_ADMIN, redirect directly to super-admin.html without tenant param
-          if (isSuperAdmin || redirectParam === 'super-admin.html') {
+          if (isSuperAdmin || redirectParam === './super-admin.html' || redirectParam === 'super-admin.html') {
             window.location.href = './super-admin.html';
           } else if (redirectParam) {
-            window.location.href = `./${redirectParam}`;
+            window.location.href = redirectParam;
           } else {
             let targetGym = gymSlug || data.user.user_metadata?.gym_slug || data.user.app_metadata?.gym_slug || context?.gym_slug;
             if (!targetGym) {
