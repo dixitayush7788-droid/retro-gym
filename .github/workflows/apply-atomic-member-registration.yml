@@ -1,0 +1,100 @@
+name: Apply atomic member registration patch
+
+on:
+  push:
+    branches:
+      - fix/referral-reward-and-admin-session
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Replace fragile browser-side member transaction
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('admin-core.html')
+          s = p.read_text()
+          start = s.index('    async function handleCreateMember(e) {')
+          end_marker = '    // ----------------------------------------------------\n    // EXPORT CSV UTILITY'
+          end = s.index(end_marker, start)
+          replacement = r'''    async function handleCreateMember(e) {
+      e.preventDefault();
+      const fullName = document.getElementById('new-member-name').value.trim();
+      const phoneInput = document.getElementById('new-member-phone');
+      const cleanPhone = (phoneInput?.value || '').replace(/\D/g, '').slice(-10);
+      const ageRaw = document.getElementById('new-member-age')?.value.trim() || '';
+      const age = ageRaw ? parseInt(ageRaw, 10) : null;
+      const address = document.getElementById('new-member-address')?.value.trim() || '';
+
+      if (!fullName) {
+        showToast("Please enter athlete full name", "error");
+        return;
+      }
+      if (!/^\d{10}$/.test(cleanPhone)) {
+        showToast("Please enter a valid 10-digit mobile number", "error");
+        return;
+      }
+
+      const selectedPlanMonths = parseInt(selectedMonths, 10) || 1;
+      const collectedAmount = parseFloat(document.getElementById('feeAmountInput')?.value) || selectedFee || 1200;
+      const isReferred = document.getElementById('ref-type-referred')?.checked;
+      const selectedReferrerValue = isReferred ? (document.getElementById('new-member-referrer')?.value || '') : '';
+      const cleanRefPhone = (selectedReferrerValue || '').replace(/\D/g, '').slice(-10);
+
+      const btn = document.getElementById('btn-submit-member');
+      btn.innerText = "Registering Athlete to Cloud...";
+      btn.disabled = true;
+
+      try {
+        if (!db || !currentGymSlug) throw new Error('Supabase client or gym tenant is unavailable.');
+
+        const { data, error } = await db.rpc('register_member_with_referral', {
+          p_gym_slug: currentGymSlug,
+          p_name: fullName,
+          p_phone: cleanPhone,
+          p_age: Number.isFinite(age) ? age : null,
+          p_address: address || null,
+          p_photo_url: newMemberPhotoBase64 || null,
+          p_plan_months: selectedPlanMonths,
+          p_fees_paid: collectedAmount,
+          p_referrer_phone: cleanRefPhone || null
+        });
+
+        if (error) throw new Error(error.message || 'Member registration RPC failed.');
+        if (!data?.success) throw new Error(data?.error || 'Member registration failed.');
+
+        playAudioChirp(880, 0.15);
+        const rewardNote = cleanRefPhone && data.referrer_credited ? ' +7-day referral reward credited.' : '';
+        showToast(`Athlete ${fullName} registered to [${currentGymConfig.gym_name}]!${rewardNote} ⚡`, "success");
+        closeAddMemberDrawer();
+        await fetchAllData();
+      } catch (err) {
+        console.error("Failed to register athlete:", err);
+        showToast("Registration failed: " + (err.message || err), "error");
+      } finally {
+        btn.innerText = "Confirm & Save Athlete to Cloud ⚡";
+        btn.disabled = false;
+      }
+    }
+
+'''
+          s = s[:start] + replacement + s[end:]
+          p.write_text(s)
+
+          Path('.github/workflows/apply-atomic-member-registration.yml').unlink()
+
+      - name: Commit patched source
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add admin-core.html
+          git commit -m "fix: make member registration atomic" || exit 0
+          git push
