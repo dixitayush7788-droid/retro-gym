@@ -138,7 +138,6 @@ export async function onboardGymNode({
 export function checkIsSuperAdmin(user, context) {
   if (!user && !context) return false;
 
-  // Authorization is database-context driven. Never trust user-editable metadata.
   if (context) {
     if (context.is_super_admin === true) return true;
     if (context.role && String(context.role).toUpperCase() === 'SUPER_ADMIN') return true;
@@ -195,6 +194,17 @@ export async function initSuperAdmin() {
 
       if (!checkIsSuperAdmin(user, context)) {
         return { error: 'ACCESS_DENIED', user, email: user.email };
+      }
+
+      // The dashboard's classic script creates a local `db` binding before this
+      // module runs. Rebind that dashboard client to the canonical authenticated
+      // client so fleet SELECTs execute with the verified Super Admin session.
+      try {
+        if (typeof db !== 'undefined') db = supabase;
+      } catch (_) {}
+      if (typeof window !== 'undefined') {
+        window.db = supabase;
+        window.supabaseClient = supabase;
       }
 
       cachedSuperAdminContext = {
