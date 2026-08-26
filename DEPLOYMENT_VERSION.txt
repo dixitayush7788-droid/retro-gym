@@ -1,0 +1,4 @@
+NEXUS production deployment verification
+2026-08-26
+
+Purpose: force a fresh GitHub Pages deployment after the canonical Supabase publishable-key authentication fix.
