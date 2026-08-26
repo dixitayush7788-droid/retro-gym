@@ -18,11 +18,100 @@ export async function initAdminConsole() {
     if (targetGymSlug) sessionStorage.setItem(`retrogym_admin_auth_${targetGymSlug}`, 'true');
     document.getElementById('admin-lock-modal')?.classList.add('hidden');
     bindDeskLockHandler(userContext, targetGymSlug);
+    installGymRenewalOverride(targetGymSlug);
     installAtomicMemberRegistration();
     if (typeof window.fetchAllData === 'function') window.fetchAllData(false);
   } catch (error) {
     console.warn('[ADMIN AUTH] Halt console execution:', error.message);
   }
+}
+
+function installGymRenewalOverride(gymSlug) {
+  if (typeof window === 'undefined' || window.__nexusRenewalOverrideInstalled) return;
+  window.__nexusRenewalOverrideInstalled = true;
+
+  let pinBuffer = '';
+  const originalPressPinKey = window.pressPinKey;
+  const originalClearPinKey = window.clearPinKey;
+  const originalHandleAdminPinSubmit = window.handleAdminPinSubmit;
+
+  if (typeof originalPressPinKey === 'function') {
+    window.pressPinKey = function (num) {
+      if (pinBuffer.length < 4) pinBuffer += String(num);
+      return originalPressPinKey(num);
+    };
+  }
+
+  if (typeof originalClearPinKey === 'function') {
+    window.clearPinKey = function () {
+      pinBuffer = '';
+      return originalClearPinKey();
+    };
+  }
+
+  if (typeof originalHandleAdminPinSubmit === 'function') {
+    window.handleAdminPinSubmit = async function () {
+      const result = await originalHandleAdminPinSubmit();
+      const lockModal = document.getElementById('admin-lock-modal');
+      if (lockModal?.classList.contains('hidden') && /^\d{4}$/.test(pinBuffer)) {
+        sessionStorage.setItem('retrogym_admin_pin', pinBuffer);
+      }
+      return result;
+    };
+  }
+
+  window.directExtend = async function (phone, months) {
+    const cleanPhone = String(phone || '').replace(/\D/g, '').slice(-10);
+    const daysToAdd = months === 1 ? 30 : months === 3 ? 90 : months === 6 ? 180 : Number(months) * 30;
+    const adminPin = sessionStorage.getItem('retrogym_admin_pin') || '';
+
+    if (!/^\d{4}$/.test(adminPin)) {
+      window.showToast?.('Please unlock the Gym Security PIN before renewing a membership.', 'error');
+      return;
+    }
+    if (!cleanPhone || !gymSlug) {
+      window.showToast?.('Gym/member context missing. Please reload the admin panel.', 'error');
+      return;
+    }
+
+    try {
+      window.playAudioChirp?.(700, 0.06);
+
+      const { data: gym, error: gymError } = await supabase
+        .from('gyms')
+        .select('id')
+        .eq('slug', gymSlug)
+        .maybeSingle();
+      if (gymError) throw gymError;
+      if (!gym?.id) throw new Error('Gym station not found.');
+
+      const { data: member, error: memberError } = await supabase
+        .from('members')
+        .select('id, full_name')
+        .eq('gym_id', gym.id)
+        .eq('normalized_phone', cleanPhone)
+        .maybeSingle();
+      if (memberError) throw memberError;
+      if (!member?.id) throw new Error('Athlete record not found.');
+
+      const { data, error } = await supabase.rpc('secure_renew_pass', {
+        target_member_id: member.id,
+        target_gym_slug: gymSlug,
+        days_to_add: daysToAdd,
+        entered_pin: adminPin
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Pass renewal failed.');
+
+      window.playAudioChirp?.(780, 0.12);
+      window.showToast?.(`⚡ Pass for ${member.full_name} Renewed (+${daysToAdd} Days)!`, 'success');
+      await window.fetchAllData?.();
+      window.openAthleteDossier?.(cleanPhone, false);
+    } catch (error) {
+      console.error('[NEXUS RENEWAL]', error);
+      window.showToast?.(`Renewal Error: ${error?.message || error}`, 'error');
+    }
+  };
 }
 
 function bindDeskLockHandler(userContext, gymSlug) {
