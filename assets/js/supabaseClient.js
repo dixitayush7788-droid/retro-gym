@@ -1,7 +1,11 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-const SUPABASE_URL = (typeof window !== 'undefined' && window.NEXUS_CONFIG?.SUPABASE_URL) || 'https://zfvkvrhuovvbfbrutpph.supabase.co';
-const SUPABASE_ANON_KEY = (typeof window !== 'undefined' && window.NEXUS_CONFIG?.SUPABASE_ANON_KEY) || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpmdmt2cmh1b3Z2YmZicnV0cHBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMzIyODQsImV4cCI6MjEwMjcwODI4NH0.M-WK1bgZDLXcuMTldMSwptx5XRpRnLAi-BxMFEoph4U';
+// Canonical production Supabase configuration.
+// Use the project's active publishable key instead of any stale key embedded in
+// individual HTML pages. This prevents an old page-level API key from causing
+// "Invalid API key" authentication failures after a key rotation/deployment.
+const SUPABASE_URL = 'https://zfvkvrhuovvbfbrutpph.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_bFbeqpwaWmp0aioDVSkLAg_J7X4lzWk';
 
 function initializeCanonicalClient() {
   if (typeof window !== 'undefined' && window.__NEXUS_CANONICAL_SUPABASE_CLIENT__) {
@@ -19,9 +23,9 @@ function initializeCanonicalClient() {
 
   let clientInstance = null;
   if (typeof window !== 'undefined' && window.supabase?.createClient) {
-    clientInstance = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, clientConfig);
+    clientInstance = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, clientConfig);
   } else {
-    clientInstance = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, clientConfig);
+    clientInstance = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, clientConfig);
   }
 
   if (typeof window !== 'undefined' && clientInstance) {
