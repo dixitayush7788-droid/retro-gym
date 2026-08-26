@@ -48,6 +48,33 @@ async function stopChannels() {
   await Promise.allSettled([removeChannel(member), removeChannel(gym)]);
 }
 
+function applyAttendanceButtonState(state) {
+  const btn = document.getElementById('btn-punch-attendance');
+  const icon = document.getElementById('punch-btn-icon');
+  const text = document.getElementById('punch-btn-text');
+  const sync = document.getElementById('punch-last-sync');
+  if (!btn || !state?.success) return;
+
+  if (state.checked_in_today) {
+    btn.onclick = null;
+    btn.disabled = true;
+    btn.className = "w-full py-4 px-4 bg-gradient-to-r from-emerald-500 via-matrixGreen to-cyberVolt text-black font-brand font-extrabold text-base tracking-wider rounded-2xl shadow-glow-green uppercase flex items-center justify-center gap-2 cursor-default opacity-90";
+    if (icon) icon.innerText = "✓";
+    if (text) text.innerText = "ATTENDANCE VERIFIED TODAY";
+    if (sync) {
+      const t = state.check_in ? new Date(state.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Today';
+      sync.innerText = `Today's Check-in: ${t} ✓`;
+    }
+  } else {
+    btn.disabled = false;
+    btn.onclick = () => window.openDeskQRScanner?.();
+    btn.className = "w-full py-4 px-4 bg-gradient-to-r from-matrixGreen via-[#33ff88] to-cyberVolt text-black font-brand font-extrabold text-base tracking-wider rounded-2xl shadow-glow-green hover:brightness-110 active:scale-95 transition-all uppercase flex items-center justify-center gap-2 cursor-pointer relative overflow-hidden";
+    if (icon) icon.innerText = "📷";
+    if (text) text.innerText = "SCAN DESK QR TO PUNCH ATTENDANCE";
+    if (sync) sync.innerText = "Today's Check-in: Not Logged";
+  }
+}
+
 async function refreshFromServer(reason = 'live') {
   if (refreshInFlight) return;
   const session = readSession();
@@ -76,6 +103,18 @@ async function refreshFromServer(reason = 'live') {
     };
     localStorage.setItem(MEMBER_SESSION_KEY, JSON.stringify(merged));
     window.__nexusMemberSession = merged;
+
+    try {
+      const { data: punchState, error: punchError } = await supabase.rpc('rpc_member_attendance_status', {
+        p_gym_slug: String(session.gym_slug),
+        p_member_id: merged.id,
+        p_session_token: String(session.session_token)
+      });
+      if (!punchError && punchState?.success) applyAttendanceButtonState(punchState);
+    } catch (punchError) {
+      console.warn('[NEXUS ATTENDANCE STATE] Refresh failed:', punchError?.message || punchError);
+    }
+
     window.dispatchEvent(new CustomEvent(EVENT_NAME, { detail: { ...data, member_id: merged.id, gym_id: merged.gym_id, gym_slug: merged.gym_slug }, reason }));
   } catch (error) {
     if (/session expired|session missing|member not found/i.test(error?.message || '')) {
