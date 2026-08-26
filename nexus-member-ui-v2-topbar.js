@@ -9,7 +9,7 @@ const init=()=>{
  const initials=member().split(' ').filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'M';
  bar.innerHTML='<button type="button" class="nx2-menu" id="nx2-menu-button" aria-label="Open member menu"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button><div class="nx2-brand"><div class="nx2-brand-name">'+text().toUpperCase()+'</div><div class="nx2-brand-sub">NEXUS MEMBER · PRIVATE FITNESS</div></div><div class="nx2-avatar">'+initials+'</div>';
  tab.prepend(bar);
- bar.querySelector('#nx2-menu-button').onclick=()=>document.getElementById('nx2-drawer')?.classList.contains('open')?document.getElementById('nx2-drawer').classList.remove('open'):window.nexusOpenMemberDrawer?.();
+ bar.querySelector('#nx2-menu-button').onclick=()=>{const d=document.getElementById('nx2-drawer');if(d)d.classList.add('open')};
 };
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 new MutationObserver(init).observe(document.body,{childList:true,subtree:true});
