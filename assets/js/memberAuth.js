@@ -77,11 +77,9 @@ export async function logoutMemberSession(sessionToken) {
 }
 
 export async function getPublicHudPass(gymSlug, phoneNumber) {
-  try {
-    const { data, error } = await supabase.rpc('rpc_get_member_hud_pass', { p_gym_slug: gymSlug, p_phone: cleanPhone(phoneNumber) });
-    if (!error && data?.success) return data;
-  } catch (_) {}
-  return null;
+  // Public member entry is intentionally backed by the dedicated phone-roster
+  // RPC. It does not require a Supabase Auth session and does not expose PIN data.
+  return getMemberAuthState(gymSlug, phoneNumber);
 }
 
 export async function claimMemberPass(gymId, phoneNumber) {
@@ -264,6 +262,10 @@ function installPortalAuthOverrides() {
       document.getElementById('auth-modal')?.classList.add('hidden');
       if (typeof window.playCyberChime === 'function') window.playCyberChime('success');
       if (typeof window.showToast === 'function') window.showToast(`Authenticated: Welcome, ${result.full_name}! ⚡`, 'success');
+      if (typeof window.fetchFreshAthleteData === 'function') window.fetchFreshAthleteData(result.phone);
+      if (typeof window.fetchAthleteAttendanceHistory === 'function') window.fetchAthleteAttendanceHistory();
+      if (typeof window.checkTodayAttendancePunchState === 'function') window.checkTodayAttendancePunchState();
+      if (typeof window.fetchReferralSquad === 'function') window.fetchReferralSquad();
     } catch (err) {
       if (typeof window.playCyberChime === 'function') window.playCyberChime('alert');
       if (typeof window.showToast === 'function') window.showToast(err?.message || 'Authentication failed.', 'error');
@@ -271,3 +273,6 @@ function installPortalAuthOverrides() {
     }
   };
 }
+
+installLivePortalSync();
+installPortalAuthOverrides();
