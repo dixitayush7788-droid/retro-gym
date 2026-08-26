@@ -18,7 +18,7 @@ export async function initAdminConsole() {
     if (targetGymSlug) sessionStorage.setItem(`retrogym_admin_auth_${targetGymSlug}`, 'true');
     document.getElementById('admin-lock-modal')?.classList.add('hidden');
     bindDeskLockHandler(userContext, targetGymSlug);
-    installGymRenewalOverride(targetGymSlug);
+    installGymRenewalOverride(targetGymSlug, Boolean(userContext.is_super_admin));
     installAtomicMemberRegistration();
     if (typeof window.fetchAllData === 'function') window.fetchAllData(false);
   } catch (error) {
@@ -26,7 +26,7 @@ export async function initAdminConsole() {
   }
 }
 
-function installGymRenewalOverride(gymSlug) {
+function installGymRenewalOverride(gymSlug, isSuperAdmin = false) {
   if (typeof window === 'undefined' || window.__nexusRenewalOverrideInstalled) return;
   window.__nexusRenewalOverrideInstalled = true;
 
@@ -63,12 +63,17 @@ function installGymRenewalOverride(gymSlug) {
   window.directExtend = async function (phone, months) {
     const cleanPhone = String(phone || '').replace(/\D/g, '').slice(-10);
     const daysToAdd = months === 1 ? 30 : months === 3 ? 90 : months === 6 ? 180 : Number(months) * 30;
-    const adminPin = sessionStorage.getItem('retrogym_admin_pin') || '';
+    let adminPin = isSuperAdmin ? '' : (sessionStorage.getItem('retrogym_admin_pin') || '');
 
-    if (!/^\d{4}$/.test(adminPin)) {
-      window.showToast?.('Please unlock the Gym Security PIN before renewing a membership.', 'error');
-      return;
+    if (!isSuperAdmin && !/^\d{4}$/.test(adminPin)) {
+      const entered = window.prompt('Enter 4-Digit Gym Security PIN to renew this membership:');
+      if (!/^\d{4}$/.test(String(entered || ''))) {
+        window.showToast?.('Renewal cancelled: enter a valid 4-digit Gym Security PIN.', 'error');
+        return;
+      }
+      adminPin = String(entered);
     }
+
     if (!cleanPhone || !gymSlug) {
       window.showToast?.('Gym/member context missing. Please reload the admin panel.', 'error');
       return;
@@ -103,6 +108,7 @@ function installGymRenewalOverride(gymSlug) {
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || 'Pass renewal failed.');
 
+      if (!isSuperAdmin) sessionStorage.setItem('retrogym_admin_pin', adminPin);
       window.playAudioChirp?.(780, 0.12);
       window.showToast?.(`⚡ Pass for ${member.full_name} Renewed (+${daysToAdd} Days)!`, 'success');
       await window.fetchAllData?.();
