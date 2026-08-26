@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NEXUS COMMAND</title></head>
-<body style="margin:0;background:#040406;color:#fff;font-family:system-ui;display:grid;place-items:center;min-height:100vh">
+<body style="margin:0;background:#070B14;color:#fff;font-family:Inter,system-ui;display:grid;place-items:center;min-height:100vh">
 <div style="text-align:center"><div style="font-size:42px">⚡</div><div id="status">SECURE BOOT — VERIFYING SESSION…</div></div>
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
@@ -31,6 +31,8 @@ try {
   ];
   for(const [a,b] of patches){if(!source.includes(a))console.warn('runtime patch target missing',a.slice(0,80));source=source.replace(a,b);}
   source=source.replace("async function initAdminGatekeeper() {","async function initAdminGatekeeper() {\n      await db.auth.getSession();");
+  source=source.replace('</head>','<link rel="stylesheet" href="./nexus-owner-ui.css">\n</head>');
+  source=source.replace('</body>','<script src="./nexus-owner-ui.js"></script>\n</body>');
   document.open();document.write(source);document.close();
 }catch(e){status.textContent=e.message||'Secure boot failed';console.error(e);}
 </script></body></html>
