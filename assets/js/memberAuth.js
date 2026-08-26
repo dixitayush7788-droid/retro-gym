@@ -77,8 +77,6 @@ export async function logoutMemberSession(sessionToken) {
 }
 
 export async function getPublicHudPass(gymSlug, phoneNumber) {
-  // Public member entry is intentionally backed by the dedicated phone-roster
-  // RPC. It does not require a Supabase Auth session and does not expose PIN data.
   return getMemberAuthState(gymSlug, phoneNumber);
 }
 
@@ -274,5 +272,43 @@ function installPortalAuthOverrides() {
   };
 }
 
+function installSecureMemberPunchOverride() {
+  if (typeof window === 'undefined') return;
+  window.executeVerifiedAttendancePunch = async function() {
+    const athlete = window.__nexusMemberSession || (() => {
+      try { return JSON.parse(localStorage.getItem('rg_member_session') || 'null'); } catch (_) { return null; }
+    })();
+    const gymSlug = getGymSlug();
+    const memberId = athlete?.member_id || athlete?.id;
+    const sessionToken = athlete?.session_token;
+    if (!memberId || !sessionToken || !gymSlug) {
+      if (typeof window.showToast === 'function') window.showToast('Secure member session missing. Please log in again.', 'error');
+      return;
+    }
+    try {
+      const { data, error } = await supabase.rpc('rpc_member_check_in', {
+        p_gym_slug: gymSlug,
+        p_member_id: memberId,
+        p_session_token: sessionToken,
+        p_qr_token: `AUTH_DESK_QR_${gymSlug}_2026`
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Attendance punch rejected');
+      const merged = { ...athlete, id: memberId, member_id: memberId, gym_slug: gymSlug, session_token: sessionToken, streak_count: Number(data.streak_count || 0), saved_at: Date.now() };
+      localStorage.setItem('rg_member_session', JSON.stringify(merged));
+      window.__nexusMemberSession = merged;
+      if (typeof window.markPunchButtonVerified === 'function') window.markPunchButtonVerified(data.check_in);
+      if (typeof window.renderAthletePassHUD === 'function') window.renderAthletePassHUD();
+      if (typeof window.fetchAthleteAttendanceHistory === 'function') window.fetchAthleteAttendanceHistory();
+      if (typeof window.playCyberChime === 'function') window.playCyberChime('success');
+      if (typeof window.showToast === 'function') window.showToast(data.status === 'ALREADY_CHECKED_IN' ? '✓ Attendance already verified today!' : '✓ Desk QR Attendance Verified! 🔥', 'success');
+    } catch (err) {
+      if (typeof window.playCyberChime === 'function') window.playCyberChime('alert');
+      if (typeof window.showToast === 'function') window.showToast('Attendance sync error: ' + (err?.message || err), 'error');
+    }
+  };
+}
+
 installLivePortalSync();
 installPortalAuthOverrides();
+installSecureMemberPunchOverride();
