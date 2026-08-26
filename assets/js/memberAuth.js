@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient.js';
+import './memberLiveSync.js';
 
 function cleanPhone(phone) {
   return String(phone || '').replace(/\D/g, '').slice(-10);
@@ -32,6 +33,8 @@ function saveMemberSession(data) {
     saved_at: Date.now()
   };
   localStorage.setItem('rg_member_session', JSON.stringify(session));
+  window.__nexusMemberSession = session;
+  window.__nexusStartMemberLiveSync?.();
   return session;
 }
 
@@ -70,6 +73,7 @@ export async function refreshMemberSession(gymSlug, sessionToken) {
 export async function logoutMemberSession(sessionToken) {
   try { await supabase.rpc('rpc_member_logout', { p_session_token: String(sessionToken || '') }); } catch (_) {}
   localStorage.removeItem('rg_member_session');
+  window.__nexusMemberSession = null;
 }
 
 export async function getPublicHudPass(gymSlug, phoneNumber) {
@@ -184,6 +188,15 @@ function installLivePortalSync() {
   setTimeout(() => syncSavedMemberSession(true), 1500);
 }
 
+window.addEventListener('nexus:member-live-update', (event) => {
+  try {
+    const existing = JSON.parse(localStorage.getItem('rg_member_session') || 'null');
+    if (existing?.session_token && event.detail?.member_id) {
+      applyMemberSessionToPortal(event.detail, existing);
+    }
+  } catch (_) {}
+});
+
 function installPortalAuthOverrides() {
   if (typeof window === 'undefined') return;
   window.handlePhoneSubmit = async function() {
@@ -257,10 +270,4 @@ function installPortalAuthOverrides() {
       if (typeof window.clearAuthKey === 'function') window.clearAuthKey();
     }
   };
-}
-
-installPortalAuthOverrides();
-if (typeof window !== 'undefined') {
-  if (document.readyState === 'complete') installLivePortalSync();
-  else window.addEventListener('load', installLivePortalSync, { once: true });
 }
