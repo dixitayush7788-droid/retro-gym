@@ -1,4 +1,4 @@
-/* NEXUS MEMBER UI loader — v3 clean black/silver presentation layer. */
+/* NEXUS MEMBER UI loader — world-class presentation layer. */
 (()=>{
   const load=()=>{
     if(document.getElementById('nexus-member-ui-v3')) return;
@@ -19,6 +19,17 @@
         v3.src='./nexus-member-ui-v3.js';
         v3.defer=false;
         document.head.appendChild(v3);
+        v3.onload=()=>{
+          const css=document.createElement('link');
+          css.rel='stylesheet';
+          css.href='./nexus-world-ui.css';
+          document.head.appendChild(css);
+          const world=document.createElement('script');
+          world.id='nexus-world-ui';
+          world.src='./nexus-world-ui.js';
+          world.defer=false;
+          document.head.appendChild(world);
+        };
       };
     };
   };
