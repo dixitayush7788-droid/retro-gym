@@ -1,0 +1,38 @@
+/* NEXUS SALES UI — presentation-only enhancement layer.
+   Never changes IDs, Supabase calls, auth state, handlers or business rules. */
+:root{--sales-ink:#070809;--sales-panel:rgba(18,20,24,.84);--sales-line:rgba(255,255,255,.10);--sales-soft:#b9bec4;--sales-muted:#747b84;--sales-white:#f7f7f3;--sales-accent:#dfe3e5;--sales-green:#66e5a4;--sales-blue:#86aefc;--sales-shadow:0 24px 80px rgba(0,0,0,.48)}
+.nexus-sales-ready{scroll-behavior:smooth}
+.nexus-sales-ready .sales-reveal{animation:salesReveal .5s cubic-bezier(.2,.8,.2,1) both}
+.nexus-sales-ready button:not([disabled]),.nexus-sales-ready a{transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease,background .18s ease,filter .18s ease}
+.nexus-sales-ready button:not([disabled]):hover,.nexus-sales-ready a:hover{transform:translateY(-1px)}
+.nexus-sales-ready button:not([disabled]):active,.nexus-sales-ready a:active{transform:translateY(0) scale(.985)}
+/* Member: make the first viewport feel like a product, not a dashboard template. */
+.nexus-member-page #tab-pass{position:relative}
+.nexus-member-page #tab-pass:before{content:'MEMBER EXPERIENCE';display:block;margin:0 2px 9px;color:var(--sales-muted);font:800 8px/1 'Space Mono',monospace;letter-spacing:.22em}
+.nexus-member-page .nexus-pass-card{position:relative;isolation:isolate}
+.nexus-member-page .nexus-pass-card:after{content:'';position:absolute;inset:1px;border-radius:29px;pointer-events:none;background:linear-gradient(120deg,transparent 0 42%,rgba(255,255,255,.075) 50%,transparent 58%);transform:translateX(-110%);animation:salesSheen 7s ease-in-out infinite;z-index:5}
+.nexus-member-page .nx3-stats{grid-template-columns:1.15fr .9fr .9fr!important}
+.nexus-member-page .nx3-stat:first-child{background:linear-gradient(145deg,rgba(255,255,255,.08),rgba(255,255,255,.02))!important}
+.nexus-member-page .nx3-panel{position:relative;overflow:hidden}
+.nexus-member-page .nx3-panel:before{content:'';position:absolute;right:-90px;top:-90px;width:180px;height:180px;border:1px solid rgba(255,255,255,.06);border-radius:50%;pointer-events:none}
+/* Owner: stronger hierarchy and commercial feel without replacing any existing controls. */
+.nexus-admin-page main{position:relative}
+.nexus-admin-page main:before{content:'NEXUS COMMAND';display:block;margin:0 0 7px;color:var(--sales-muted);font:800 9px/1 'Space Mono',monospace;letter-spacing:.24em}
+.nexus-admin-page section{position:relative;overflow:hidden}
+.nexus-admin-page section:after{content:'';position:absolute;right:-110px;top:-110px;width:230px;height:230px;border:1px solid rgba(255,255,255,.035);border-radius:50%;pointer-events:none}
+.nexus-admin-page button:not([disabled]){min-height:40px}
+.nexus-admin-page .sales-primary{background:linear-gradient(135deg,#f5f6f3,#bfc4c8)!important;color:#070809!important;border:0!important;box-shadow:0 14px 35px rgba(255,255,255,.08)!important}
+.nexus-admin-page .sales-primary:hover{box-shadow:0 18px 45px rgba(255,255,255,.13)!important}
+.nexus-admin-page .sales-status{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid rgba(102,229,164,.22);border-radius:999px;background:rgba(102,229,164,.06);color:var(--sales-green);font:800 8px 'Space Mono',monospace;letter-spacing:.1em}
+.nexus-admin-page .sales-status i{width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 12px currentColor}
+/* Touch targets: improve usability but never disable or rewrite an existing action. */
+.nexus-sales-ready button,.nexus-sales-ready a{touch-action:manipulation}
+.nexus-sales-ready input,.nexus-sales-ready select,.nexus-sales-ready textarea{min-height:42px}
+@media(max-width:700px){
+ .nexus-admin-page main:before{margin-top:3px}
+ .nexus-member-page .nx3-stats{grid-template-columns:1fr 1fr!important}
+ .nexus-member-page .nx3-stat:first-child{grid-column:span 2}
+}
+@media(prefers-reduced-motion:reduce){.nexus-member-page .nexus-pass-card:after{animation:none}.nexus-sales-ready .sales-reveal{animation:none}}
+@keyframes salesReveal{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes salesSheen{0%,55%{transform:translateX(-110%)}75%,100%{transform:translateX(110%)}}
