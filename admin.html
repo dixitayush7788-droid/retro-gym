@@ -2,84 +2,125 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#070B14">
   <title>NEXUS COMMAND</title>
   <style>
-    html,body{margin:0;min-height:100%;background:#070B14;color:#fff;font-family:Inter,system-ui,sans-serif}
+    html,body{margin:0;min-height:100%;background:#070B14;color:#fff;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,sans-serif}
     body{display:grid;place-items:center;min-height:100vh}
-    #status{text-align:center;font-size:14px;font-weight:700;letter-spacing:.02em}
-    #boot{display:grid;place-items:center;gap:10px;text-align:center}
-    #boot-icon{font-size:42px}
+    #boot{display:grid;place-items:center;gap:12px;text-align:center;padding:24px}
+    #boot-icon{font-size:42px;line-height:1}
+    #status{font-size:14px;font-weight:700;letter-spacing:.02em;max-width:90vw}
+    #detail{font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;color:#94a3b8;max-width:90vw;text-align:center}
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-  <div id="boot"><div id="boot-icon">⚡</div><div id="status">SECURE BOOT — VERIFYING SESSION…</div></div>
-  <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+  <div id="boot">
+    <div id="boot-icon">⚡</div>
+    <div id="status">SECURE BOOT — VERIFYING SESSION…</div>
+    <div id="detail"></div>
+  </div>
+
+  <script>
+  (function(){
+    'use strict';
 
     const SUPABASE_URL='https://zfvkvrhuovvbfbrutpph.supabase.co';
-    const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpmdmt2cmh1b3Z2YmZicnV0cHBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMzIyODQsImV4cCI6MjEwMjcwODI4NH0.M-WK1bgZDLXcuMTldMSwptx5XRpRnLAi-BxMFEoph4U';
+    const SUPABASE_KEY='sb_publishable_bFbeqpwaWmp0aioDVSkLAg_J7X4lzWk';
     const status=document.getElementById('status');
+    const detail=document.getElementById('detail');
 
-    const patchCore=(source)=>{
-      const patches=[
-        ["const db = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;","const db = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:window.localStorage}}) : null;"],
-        ["const { data: gymData, error } = await db\n          .from('gyms')\n          .select('*')\n          .eq('slug', currentGymSlug)\n          .maybeSingle();","await db.auth.getSession();\n        const { data: tenantResult, error: tenantError } = await db.rpc('rpc_get_admin_tenant', { p_slug: currentGymSlug });\n        const gymData = tenantResult?.success ? tenantResult.gym : null;\n        const error = tenantError || (tenantResult?.success ? null : new Error(tenantResult?.error || 'Tenant resolution failed'));"],
-        ["currentGymAdminPin = gym.admin_pin_hash ? true : null;","currentGymAdminPin = gym.pin_configured === true || gym.admin_pin_hash ? true : null;"],
-        ["currentGymAdminPin = gym.admin_pin || null;","currentGymAdminPin = gym.pin_configured ? true : null;"],
-        ["const { error } = await db\n              .from('gyms')\n              .update({ admin_pin: newPin })\n              .eq('slug', currentGymSlug);\n\n            if (error) throw error;","const { data, error } = await db.rpc('rpc_set_admin_pin', { p_gym_id: currentGymConfig.id, p_pin: newPin });\n            if (error) throw error;\n            if (!data?.success) throw new Error(data?.error || 'Failed to configure Admin PIN');"],
-        ["if (adminPinBuffer === currentGymAdminPin) {","const { data: pinResult, error: pinError } = await db.rpc('rpc_staff_quick_pin_unlock', { p_gym_id: currentGymConfig.id, p_pin: adminPinBuffer });\n      if (!pinError && pinResult?.success) {"],
-        ["status: gym.status || \"OPEN\",","status: ['OPEN','DELAYED','CLOSED','HOLIDAY'].includes(String(gym.status || '').toUpperCase()) ? String(gym.status).toUpperCase() : 'OPEN',"],
-        ["status: 'ACTIVE'","status: 'active'"],
-        ["payment_method: 'CASH',","payment_method: 'cash',\n              payment_status: 'completed',"],
-        ["select('id, duration_months').eq('gym_id', gymIntId)","select('id, duration_days').eq('gym_id', gymIntId).eq('is_active', true)"],
-        ["p.duration_months === selectedPlanMonths","Math.abs(Number(p.duration_days) - selectedPlanMonths * 30) <= 2"],
-        ["fetchMembersData();","fetchAllData();"],
-        ["updateKpisAndTelemetry();","calculateKPIs(new Date().toISOString().split('T')[0]);"],
-        ["gym_id: currentGymSlug,\n        name: name,","name: name,"]
-      ];
-      for(const [a,b] of patches){if(source.includes(a)) source=source.replace(a,b);}
-      source=source.replace("async function initAdminGatekeeper() {","async function initAdminGatekeeper() {\n      await db.auth.getSession();");
-      source=source.replace('</head>','<link rel="stylesheet" href="./nexus-owner-ui.css">\n</head>');
-      source=source.replace('</body>','<script src="./nexus-owner-ui.js"><\/script>\n</body>');
-      return source;
-    };
+    function setStatus(message, extra){
+      if(status) status.textContent=message;
+      if(detail) detail.textContent=extra||'';
+    }
 
-    const runScriptsSequentially=async(root)=>{
-      const scripts=[...root.querySelectorAll('script')];
-      for(const oldScript of scripts){
-        const script=document.createElement('script');
-        for(const attr of oldScript.attributes) script.setAttribute(attr.name,attr.value);
-        if(oldScript.src){
-          await new Promise((resolve,reject)=>{script.onload=resolve;script.onerror=()=>reject(new Error(`Script load failed: ${oldScript.src}`));document.head.appendChild(script);});
-        }else{
-          script.textContent=oldScript.textContent||'';
-          document.head.appendChild(script);
-        }
-      }
-    };
+    function goLogin(){
+      const q=window.location.search||'';
+      window.location.replace('./admin-login.html'+q);
+    }
 
-    try{
-      const supabase=createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:window.localStorage}});
-      const {data:{session},error}=await supabase.auth.getSession();
-      if(error||!session?.user){
-        window.location.replace(`./admin-login.html${location.search||''}`);
-        throw new Error('AUTH_REQUIRED');
+    async function loadCore(){
+      if(!window.supabase || typeof window.supabase.createClient!=='function'){
+        throw new Error('Supabase client failed to load. Please check your internet connection.');
       }
 
-      status.textContent='SESSION VERIFIED — LOADING TENANT COMMAND…';
-      let source=await fetch('./admin-core.html',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error(`Core load failed (${r.status})`);return r.text();});
-      source=patchCore(source);
+      const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
+        auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:window.localStorage}
+      });
+      window.__NEXUS_CANONICAL_SUPABASE_CLIENT__=client;
+      window.supabaseClient=client;
+      window.db=client;
+
+      setStatus('SECURE BOOT — CHECKING ACCOUNT…');
+      const {data:{session},error:sessionError}=await client.auth.getSession();
+      if(sessionError) throw sessionError;
+      if(!session || !session.user){
+        goLogin();
+        return;
+      }
+
+      setStatus('SESSION VERIFIED — LOADING COMMAND DESK…');
+      const response=await fetch('./admin-core.html?v=20260831',{cache:'no-store',credentials:'same-origin'});
+      if(!response.ok) throw new Error('Admin core failed to load (HTTP '+response.status+').');
+      let source=await response.text();
+
+      // Use the canonical publishable key already used by the current Supabase client.
+      source=source.replace(/SUPABASE_ANON_KEY:\s*'[^']*'/,"SUPABASE_ANON_KEY: '"+SUPABASE_KEY+"'");
+      source=source.replace(/SUPABASE_KEY\s*=\s*'[^']*'/g,"SUPABASE_KEY='"+SUPABASE_KEY+"'");
+
+      // Keep the existing admin business logic intact; only add the visual layer.
+      if(!source.includes('nexus-owner-ui.css')){
+        source=source.replace('</head>','<link rel="stylesheet" href="./nexus-owner-ui.css?v=20260831">\n</head>');
+      }
+      if(!source.includes('nexus-owner-ui.js')){
+        source=source.replace('</body>','<script src="./nexus-owner-ui.js?v=20260831"><\\/script>\n</body>');
+      }
 
       const parsed=new DOMParser().parseFromString(source,'text/html');
-      if(!parsed.body) throw new Error('Invalid admin core document');
-      document.documentElement.replaceWith(document.importNode(parsed.documentElement,true));
-      await runScriptsSequentially(document);
-    }catch(e){
-      if(e?.message==='AUTH_REQUIRED') return;
-      status.textContent=e?.message||'Secure boot failed';
-      console.error('Admin secure boot failed:',e);
+      if(!parsed.documentElement || !parsed.body) throw new Error('Admin core returned invalid HTML.');
+      const scriptNodes=[...parsed.querySelectorAll('script')].map(node=>({
+        src:node.getAttribute('src'),
+        type:node.getAttribute('type'),
+        text:node.textContent||''
+      }));
+
+      // Replace the boot document without document.write(). This is critical on Safari/iOS.
+      const imported=document.importNode(parsed.documentElement,true);
+      document.documentElement.replaceWith(imported);
+
+      const nodes=[...document.querySelectorAll('script')];
+      for(let i=0;i<nodes.length;i++){
+        const old=nodes[i];
+        const src=old.getAttribute('src');
+        const type=old.getAttribute('type');
+        const replacement=document.createElement('script');
+        if(type) replacement.setAttribute('type',type);
+        if(src){
+          replacement.src=src;
+          await new Promise((resolve,reject)=>{
+            replacement.onload=resolve;
+            replacement.onerror=()=>reject(new Error('Script failed to load: '+src));
+            document.head.appendChild(replacement);
+          });
+        }else{
+          replacement.textContent=old.textContent||'';
+          document.head.appendChild(replacement);
+        }
+        old.remove();
+      }
     }
+
+    loadCore().catch(function(error){
+      console.error('[NEXUS ADMIN BOOT]',error);
+      setStatus('ADMIN PANEL COULD NOT START',error && error.message ? error.message : 'Unknown startup error');
+      setTimeout(function(){
+        if(/Supabase client failed|failed to load/i.test(error?.message||'')) return;
+        // If a real admin session exists but the core is broken, keep the error visible instead of looping.
+      },100);
+    });
+  })();
   </script>
 </body>
 </html>
