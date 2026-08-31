@@ -1,38 +1,85 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NEXUS COMMAND</title></head>
-<body style="margin:0;background:#070B14;color:#fff;font-family:Inter,system-ui;display:grid;place-items:center;min-height:100vh">
-<div style="text-align:center"><div style="font-size:42px">⚡</div><div id="status">SECURE BOOT — VERIFYING SESSION…</div></div>
-<script type="module">
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-const SUPABASE_URL='https://zfvkvrhuovvbfbrutpph.supabase.co';
-const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpmdmt2cmh1b3Z2YmZicnV0cHBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMzIyODQsImV4cCI6MjEwMjcwODI4NH0.M-WK1bgZDLXcuMTldMSwptx5XRpRnLAi-BxMFEoph4U';
-const supabase=createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:window.localStorage}});
-const status=document.getElementById('status');
-try {
-  const {data:{session},error}=await supabase.auth.getSession();
-  if(error||!session?.user){ window.location.replace(`./admin-login.html${location.search||''}`); throw new Error('AUTH_REQUIRED'); }
-  status.textContent='SESSION VERIFIED — LOADING TENANT COMMAND…';
-  let source=await fetch('./admin-core.html',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error(`Core load failed (${r.status})`);return r.text();});
-  const patches=[
-    ["const db = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;","const db = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:window.localStorage}}) : null;"],
-    ["const { data: gymData, error } = await db\n          .from('gyms')\n          .select('*')\n          .eq('slug', currentGymSlug)\n          .maybeSingle();","await db.auth.getSession();\n        const { data: tenantResult, error: tenantError } = await db.rpc('rpc_get_admin_tenant', { p_slug: currentGymSlug });\n        const gymData = tenantResult?.success ? tenantResult.gym : null;\n        const error = tenantError || (tenantResult?.success ? null : new Error(tenantResult?.error || 'Tenant resolution failed'));"],
-    ["currentGymAdminPin = gym.admin_pin_hash ? true : null;","currentGymAdminPin = gym.pin_configured === true || gym.admin_pin_hash ? true : null;"],
-    ["currentGymAdminPin = gym.admin_pin || null;","currentGymAdminPin = gym.pin_configured ? true : null;"],
-    ["const { error } = await db\n              .from('gyms')\n              .update({ admin_pin: newPin })\n              .eq('slug', currentGymSlug);\n\n            if (error) throw error;","const { data, error } = await db.rpc('rpc_set_admin_pin', { p_gym_id: currentGymConfig.id, p_pin: newPin });\n            if (error) throw error;\n            if (!data?.success) throw new Error(data?.error || 'Failed to configure Admin PIN');"],
-    ["if (adminPinBuffer === currentGymAdminPin) {","const { data: pinResult, error: pinError } = await db.rpc('rpc_staff_quick_pin_unlock', { p_gym_id: currentGymConfig.id, p_pin: adminPinBuffer });\n      if (!pinError && pinResult?.success) {"],
-    ["status: gym.status || \"OPEN\",","status: ['OPEN','DELAYED','CLOSED','HOLIDAY'].includes(String(gym.status || '').toUpperCase()) ? String(gym.status).toUpperCase() : 'OPEN',"],
-    ["status: 'ACTIVE'","status: 'active'"],
-    ["payment_method: 'CASH',","payment_method: 'cash',\n              payment_status: 'completed',"],
-    ["select('id, duration_months').eq('gym_id', gymIntId)","select('id, duration_days').eq('gym_id', gymIntId).eq('is_active', true)"],
-    ["p.duration_months === selectedPlanMonths","Math.abs(Number(p.duration_days) - selectedPlanMonths * 30) <= 2"],
-    ["fetchMembersData();","fetchAllData();"],
-    ["updateKpisAndTelemetry();","calculateKPIs(new Date().toISOString().split('T')[0]);"],
-    ["gym_id: currentGymSlug,\n        name: name,","name: name,"]
-  ];
-  for(const [a,b] of patches){if(!source.includes(a))console.warn('runtime patch target missing',a.slice(0,80));source=source.replace(a,b);}
-  source=source.replace("async function initAdminGatekeeper() {","async function initAdminGatekeeper() {\n      await db.auth.getSession();");
-  source=source.replace('</head>','<link rel="stylesheet" href="./nexus-owner-ui.css">\n</head>');
-  source=source.replace('</body>','<script src="./nexus-owner-ui.js"></script>\n</body>');
-  document.open();document.write(source);document.close();
-}catch(e){status.textContent=e.message||'Secure boot failed';console.error(e);}
-</script></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>NEXUS COMMAND</title>
+  <style>
+    html,body{margin:0;min-height:100%;background:#070B14;color:#fff;font-family:Inter,system-ui,sans-serif}
+    body{display:grid;place-items:center;min-height:100vh}
+    #status{text-align:center;font-size:14px;font-weight:700;letter-spacing:.02em}
+    #boot{display:grid;place-items:center;gap:10px;text-align:center}
+    #boot-icon{font-size:42px}
+  </style>
+</head>
+<body>
+  <div id="boot"><div id="boot-icon">⚡</div><div id="status">SECURE BOOT — VERIFYING SESSION…</div></div>
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+    const SUPABASE_URL='https://zfvkvrhuovvbfbrutpph.supabase.co';
+    const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpmdmt2cmh1b3Z2YmZicnV0cHBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMzIyODQsImV4cCI6MjEwMjcwODI4NH0.M-WK1bgZDLXcuMTldMSwptx5XRpRnLAi-BxMFEoph4U';
+    const status=document.getElementById('status');
+
+    const patchCore=(source)=>{
+      const patches=[
+        ["const db = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;","const db = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:window.localStorage}}) : null;"],
+        ["const { data: gymData, error } = await db\n          .from('gyms')\n          .select('*')\n          .eq('slug', currentGymSlug)\n          .maybeSingle();","await db.auth.getSession();\n        const { data: tenantResult, error: tenantError } = await db.rpc('rpc_get_admin_tenant', { p_slug: currentGymSlug });\n        const gymData = tenantResult?.success ? tenantResult.gym : null;\n        const error = tenantError || (tenantResult?.success ? null : new Error(tenantResult?.error || 'Tenant resolution failed'));"],
+        ["currentGymAdminPin = gym.admin_pin_hash ? true : null;","currentGymAdminPin = gym.pin_configured === true || gym.admin_pin_hash ? true : null;"],
+        ["currentGymAdminPin = gym.admin_pin || null;","currentGymAdminPin = gym.pin_configured ? true : null;"],
+        ["const { error } = await db\n              .from('gyms')\n              .update({ admin_pin: newPin })\n              .eq('slug', currentGymSlug);\n\n            if (error) throw error;","const { data, error } = await db.rpc('rpc_set_admin_pin', { p_gym_id: currentGymConfig.id, p_pin: newPin });\n            if (error) throw error;\n            if (!data?.success) throw new Error(data?.error || 'Failed to configure Admin PIN');"],
+        ["if (adminPinBuffer === currentGymAdminPin) {","const { data: pinResult, error: pinError } = await db.rpc('rpc_staff_quick_pin_unlock', { p_gym_id: currentGymConfig.id, p_pin: adminPinBuffer });\n      if (!pinError && pinResult?.success) {"],
+        ["status: gym.status || \"OPEN\",","status: ['OPEN','DELAYED','CLOSED','HOLIDAY'].includes(String(gym.status || '').toUpperCase()) ? String(gym.status).toUpperCase() : 'OPEN',"],
+        ["status: 'ACTIVE'","status: 'active'"],
+        ["payment_method: 'CASH',","payment_method: 'cash',\n              payment_status: 'completed',"],
+        ["select('id, duration_months').eq('gym_id', gymIntId)","select('id, duration_days').eq('gym_id', gymIntId).eq('is_active', true)"],
+        ["p.duration_months === selectedPlanMonths","Math.abs(Number(p.duration_days) - selectedPlanMonths * 30) <= 2"],
+        ["fetchMembersData();","fetchAllData();"],
+        ["updateKpisAndTelemetry();","calculateKPIs(new Date().toISOString().split('T')[0]);"],
+        ["gym_id: currentGymSlug,\n        name: name,","name: name,"]
+      ];
+      for(const [a,b] of patches){if(source.includes(a)) source=source.replace(a,b);}
+      source=source.replace("async function initAdminGatekeeper() {","async function initAdminGatekeeper() {\n      await db.auth.getSession();");
+      source=source.replace('</head>','<link rel="stylesheet" href="./nexus-owner-ui.css">\n</head>');
+      source=source.replace('</body>','<script src="./nexus-owner-ui.js"><\/script>\n</body>');
+      return source;
+    };
+
+    const runScriptsSequentially=async(root)=>{
+      const scripts=[...root.querySelectorAll('script')];
+      for(const oldScript of scripts){
+        const script=document.createElement('script');
+        for(const attr of oldScript.attributes) script.setAttribute(attr.name,attr.value);
+        if(oldScript.src){
+          await new Promise((resolve,reject)=>{script.onload=resolve;script.onerror=()=>reject(new Error(`Script load failed: ${oldScript.src}`));document.head.appendChild(script);});
+        }else{
+          script.textContent=oldScript.textContent||'';
+          document.head.appendChild(script);
+        }
+      }
+    };
+
+    try{
+      const supabase=createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:window.localStorage}});
+      const {data:{session},error}=await supabase.auth.getSession();
+      if(error||!session?.user){
+        window.location.replace(`./admin-login.html${location.search||''}`);
+        throw new Error('AUTH_REQUIRED');
+      }
+
+      status.textContent='SESSION VERIFIED — LOADING TENANT COMMAND…';
+      let source=await fetch('./admin-core.html',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error(`Core load failed (${r.status})`);return r.text();});
+      source=patchCore(source);
+
+      const parsed=new DOMParser().parseFromString(source,'text/html');
+      if(!parsed.body) throw new Error('Invalid admin core document');
+      document.documentElement.replaceWith(document.importNode(parsed.documentElement,true));
+      await runScriptsSequentially(document);
+    }catch(e){
+      if(e?.message==='AUTH_REQUIRED') return;
+      status.textContent=e?.message||'Secure boot failed';
+      console.error('Admin secure boot failed:',e);
+    }
+  </script>
+</body>
+</html>
