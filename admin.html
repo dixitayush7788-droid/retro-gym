@@ -37,8 +37,40 @@
     }
 
     function goLogin(){
-      const q=window.location.search||'';
-      window.location.replace('./admin-login.html'+q);
+      window.location.replace('./admin-login.html'+(window.location.search||''));
+    }
+
+    async function loadExternalScript(src, type){
+      return new Promise(function(resolve,reject){
+        const s=document.createElement('script');
+        if(type) s.type=type;
+        s.src=src;
+        s.onload=resolve;
+        s.onerror=function(){reject(new Error('Script failed to load: '+src));};
+        document.head.appendChild(s);
+      });
+    }
+
+    async function executeCoreScripts(){
+      const nodes=[...document.querySelectorAll('script')];
+      for(const old of nodes){
+        const src=old.getAttribute('src');
+        const type=old.getAttribute('type');
+        const replacement=document.createElement('script');
+        if(type) replacement.setAttribute('type',type);
+        if(src){
+          replacement.src=src;
+          await new Promise(function(resolve,reject){
+            replacement.onload=resolve;
+            replacement.onerror=function(){reject(new Error('Script failed to load: '+src));};
+            document.head.appendChild(replacement);
+          });
+        }else{
+          replacement.textContent=old.textContent||'';
+          document.head.appendChild(replacement);
+        }
+        old.remove();
+      }
     }
 
     async function loadCore(){
@@ -54,9 +86,9 @@
       window.db=client;
 
       setStatus('SECURE BOOT — CHECKING ACCOUNT…');
-      const {data:{session},error:sessionError}=await client.auth.getSession();
-      if(sessionError) throw sessionError;
-      if(!session || !session.user){
+      const result=await client.auth.getSession();
+      if(result.error) throw result.error;
+      if(!result.data || !result.data.session || !result.data.session.user){
         goLogin();
         return;
       }
@@ -66,59 +98,30 @@
       if(!response.ok) throw new Error('Admin core failed to load (HTTP '+response.status+').');
       let source=await response.text();
 
-      // Use the canonical publishable key already used by the current Supabase client.
+      // Keep the existing core intact while making its configuration use the canonical publishable key.
       source=source.replace(/SUPABASE_ANON_KEY:\s*'[^']*'/,"SUPABASE_ANON_KEY: '"+SUPABASE_KEY+"'");
       source=source.replace(/SUPABASE_KEY\s*=\s*'[^']*'/g,"SUPABASE_KEY='"+SUPABASE_KEY+"'");
 
-      // Keep the existing admin business logic intact; only add the visual layer.
       if(!source.includes('nexus-owner-ui.css')){
         source=source.replace('</head>','<link rel="stylesheet" href="./nexus-owner-ui.css?v=20260831">\n</head>');
       }
       if(!source.includes('nexus-owner-ui.js')){
-        source=source.replace('</body>','<script src="./nexus-owner-ui.js?v=20260831"><\\/script>\n</body>');
+        const ownerScript='<scr'+'ipt src="./nexus-owner-ui.js?v=20260831"></scr'+'ipt>';
+        source=source.replace('</body>',ownerScript+'\n</body>');
       }
 
       const parsed=new DOMParser().parseFromString(source,'text/html');
-      if(!parsed.documentElement || !parsed.body) throw new Error('Admin core returned invalid HTML.');
-      const scriptNodes=[...parsed.querySelectorAll('script')].map(node=>({
-        src:node.getAttribute('src'),
-        type:node.getAttribute('type'),
-        text:node.textContent||''
-      }));
+      if(!parsed.body) throw new Error('Admin core returned invalid HTML.');
 
-      // Replace the boot document without document.write(). This is critical on Safari/iOS.
+      // Never use document.write(): it can corrupt the document on Safari/iOS.
       const imported=document.importNode(parsed.documentElement,true);
       document.documentElement.replaceWith(imported);
-
-      const nodes=[...document.querySelectorAll('script')];
-      for(let i=0;i<nodes.length;i++){
-        const old=nodes[i];
-        const src=old.getAttribute('src');
-        const type=old.getAttribute('type');
-        const replacement=document.createElement('script');
-        if(type) replacement.setAttribute('type',type);
-        if(src){
-          replacement.src=src;
-          await new Promise((resolve,reject)=>{
-            replacement.onload=resolve;
-            replacement.onerror=()=>reject(new Error('Script failed to load: '+src));
-            document.head.appendChild(replacement);
-          });
-        }else{
-          replacement.textContent=old.textContent||'';
-          document.head.appendChild(replacement);
-        }
-        old.remove();
-      }
+      await executeCoreScripts();
     }
 
     loadCore().catch(function(error){
       console.error('[NEXUS ADMIN BOOT]',error);
       setStatus('ADMIN PANEL COULD NOT START',error && error.message ? error.message : 'Unknown startup error');
-      setTimeout(function(){
-        if(/Supabase client failed|failed to load/i.test(error?.message||'')) return;
-        // If a real admin session exists but the core is broken, keep the error visible instead of looping.
-      },100);
     });
   })();
   </script>
