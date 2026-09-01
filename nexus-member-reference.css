@@ -1,0 +1,42 @@
+/* NEXUS MEMBER REFERENCE UI — exact visual treatment for supplied reference. */
+:root{--ref-lime:#b8ff25;--ref-bg:#08090b;--ref-card:#151719;--ref-muted:#858b8f}
+#nx6-app{font-family:'Plus Jakarta Sans',system-ui,sans-serif!important;background:var(--ref-bg)!important;color:#f4f5f5!important}
+#nx6-app .nx6-wrap{width:min(430px,calc(100vw - 28px))!important}
+#nx6-app .nx6-top{height:66px!important}
+#nx6-app .nx6-logo{width:29px!important;height:29px!important;border-radius:8px!important;font-size:9px!important}
+#nx6-app .nx6-brand{gap:8px!important}.nx6-brand b{font-size:13px!important}
+#nx6-app .nx6-hero{padding:14px 0 14px!important}
+#nx6-app .nx6-status{font-size:7px!important;padding:5px 8px!important}
+#nx6-app .nx6-hero h1{font-size:25px!important;margin:13px 0 4px!important}
+#nx6-app .nx6-sub{font-size:9px!important}
+#nx6-app .nx6-card{border-radius:14px!important;background:linear-gradient(145deg,#151719,#111315)!important}
+#nx6-app .nx6-pass{padding:15px!important;margin-bottom:8px!important}
+#nx6-app .nx6-label{font-size:6px!important;letter-spacing:.12em!important}
+#nx6-app .nx6-avatar{width:28px!important;height:28px!important;border-radius:8px!important}
+#nx6-app .nx6-pass-name{font-size:23px!important;margin:17px 0 4px!important}
+#nx6-app .nx6-metrics{margin-top:14px!important;gap:6px!important}.nx6-metric{padding:9px 10px!important;border-radius:10px!important}
+#nx6-app .nx6-metric strong{font-size:15px!important}.nx6-metric.lime strong{font-size:23px!important;color:var(--ref-lime)!important}
+#nx6-app .nx6-primary{padding:12px 13px!important;border-radius:11px!important;font-size:10px!important;background:var(--ref-lime)!important}
+#nx6-app .nx6-primary small{font-size:6px!important}
+#nx6-app .nx6-actions{gap:6px!important;margin:7px 0 19px!important}.nx6-action{min-height:63px!important;padding:9px!important;border-radius:11px!important}
+#nx6-app .nx6-action b{font-size:8px!important;margin-top:6px!important}.nx6-action small{font-size:6px!important}
+#nx6-app .nx6-heading{margin-bottom:8px!important}.nx6-heading h2{font-size:17px!important}
+#nx6-app .nx6-row{padding:10px!important;border-radius:11px!important;margin-bottom:6px!important}.nx6-row b{font-size:9px!important}.nx6-row small{font-size:7px!important}
+#nx6-app .nx6-row-icon{width:27px!important;height:27px!important;border-radius:8px!important}
+#nx6-app .nx6-back{margin:8px 0 15px!important}.nx6-back button{width:32px!important;height:32px!important;border-radius:9px!important}
+#nx6-app .nx6-title{font-size:25px!important}.nx6-kicker{font-size:6px!important}.nx6-section-sub{font-size:9px!important}
+#nx6-app .nx6-tabs{gap:5px!important}.nx6-tab{padding:7px 10px!important;font-size:7px!important}
+#nx6-app .nx6-stat{padding:12px!important}.nx6-stat strong{font-size:18px!important}
+#nx6-app .nx6-stats{gap:6px!important}
+#nx6-app .nx6-scanner{height:315px!important;border-radius:14px!important}
+#nx6-app .nx6-ref{padding:14px!important}.nx6-ref-art{height:145px!important;border-radius:11px!important}
+#nx6-app .nx6-meal{padding:11px!important}.nx6-meal b{font-size:9px!important}.nx6-meal small{font-size:7px!important}.nx6-tag{font-size:6px!important}
+#nx6-app .nx6-water{padding:12px!important}.nx6-water strong{font-size:19px!important}
+#nx6-app .nx6-pass-large{padding:15px!important}.nx6-pass-id{font-size:23px!important}.nx6-pass-qr{width:150px!important;height:150px!important;margin:16px auto 8px!important}
+#nx6-app .nx6-plan{padding:12px!important;margin-bottom:6px!important}.nx6-plan b{font-size:9px!important}.nx6-plan strong{font-size:10px!important}
+#nx6-app .nx6-concierge-row{padding:12px!important;margin-bottom:6px!important}.nx6-concierge-row b{font-size:9px!important}.nx6-concierge-row small{font-size:7px!important}
+#nx6-app .nx6-bottom{height:calc(74px + var(--nx-safe))!important;padding:6px 8px var(--nx-safe)!important}
+#nx6-app .nx6-bottom-in{height:66px!important;width:min(430px,100%)!important}
+#nx6-app .nx6-nav{font-size:6px!important;border-radius:11px!important}.nx6-nav .ico{font-size:17px!important;line-height:18px!important}.nx6-nav.active{color:var(--ref-lime)!important;background:transparent!important;border-color:transparent!important}
+#nx6-app .nx6-nav.active .ico{filter:drop-shadow(0 0 5px rgba(184,255,37,.45))}
+@media(min-width:760px){#nx6-app .nx6-wrap,#nx6-app .nx6-bottom-in{width:min(430px,calc(100vw - 28px))!important}}
