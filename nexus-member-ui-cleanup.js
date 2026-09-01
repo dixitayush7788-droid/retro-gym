@@ -29,8 +29,12 @@
       });
     });
 
-    /* Remove legacy presentation-only injected styles; keep auth, modals,
-       Supabase/QR logic and application functions intact. */
+    /* v5 needs the existing drawer as a functional interaction surface.
+       Do not let the old-shell cleanup permanently kill it. */
+    document.querySelectorAll('#side-drawer,#drawer-backdrop').forEach(el => {
+      if (!el.closest('#nx5-app')) el.style.removeProperty('display');
+    });
+
     document.querySelectorAll('style[data-nx5-legacy]').forEach(el => el.remove());
   };
 
