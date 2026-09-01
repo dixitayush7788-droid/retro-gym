@@ -22,12 +22,12 @@
         v3.onload=()=>{
           const css=document.createElement('link');
           css.rel='stylesheet';
-          css.href='./nexus-world-ui.css';
+          css.href='./nexus-world-ui.css?v=20260901-compact';
           document.head.appendChild(css);
           const ref=document.createElement('link');
           ref.id='nexus-member-reference-css';
           ref.rel='stylesheet';
-          ref.href='./nexus-member-reference.css';
+          ref.href='./nexus-member-reference.css?v=20260901-compact';
           document.head.appendChild(ref);
           const world=document.createElement('script');
           world.id='nexus-world-ui';
