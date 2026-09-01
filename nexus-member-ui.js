@@ -1,4 +1,4 @@
-/* NEXUS MEMBER UI loader — world-class presentation layer. */
+/* NEXUS MEMBER UI loader — reference-driven presentation layer. */
 (()=>{
   const load=()=>{
     if(document.getElementById('nexus-member-ui-v3')) return;
@@ -24,6 +24,11 @@
           css.rel='stylesheet';
           css.href='./nexus-world-ui.css';
           document.head.appendChild(css);
+          const ref=document.createElement('link');
+          ref.id='nexus-member-reference-css';
+          ref.rel='stylesheet';
+          ref.href='./nexus-member-reference.css';
+          document.head.appendChild(ref);
           const world=document.createElement('script');
           world.id='nexus-world-ui';
           world.src='./nexus-world-ui.js';
