@@ -4,53 +4,290 @@
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const txt=(id,f='')=>String($('#'+id)?.textContent||f).replace(/\s+/g,' ').trim();
 const safeCall=(n,...a)=>{try{if(typeof window[n]==='function')return window[n](...a)}catch(e){console.warn('[NEXUS]',n,e)}};
-const member=()=>txt('pass-member-name','AYUSH'), phone=()=>txt('pass-member-phone',''), days=()=>txt('pass-days-left','30'), expiry=()=>txt('pass-valid-until','1 OCT 2026'), passId=()=>txt('pass-id-capsule','RT-8467895365'), streak=()=>txt('pass-streak-number','0');
+
+const getSession=()=>{
+  try{
+    return window.__nexusMemberSession||JSON.parse(localStorage.getItem('rg_member_session')||'null')||window.currentAthlete||null;
+  }catch(_){
+    return null;
+  }
+};
+
+const member=()=>getSession()?.full_name||txt('pass-member-name','AYUSH');
+const phone=()=>{
+  const s=getSession();
+  const raw=s?.phone||s?.normalized_phone||txt('pass-member-phone','');
+  return String(raw).replace(/\D/g,'').slice(-10);
+};
+
+const formatExp=(iso)=>{
+  if(!iso) return '';
+  const d=new Date(iso);
+  if(isNaN(d.getTime())) return String(iso);
+  return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}).toUpperCase();
+};
+
+const days=()=>{
+  const s=getSession();
+  if(s?.days_remaining!==undefined&&s?.days_remaining!==null) return String(s.days_remaining);
+  if(s?.valid_until){
+    const diff=new Date(s.valid_until).getTime()-Date.now();
+    return String(Math.max(0,Math.ceil(diff/(1000*60*60*24))));
+  }
+  return txt('pass-days-left','30');
+};
+
+const expiry=()=>{
+  const s=getSession();
+  if(s?.valid_until) return formatExp(s.valid_until);
+  return txt('pass-valid-until','1 OCT 2026');
+};
+
+const passId=()=>{
+  const p=phone();
+  return p?`RT-${p}`:txt('pass-id-capsule','RT-8467895365');
+};
+
+const streak=()=>{
+  const s=getSession();
+  if(s?.streak_count!==undefined&&s?.streak_count!==null) return String(s.streak_count);
+  return txt('pass-streak-number','0');
+};
+
 const gym=()=>txt('auth-gym-title',txt('header-gym-title','AKASH FITNESS')).replace(/ATHLETE CYBER HUD TERMINAL/ig,'').trim()||'AKASH FITNESS';
 const initials=()=>member().split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'A';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const loggedIn=()=>!!window.currentAthlete||!$('#auth-modal')||$('#auth-modal').classList.contains('hidden');
+
+const loggedIn=()=>{
+  const s=getSession();
+  const modal=$('#auth-modal');
+  const hasToken=!!(s?.session_token||window.currentAthlete);
+  const modalClosed=!modal||modal.classList.contains('hidden');
+  return hasToken&&modalClosed;
+};
+
 const toast=m=>{let t=$('#nx5-toast');if(!t){t=document.createElement('div');t.id='nx5-toast';document.body.appendChild(t)}t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1800)};
 const openCheckin=()=>{const b=$('#btn-punch-attendance');if(b){b.click();return}safeCall('openDeskQRScanner')};
 const openRenew=()=>safeCall('openPassRenewalModal');
 const openWhatsApp=()=>{const a=$$('a[href]').find(x=>/wa\.me|whatsapp/i.test(x.href));if(a){window.open(a.href,'_blank','noopener');return}safeCall('shareReferralViaWhatsApp')};
 const install=()=>safeCall('triggerPwaInstall');
-function activate(tab){const app=$('#nx5-app');if(!app)return;$$('.nx5-section',app).forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));$$('.nx5-nav-item[data-tab]',app).forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));app.scrollTop=0;window.scrollTo({top:0,left:0,behavior:'auto'});if(tab==='referral')safeCall('fetchReferralSquad')}
+
+function activate(tab){
+  const app=$('#nx5-app');if(!app)return;
+  $$('.nx5-section',app).forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));
+  $$('.nx5-nav-item[data-tab]',app).forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));
+  app.scrollTop=0;
+  window.scrollTo({top:0,left:0,behavior:'instant'});
+  if(tab==='referral')safeCall('fetchReferralSquad');
+}
+
 const tabMap={pass:'home',home:'home',workouts:'progress',activity:'progress',progress:'progress',referral:'referral',rewards:'referral',nutrition:'nutrition'};
 window.switchTab=function(t){activate(tabMap[t]||'home')};
+
 function removeLegacyShell(){
   const legacyNodes=$$('body > div:not(#nx5-app):not(#auth-modal):not(#drawer-backdrop):not(#side-drawer):not(#pwa-install-guide-modal):not(#qr-scanner-modal):not(#pass-renewal-modal):not(#toast-container):not(#gatekeeper-modal), body > header, body > nav:not(.nx5-bottom), .tab-view, .scanlines-overlay, .holo-foil-beam, .laser-scan-beam, #nexus-offline-banner');
-  legacyNodes.forEach(e=>{e.dataset.nx5Hidden='1';e.style.setProperty('display','none','important');e.style.setProperty('height','0','important');e.style.setProperty('min-height','0','important');e.style.setProperty('margin','0','important');e.style.setProperty('padding','0','important');e.style.setProperty('overflow','hidden','important')});
+  legacyNodes.forEach(e=>{
+    e.dataset.nx5Hidden='1';
+    e.style.setProperty('display','none','important');
+    e.style.setProperty('height','0','important');
+    e.style.setProperty('min-height','0','important');
+    e.style.setProperty('max-height','0','important');
+    e.style.setProperty('margin','0','important');
+    e.style.setProperty('padding','0','important');
+    e.style.setProperty('overflow','hidden','important');
+    e.style.setProperty('visibility','hidden','important');
+    e.style.setProperty('position','absolute','important');
+    e.style.setProperty('top','-9999px','important');
+    e.style.setProperty('pointer-events','none','important');
+  });
+  if(typeof window.__nexusHideOldPresentation==='function') window.__nexusHideOldPresentation();
 }
+
 const css=`
 :root{--x5-lime:#b8ff25;--x5-bg:#070809;--x5-card:#111315;--x5-line:rgba(255,255,255,.14);--x5-muted:#858b8f;--x5-safe:env(safe-area-inset-bottom,0px)}
 html,body{margin:0!important;padding:0!important;background:var(--x5-bg)!important;color:#f5f6f6!important;font-family:'Plus Jakarta Sans',system-ui,sans-serif!important;overflow:hidden!important;height:100%!important;width:100%!important}
-body > div:not(#nx5-app):not(#auth-modal):not(#drawer-backdrop):not(#side-drawer):not(#pwa-install-guide-modal):not(#qr-scanner-modal):not(#pass-renewal-modal):not(#toast-container):not(#gatekeeper-modal),body > header,body > nav:not(.nx5-bottom),.tab-view,.scanlines-overlay,.holo-foil-beam,.laser-scan-beam,#nexus-offline-banner{display:none!important;height:0!important;min-height:0!important;margin:0!important;padding:0!important;overflow:hidden!important}
+body > div:not(#nx5-app):not(#auth-modal):not(#drawer-backdrop):not(#side-drawer):not(#pwa-install-guide-modal):not(#qr-scanner-modal):not(#pass-renewal-modal):not(#toast-container):not(#gatekeeper-modal),body > header,body > nav:not(.nx5-bottom),.tab-view,.scanlines-overlay,.holo-foil-beam,.laser-scan-beam,#nexus-offline-banner{display:none!important;height:0!important;min-height:0!important;max-height:0!important;margin:0!important;padding:0!important;overflow:hidden!important;visibility:hidden!important;position:absolute!important;top:-9999px!important;pointer-events:none!important}
 #auth-modal,#drawer-backdrop,#side-drawer,#qr-scanner-modal,#pass-renewal-modal,#pwa-install-guide-modal,#toast-container{z-index:50000!important}
-#nx5-app{display:none;position:fixed;inset:0;width:100%;height:100dvh;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;background:var(--x5-bg);padding:0 14px calc(76px + var(--x5-safe));box-sizing:border-box;z-index:1000}#nx5-app.live{display:block!important}#nx5-app,#nx5-app *{box-sizing:border-box}#nx5-wrap{width:min(430px,100%);margin:0 auto;padding-top:max(6px,env(safe-area-inset-top,0px))}
-.nx5-header{height:54px;display:grid;grid-template-columns:40px minmax(0,1fr) 40px;gap:7px;align-items:center;margin-bottom:2px}.nx5-menu,.nx5-user{width:40px;height:40px;border:1px solid var(--x5-line);background:#101214;color:#fff;border-radius:12px;display:grid;place-items:center;cursor:pointer}.nx5-menu{font-size:18px}.nx5-user{border-radius:50%;color:var(--x5-lime);border-color:rgba(184,255,37,.55);font:800 13px 'Plus Jakarta Sans'}
-.nx5-brand{min-width:0}.nx5-brand-row{display:flex;align-items:center;gap:7px;white-space:nowrap}.nx5-af{width:31px;height:31px;border-radius:9px;background:#11180c;border:1px solid rgba(184,255,37,.5);color:var(--x5-lime);display:grid;place-items:center;font:800 9px 'Space Mono';box-shadow:0 0 15px rgba(184,255,37,.12)}.nx5-gym{font:700 16px/1 'Plus Jakarta Sans';overflow:hidden;text-overflow:ellipsis}.nx5-vip{border:1px solid rgba(184,255,37,.42);border-radius:5px;padding:2px 4px;color:var(--x5-lime);font:700 6px 'Space Mono'}.nx5-tag{margin:3px 0 0 38px;color:#747b7f;font:500 6px 'Space Mono';letter-spacing:.05em;white-space:nowrap}
-.nx5-section{display:none}.nx5-section.active{display:block}.nx5-status{display:inline-flex;align-items:center;gap:5px;padding:5px 8px;border:1px solid rgba(184,255,37,.35);background:rgba(184,255,37,.05);border-radius:7px;color:var(--x5-lime);font:700 6px 'Space Mono'}.nx5-dot{width:5px;height:5px;border-radius:50%;background:var(--x5-lime);box-shadow:0 0 8px var(--x5-lime)}.nx5-hero{padding:5px 0 7px}.nx5-hero h1{margin:6px 0 3px;font:800 34px/.95 'Plus Jakarta Sans';letter-spacing:-.055em;text-transform:uppercase}.nx5-sub{margin:0;color:#858b8f;font:500 9px/1.3 'Plus Jakarta Sans'}
-.nx5-pass{border:1px solid rgba(255,255,255,.18);border-radius:17px;padding:13px;background:radial-gradient(200px 150px at 100% 0,rgba(184,255,37,.08),transparent 70%),linear-gradient(145deg,#17191b,#0d0f10);position:relative;overflow:hidden;margin-bottom:7px}.nx5-pass:after{content:'';position:absolute;width:175px;height:175px;border:1px solid rgba(184,255,37,.2);border-radius:50%;right:-95px;top:-108px}.nx5-pass-top{display:flex;justify-content:space-between;position:relative;z-index:1}.nx5-label{color:var(--x5-lime);font:700 6px 'Space Mono';letter-spacing:.08em}.nx5-mark{width:30px;height:30px;border:1px solid rgba(184,255,37,.4);border-radius:9px;background:#18200e;color:var(--x5-lime);display:grid;place-items:center;font:800 15px 'Plus Jakarta Sans'}.nx5-member{margin:12px 0 3px;font:800 33px/.92 'Plus Jakarta Sans';letter-spacing:-.045em;text-transform:uppercase}.nx5-phone{color:#8a9094;font:8px 'Space Mono'}.nx5-metrics{display:grid;grid-template-columns:1.35fr .65fr;margin-top:10px;border:1px solid rgba(255,255,255,.09);border-radius:11px;overflow:hidden;background:#090b0c}.nx5-metric{padding:9px 10px;min-width:0}.nx5-metric+.nx5-metric{border-left:1px solid rgba(255,255,255,.09)}.nx5-metric small{display:block;color:var(--x5-lime);font:700 6px 'Space Mono';margin-bottom:5px}.nx5-metric strong{font:700 18px/1 'Plus Jakarta Sans';white-space:nowrap}.nx5-metric:last-child strong{font-size:27px;color:var(--x5-lime)}.nx5-idline{display:flex;justify-content:space-between;color:#70767a;font:6px 'Space Mono';margin-top:8px}
-.nx5-check{width:100%;height:54px;border:0;border-radius:12px;background:var(--x5-lime);color:#071000;text-align:left;padding:8px 12px;margin-bottom:6px;cursor:pointer}.nx5-check b{font:800 11px 'Plus Jakarta Sans'}.nx5-check small{display:block;font:600 6px 'Space Mono';margin-top:3px;opacity:.7}.nx5-check .bolt{float:right;font-size:20px;margin-top:-20px}
-.nx5-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:10px}.nx5-action{height:80px;border:1px solid var(--x5-line);border-radius:12px;background:#0f1113;color:#f5f6f6;text-align:center;padding:8px 3px;cursor:pointer}.nx5-action .ico{display:block;color:var(--x5-lime);font-size:21px;line-height:22px}.nx5-action b{display:block;font:700 9px 'Plus Jakarta Sans';margin-top:6px}.nx5-action small{display:block;color:#73797d;font:6px 'Space Mono';margin-top:3px;text-transform:uppercase}
-.nx5-plan-head{display:flex;justify-content:space-between;align-items:center;margin:0 1px 6px}.nx5-plan-head h2{margin:0;font:800 18px/1 'Plus Jakarta Sans';letter-spacing:-.025em}.nx5-live{color:#858b8f;font:600 6px 'Space Mono'}.nx5-live i{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--x5-lime);margin-left:3px}.nx5-plan{height:54px;display:flex;align-items:center;gap:9px;border:1px solid var(--x5-line);border-radius:11px;background:#0e1012;padding:8px 10px;margin-bottom:5px}.nx5-plan-icon{width:29px;height:29px;border-radius:8px;background:#18200f;color:var(--x5-lime);display:grid;place-items:center;flex:none}.nx5-plan b{font:700 9px 'Plus Jakarta Sans'}.nx5-plan small{display:block;color:#777d80;font:6px 'Plus Jakarta Sans';margin-top:2px;text-transform:uppercase}.nx5-arrow{margin-left:auto;color:#777;font-size:20px}
-.nx5-back{display:flex;align-items:center;gap:8px;padding:8px 0 12px}.nx5-back button{width:33px;height:33px;border:1px solid var(--x5-line);border-radius:9px;background:#101214;color:#fff;font-size:20px;cursor:pointer}.nx5-title{margin:0;font:800 27px/1 'Plus Jakarta Sans';letter-spacing:-.04em}.nx5-panel{border:1px solid var(--x5-line);border-radius:13px;background:#101214;padding:12px;margin-bottom:7px}.nx5-statgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.nx5-stat{border:1px solid var(--x5-line);border-radius:11px;background:#0d0f10;padding:10px 6px}.nx5-stat strong{display:block;font:800 19px 'Plus Jakarta Sans'}.nx5-stat small{color:#777d80;font:6px 'Space Mono'}.nx5-meal{display:flex;align-items:center;gap:9px;border:1px solid var(--x5-line);border-radius:11px;background:#101214;padding:10px;margin-bottom:5px}.nx5-meal .emoji{font-size:19px}.nx5-meal b{font:700 9px 'Plus Jakarta Sans'}.nx5-meal small{display:block;color:#777d80;font:6px 'Plus Jakarta Sans';margin-top:2px}.nx5-code{font:800 21px 'Plus Jakarta Sans';color:var(--x5-lime);margin:4px 0 8px}.nx5-button{width:100%;height:43px;border:0;border-radius:10px;background:var(--x5-lime);color:#071000;font:800 8px 'Plus Jakarta Sans';cursor:pointer}.nx5-step{padding:10px;border:1px solid var(--x5-line);border-radius:10px;background:#0e1012;margin-bottom:5px}.nx5-step b{font:700 8px 'Plus Jakarta Sans'}.nx5-step small{display:block;color:#777d80;font:6px 'Plus Jakarta Sans';margin-top:3px}.nx5-qr{width:160px;height:160px;background:#fff;color:#111;border-radius:9px;display:grid;place-items:center;font-size:58px;margin:11px auto}
-.nx5-bottom{position:fixed;left:0;right:0;bottom:0;height:calc(68px + var(--x5-safe));padding:3px 8px var(--x5-safe);background:rgba(7,8,9,.98);border-top:1px solid rgba(255,255,255,.1);z-index:11000}.nx5-bottom-inner{width:min(430px,100%);height:60px;margin:auto;display:grid;grid-template-columns:repeat(5,1fr);align-items:center}.nx5-nav-item{height:58px;border:0;background:transparent;color:#73797d;border-radius:11px;font:700 6px 'Space Mono';cursor:pointer}.nx5-nav-item.active{color:var(--x5-lime)}.nx5-nav-item .ico{display:block;font:18px/19px 'Plus Jakarta Sans';margin-bottom:3px}.nx5-nav-item.check-wrap{padding:0}.nx5-check-circle{width:48px;height:48px;margin:-8px auto 0;border-radius:50%;background:var(--x5-lime);color:#071000;display:grid;place-items:center;font-size:20px;box-shadow:0 0 0 4px #090a0b,0 0 22px rgba(184,255,37,.25)}.nx5-check-label{display:block;margin-top:3px;color:#73797d}.nx5-toast{position:fixed;left:50%;bottom:78px;transform:translate(-50%,10px);opacity:0;background:#f1f3f3;color:#070809;border-radius:9px;padding:8px 11px;font:700 7px 'Space Mono';z-index:60000;transition:.18s}.nx5-toast.show{opacity:1;transform:translate(-50%,0)}
+#auth-modal.hidden,#drawer-backdrop.hidden,#qr-scanner-modal.hidden,#pass-renewal-modal.hidden,#pwa-install-guide-modal.hidden,#gatekeeper-modal.hidden{display:none!important;pointer-events:none!important;visibility:hidden!important}
+#side-drawer:not(.open):not(.active){pointer-events:none!important;visibility:hidden!important}
+#side-drawer.open,#side-drawer.active,#side-drawer:not(.-translate-x-full){pointer-events:auto!important;visibility:visible!important}
+#nx5-app{display:none;position:fixed!important;inset:0!important;top:0!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;height:100dvh!important;min-height:0!important;max-height:100dvh!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch;background:var(--x5-bg)!important;padding:0 14px calc(76px + var(--x5-safe))!important;box-sizing:border-box!important;z-index:1000!important;pointer-events:auto!important}
+#nx5-app.live{display:block!important}
+#nx5-app,#nx5-app *{box-sizing:border-box}
+#nx5-wrap{width:min(430px,100%);margin:0 auto;padding-top:max(6px,env(safe-area-inset-top,0px))}
+.nx5-header{height:54px;display:grid;grid-template-columns:40px minmax(0,1fr) 40px;gap:7px;align-items:center;margin-bottom:2px}
+.nx5-menu,.nx5-user{width:40px;height:40px;border:1px solid var(--x5-line);background:#101214;color:#fff;border-radius:12px;display:grid;place-items:center;cursor:pointer;pointer-events:auto!important;touch-action:manipulation!important}
+.nx5-menu{font-size:18px}
+.nx5-user{border-radius:50%;color:var(--x5-lime);border-color:rgba(184,255,37,.55);font:800 13px 'Plus Jakarta Sans'}
+.nx5-brand{min-width:0}
+.nx5-brand-row{display:flex;align-items:center;gap:7px;white-space:nowrap}
+.nx5-af{width:31px;height:31px;border-radius:9px;background:#11180c;border:1px solid rgba(184,255,37,.5);color:var(--x5-lime);display:grid;place-items:center;font:800 9px 'Space Mono';box-shadow:0 0 15px rgba(184,255,37,.12)}
+.nx5-gym{font:700 16px/1 'Plus Jakarta Sans';overflow:hidden;text-overflow:ellipsis}
+.nx5-vip{border:1px solid rgba(184,255,37,.42);border-radius:5px;padding:2px 4px;color:var(--x5-lime);font:700 6px 'Space Mono'}
+.nx5-tag{margin:3px 0 0 38px;color:#747b7f;font:500 6px 'Space Mono';letter-spacing:.05em;white-space:nowrap}
+.nx5-section{display:none}
+.nx5-section.active{display:block}
+.nx5-status{display:inline-flex;align-items:center;gap:5px;padding:5px 8px;border:1px solid rgba(184,255,37,.35);background:rgba(184,255,37,.05);border-radius:7px;color:var(--x5-lime);font:700 6px 'Space Mono'}
+.nx5-dot{width:5px;height:5px;border-radius:50%;background:var(--x5-lime);box-shadow:0 0 8px var(--x5-lime)}
+.nx5-hero{padding:5px 0 7px}
+.nx5-hero h1{margin:6px 0 3px;font:800 34px/.95 'Plus Jakarta Sans';letter-spacing:-.055em;text-transform:uppercase}
+.nx5-sub{margin:0;color:#858b8f;font:500 9px/1.3 'Plus Jakarta Sans'}
+.nx5-pass{border:1px solid rgba(255,255,255,.18);border-radius:17px;padding:13px;background:radial-gradient(200px 150px at 100% 0,rgba(184,255,37,.08),transparent 70%),linear-gradient(145deg,#17191b,#0d0f10);position:relative;overflow:hidden;margin-bottom:7px}
+.nx5-pass:after{content:'';position:absolute;width:175px;height:175px;border:1px solid rgba(184,255,37,.2);border-radius:50%;right:-95px;top:-108px}
+.nx5-pass-top{display:flex;justify-content:space-between;position:relative;z-index:1}
+.nx5-label{color:var(--x5-lime);font:700 6px 'Space Mono';letter-spacing:.08em}
+.nx5-mark{width:30px;height:30px;border:1px solid rgba(184,255,37,.4);border-radius:9px;background:#18200e;color:var(--x5-lime);display:grid;place-items:center;font:800 15px 'Plus Jakarta Sans'}
+.nx5-member{margin:12px 0 3px;font:800 33px/.92 'Plus Jakarta Sans';letter-spacing:-.045em;text-transform:uppercase}
+.nx5-phone{color:#8a9094;font:8px 'Space Mono'}
+.nx5-metrics{display:grid;grid-template-columns:1.35fr .65fr;margin-top:10px;border:1px solid rgba(255,255,255,.09);border-radius:11px;overflow:hidden;background:#090b0c}
+.nx5-metric{padding:9px 10px;min-width:0}
+.nx5-metric+.nx5-metric{border-left:1px solid rgba(255,255,255,.09)}
+.nx5-metric small{display:block;color:var(--x5-lime);font:700 6px 'Space Mono';margin-bottom:5px}
+.nx5-metric strong{font:700 18px/1 'Plus Jakarta Sans';white-space:nowrap}
+.nx5-metric:last-child strong{font-size:27px;color:var(--x5-lime)}
+.nx5-idline{display:flex;justify-content:space-between;color:#70767a;font:6px 'Space Mono';margin-top:8px}
+.nx5-check{width:100%;height:54px;border:0;border-radius:12px;background:var(--x5-lime);color:#071000;text-align:left;padding:8px 12px;margin-bottom:6px;cursor:pointer;pointer-events:auto!important;touch-action:manipulation!important}
+.nx5-check b{font:800 11px 'Plus Jakarta Sans'}
+.nx5-check small{display:block;font:600 6px 'Space Mono';margin-top:3px;opacity:.7}
+.nx5-check .bolt{float:right;font-size:20px;margin-top:-20px}
+.nx5-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:10px}
+.nx5-action{height:80px;border:1px solid var(--x5-line);border-radius:12px;background:#0f1113;color:#f5f6f6;text-align:center;padding:8px 3px;cursor:pointer;pointer-events:auto!important;touch-action:manipulation!important}
+.nx5-action .ico{display:block;color:var(--x5-lime);font-size:21px;line-height:22px}
+.nx5-action b{display:block;font:700 9px 'Plus Jakarta Sans';margin-top:6px}
+.nx5-action small{display:block;color:#73797d;font:6px 'Space Mono';margin-top:3px;text-transform:uppercase}
+.nx5-plan-head{display:flex;justify-content:space-between;align-items:center;margin:0 1px 6px}
+.nx5-plan-head h2{margin:0;font:800 18px/1 'Plus Jakarta Sans';letter-spacing:-.025em}
+.nx5-live{color:#858b8f;font:600 6px 'Space Mono'}
+.nx5-live i{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--x5-lime);margin-left:3px}
+.nx5-plan{height:54px;display:flex;align-items:center;gap:9px;border:1px solid var(--x5-line);border-radius:11px;background:#0e1012;padding:8px 10px;margin-bottom:5px;pointer-events:auto!important}
+.nx5-plan-icon{width:29px;height:29px;border-radius:8px;background:#18200f;color:var(--x5-lime);display:grid;place-items:center;flex:none}
+.nx5-plan b{font:700 9px 'Plus Jakarta Sans'}
+.nx5-plan small{display:block;color:#777d80;font:6px 'Plus Jakarta Sans';margin-top:2px;text-transform:uppercase}
+.nx5-arrow{margin-left:auto;color:#777;font-size:20px}
+.nx5-back{display:flex;align-items:center;gap:8px;padding:8px 0 12px}
+.nx5-back button{width:33px;height:33px;border:1px solid var(--x5-line);border-radius:9px;background:#101214;color:#fff;font-size:20px;cursor:pointer;pointer-events:auto!important;touch-action:manipulation!important}
+.nx5-title{margin:0;font:800 27px/1 'Plus Jakarta Sans';letter-spacing:-.04em}
+.nx5-panel{border:1px solid var(--x5-line);border-radius:13px;background:#101214;padding:12px;margin-bottom:7px}
+.nx5-statgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.nx5-stat{border:1px solid var(--x5-line);border-radius:11px;background:#0d0f10;padding:10px 6px}
+.nx5-stat strong{display:block;font:800 19px 'Plus Jakarta Sans'}
+.nx5-stat small{color:#777d80;font:6px 'Space Mono'}
+.nx5-meal{display:flex;align-items:center;gap:9px;border:1px solid var(--x5-line);border-radius:11px;background:#101214;padding:10px;margin-bottom:5px}
+.nx5-meal .emoji{font-size:19px}
+.nx5-meal b{font:700 9px 'Plus Jakarta Sans'}
+.nx5-meal small{display:block;color:#777d80;font:6px 'Plus Jakarta Sans';margin-top:2px}
+.nx5-code{font:800 21px 'Plus Jakarta Sans';color:var(--x5-lime);margin:4px 0 8px}
+.nx5-button{width:100%;height:43px;border:0;border-radius:10px;background:var(--x5-lime);color:#071000;font:800 8px 'Plus Jakarta Sans';cursor:pointer;pointer-events:auto!important;touch-action:manipulation!important}
+.nx5-step{padding:10px;border:1px solid var(--x5-line);border-radius:10px;background:#0e1012;margin-bottom:5px}
+.nx5-step b{font:700 8px 'Plus Jakarta Sans'}
+.nx5-step small{display:block;color:#777d80;font:6px 'Plus Jakarta Sans';margin-top:3px}
+.nx5-qr{width:160px;height:160px;background:#fff;color:#111;border-radius:9px;display:grid;place-items:center;font-size:58px;margin:11px auto}
+.nx5-bottom{position:fixed!important;left:0!important;right:0!important;bottom:0!important;height:calc(68px + var(--x5-safe))!important;padding:3px 8px var(--x5-safe)!important;background:rgba(7,8,9,.98)!important;border-top:1px solid rgba(255,255,255,.1)!important;z-index:11000!important;pointer-events:auto!important;touch-action:manipulation!important;-webkit-tap-highlight-color:transparent}
+.nx5-bottom-inner{width:min(430px,100%);height:60px;margin:auto;display:grid;grid-template-columns:repeat(5,1fr);align-items:center}
+.nx5-nav-item{height:58px;border:0;background:transparent;color:#73797d;border-radius:11px;font:700 6px 'Space Mono';cursor:pointer;pointer-events:auto!important;touch-action:manipulation!important;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+.nx5-nav-item.active{color:var(--x5-lime)}
+.nx5-nav-item .ico{display:block;font:18px/19px 'Plus Jakarta Sans';margin-bottom:3px}
+.nx5-nav-item.check-wrap{padding:0}
+.nx5-check-circle{width:48px;height:48px;margin:-8px auto 0;border-radius:50%;background:var(--x5-lime);color:#071000;display:grid;place-items:center;font-size:20px;box-shadow:0 0 0 4px #090a0b,0 0 22px rgba(184,255,37,.25)}
+.nx5-check-label{display:block;margin-top:3px;color:#73797d}
+.nx5-toast{position:fixed;left:50%;bottom:78px;transform:translate(-50%,10px);opacity:0;background:#f1f3f3;color:#070809;border-radius:9px;padding:8px 11px;font:700 7px 'Space Mono';z-index:60000;transition:.18s;pointer-events:none}
+.nx5-toast.show{opacity:1;transform:translate(-50%,0)}
 @media(max-height:760px){.nx5-header{height:48px}.nx5-hero{padding-top:2px;padding-bottom:4px}.nx5-hero h1{font-size:30px;margin:4px 0 2px}.nx5-pass{padding:10px}.nx5-member{font-size:29px;margin:8px 0 2px}.nx5-metrics{margin-top:7px}.nx5-metric{padding:6px 8px}.nx5-check{height:48px}.nx5-actions{margin-bottom:6px}.nx5-action{height:70px}.nx5-plan{height:48px}.nx5-bottom{height:60px}.nx5-bottom-inner{height:54px}}
 `;
-function build(){if($('#nx5-app'))return;const style=document.createElement('style');style.id='nx5-style-v5';style.textContent=css;document.head.appendChild(style);const app=document.createElement('div');app.id='nx5-app';app.innerHTML=`
+
+function build(){
+  if($('#nx5-app'))return;
+  const style=document.createElement('style');
+  style.id='nx5-style-v5';
+  style.textContent=css;
+  document.head.appendChild(style);
+  
+  const app=document.createElement('div');
+  app.id='nx5-app';
+  app.innerHTML=`
 <div id="nx5-wrap"><header class="nx5-header"><button class="nx5-menu" id="nx5-menu">☰</button><div class="nx5-brand"><div class="nx5-brand-row"><div class="nx5-af">AF</div><b class="nx5-gym" id="nx5-gym">${esc(gym())}</b><span class="nx5-vip">● VIP</span></div><div class="nx5-tag">AKASH FITNESS • DIGITAL MEMBER HUD</div></div><button class="nx5-user" id="nx5-user">${initials()}</button></header>
 <section class="nx5-section active" data-tab="home"><div class="nx5-hero"><span class="nx5-status"><i class="nx5-dot"></i> MEMBERSHIP ACTIVE</span><h1>HEY, <span id="nx5-name">${esc(member())}</span>. 👋</h1><p class="nx5-sub">YOUR TRAINING DAY STARTS HERE.</p></div><article class="nx5-pass"><div class="nx5-pass-top"><span class="nx5-label">NEXUS DIGITAL MEMBERSHIP</span><div class="nx5-mark">A</div></div><div class="nx5-member" id="nx5-member">${esc(member())}</div><div class="nx5-phone" id="nx5-phone">${esc(phone())}</div><div class="nx5-metrics"><div class="nx5-metric"><small>VALID UNTIL</small><strong id="nx5-expiry">${esc(expiry())}</strong></div><div class="nx5-metric"><small>DAYS LEFT</small><strong id="nx5-days">${esc(days())}</strong></div></div><div class="nx5-idline"><span>MEMBER ID</span><span id="nx5-pass-id">${esc(passId())}</span></div></article><button class="nx5-check" id="nx5-check"><b>▣ &nbsp; CHECK IN AT THE GYM <span class="bolt">ϟ</span></b><small>SCAN THE RECEPTION QR • UPDATE YOUR STREAK</small></button><div class="nx5-actions"><button class="nx5-action" id="nx5-renew"><span class="ico">⟳</span><b>Renew Pass</b><small>UPI • INSTANT</small></button><button class="nx5-action" id="nx5-concierge"><span class="ico">♧</span><b>Gym Concierge</b><small>WHATSAPP</small></button><button class="nx5-action" id="nx5-install"><span class="ico">⇩</span><b>Install App</b><small>ADD TO HOME</small></button></div><div class="nx5-plan-head"><h2>TODAY'S PLAN</h2><span class="nx5-live">LIVE <i></i></span></div><div class="nx5-plan"><div class="nx5-plan-icon">•</div><div><b>PUSH</b><small>CHEST • SHOULDERS • TRICEPS</small></div><span class="nx5-arrow">›</span></div><div class="nx5-plan"><div class="nx5-plan-icon">•</div><div><b>KEEP YOUR STREAK ALIVE</b><small>CHECK IN TODAY TO RECORD YOUR SESSION</small></div><span class="nx5-arrow">›</span></div></section>
 <section class="nx5-section" data-tab="progress"><div class="nx5-back"><button data-home>‹</button><h2 class="nx5-title">Progress</h2></div><div class="nx5-statgrid"><div class="nx5-stat"><strong id="nx5-streak">${esc(streak())}</strong><small>DAY STREAK</small></div><div class="nx5-stat"><strong id="nx5-att">0</strong><small>CHECK-INS</small></div><div class="nx5-stat"><strong>ACTIVE</strong><small>MEMBERSHIP</small></div></div><div class="nx5-panel" style="margin-top:7px"><b style="font:700 12px 'Plus Jakarta Sans'">Recent activity</b><div style="color:#777d80;font:7px 'Plus Jakarta Sans';margin-top:5px">Your attendance and workout history will appear here after check-ins.</div></div></section>
-<section class="nx5-section" data-tab="referral"><div class="nx5-back"><button data-home>‹</button><h2 class="nx5-title">Refer & Earn</h2></div><div class="nx5-panel"><span class="nx5-label">YOUR REFERRAL CODE</span><div class="nx5-code" id="nx5-code">${esc(phone().replace(/\D/g,'').slice(-10)||'AKASHFIT')}</div><button class="nx5-button" id="nx5-share">SHARE WITH WHATSAPP</button></div><div class="nx5-step"><b>1. Share your code</b><small>Invite friends to join your gym.</small></div><div class="nx5-step"><b>2. They join</b><small>Your referral is tracked automatically.</small></div><div class="nx5-step"><b>3. You earn rewards</b><small>Unlock referral benefits.</small></div></section>
+<section class="nx5-section" data-tab="referral"><div class="nx5-back"><button data-home>‹</button><h2 class="nx5-title">Refer & Earn</h2></div><div class="nx5-panel"><span class="nx5-label">YOUR REFERRAL CODE</span><div class="nx5-code" id="nx5-code">${esc(phone()||'AKASHFIT')}</div><button class="nx5-button" id="nx5-share">SHARE WITH WHATSAPP</button></div><div class="nx5-step"><b>1. Share your code</b><small>Invite friends to join your gym.</small></div><div class="nx5-step"><b>2. They join</b><small>Your referral is tracked automatically.</small></div><div class="nx5-step"><b>3. You earn rewards</b><small>Unlock referral benefits.</small></div></section>
 <section class="nx5-section" data-tab="nutrition"><div class="nx5-back"><button data-home>‹</button><h2 class="nx5-title">Nutrition</h2></div><p class="nx5-sub" style="margin-bottom:8px">Eat right. Train better.</p><div class="nx5-meal"><span class="emoji">🥣</span><div><b>Breakfast</b><small>Oats • Banana • Nuts</small></div><span class="nx5-arrow">›</span></div><div class="nx5-meal"><span class="emoji">🥗</span><div><b>Lunch</b><small>Rice • Paneer • Salad</small></div><span class="nx5-arrow">›</span></div><div class="nx5-meal"><span class="emoji">🍌</span><div><b>Pre-Workout</b><small>Banana • Peanut Butter</small></div><span class="nx5-arrow">›</span></div><div class="nx5-meal"><span class="emoji">🥤</span><div><b>Post-Workout</b><small>Protein Shake • Fruit</small></div><span class="nx5-arrow">›</span></div></section>
 <section class="nx5-section" data-tab="pass"><div class="nx5-back"><button data-home>‹</button><h2 class="nx5-title">Membership Pass</h2></div><article class="nx5-pass"><span class="nx5-label">NEXUS DIGITAL MEMBERSHIP</span><div class="nx5-member">${esc(member())}</div><div class="nx5-phone">${esc(phone())}</div><div class="nx5-metric" style="margin-top:9px"><small>MEMBER ID</small><strong>${esc(passId())}</strong></div><div class="nx5-qr">▦</div><div style="text-align:center;color:#777d80;font:6px 'Space Mono'">SHOW THIS PASS AT THE GYM</div></article><button class="nx5-button" id="nx5-pass-renew">RENEW MEMBERSHIP</button></section>
 </div><nav class="nx5-bottom"><div class="nx5-bottom-inner"><button class="nx5-nav-item active" data-tab="home"><span class="ico">⌂</span>HOME</button><button class="nx5-nav-item" data-tab="progress"><span class="ico">↗</span>PROGRESS</button><button class="nx5-nav-item check-wrap" data-checkin><span class="nx5-check-circle">▣</span><span class="nx5-check-label">CHECK-IN</span></button><button class="nx5-nav-item" data-tab="referral"><span class="ico">♧</span>REFERRAL</button><button class="nx5-nav-item" data-tab="nutrition"><span class="ico">♡</span>NUTRITION</button></div></nav><div class="nx5-toast" id="nx5-toast"></div>`;
-document.body.appendChild(app);
-$$('.nx5-nav-item[data-tab]',app).forEach(b=>b.onclick=()=>activate(b.dataset.tab));$$('[data-home]',app).forEach(b=>b.onclick=()=>activate('home'));$('#nx5-check').onclick=openCheckin;$('#nx5-renew').onclick=openRenew;$('#nx5-pass-renew').onclick=openRenew;$('#nx5-concierge').onclick=openWhatsApp;$('#nx5-install').onclick=install;$('#nx5-share').onclick=()=>safeCall('shareReferralViaWhatsApp');$('#nx5-menu').onclick=()=>{if(typeof window.toggleDrawer==='function')window.toggleDrawer(true);else if($('#side-drawer'))$('#side-drawer').classList.add('open');else toast('Menu unavailable')};$('#nx5-user').onclick=()=>{if(typeof window.toggleDrawer==='function')window.toggleDrawer(true)};$$('[data-checkin]',app).forEach(b=>b.onclick=openCheckin);
+  document.body.appendChild(app);
+
+  $$('.nx5-nav-item[data-tab]',app).forEach(b=>b.onclick=()=>activate(b.dataset.tab));
+  $$('[data-home]',app).forEach(b=>b.onclick=()=>activate('home'));
+  $('#nx5-check').onclick=openCheckin;
+  $('#nx5-renew').onclick=openRenew;
+  $('#nx5-pass-renew').onclick=openRenew;
+  $('#nx5-concierge').onclick=openWhatsApp;
+  $('#nx5-install').onclick=install;
+  $('#nx5-share').onclick=()=>safeCall('shareReferralViaWhatsApp');
+  $('#nx5-menu').onclick=()=>{if(typeof window.toggleDrawer==='function')window.toggleDrawer(true);else if($('#side-drawer'))$('#side-drawer').classList.add('open');else toast('Menu unavailable')};
+  $('#nx5-user').onclick=()=>{if(typeof window.toggleDrawer==='function')window.toggleDrawer(true)};
+  $$('[data-checkin]',app).forEach(b=>b.onclick=openCheckin);
 }
-function refresh(){const app=$('#nx5-app');if(!app)return;const ok=loggedIn();app.classList.toggle('live',ok);const vals=[['nx5-gym',gym()],['nx5-name',member()],['nx5-member',member()],['nx5-phone',phone()],['nx5-expiry',expiry()],['nx5-days',days()],['nx5-pass-id',passId()],['nx5-streak',streak()]];vals.forEach(([i,v])=>{const e=$('#'+i);if(e)e.textContent=v});const u=$('#nx5-user');if(u)u.textContent=initials();const c=$('#nx5-code');if(c)c.textContent=phone().replace(/\D/g,'').slice(-10)||'AKASHFIT';removeLegacyShell()}
-function start(){build();refresh();setTimeout(refresh,50);setTimeout(refresh,250);setTimeout(refresh,1000);const m=$('#auth-modal');if(m)new MutationObserver(refresh).observe(m,{attributes:true,attributeFilter:['class']})}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+
+function refresh(){
+  const app=$('#nx5-app');
+  if(!app) return;
+  const ok=loggedIn();
+  const wasLive=app.classList.contains('live');
+  app.classList.toggle('live',ok);
+  
+  if(!wasLive&&ok){
+    app.scrollTop=0;
+    window.scrollTo({top:0,left:0,behavior:'instant'});
+  }
+
+  const vals=[
+    ['nx5-gym',gym()],
+    ['nx5-name',member()],
+    ['nx5-member',member()],
+    ['nx5-phone',phone()],
+    ['nx5-expiry',expiry()],
+    ['nx5-days',days()],
+    ['nx5-pass-id',passId()],
+    ['nx5-streak',streak()]
+  ];
+  vals.forEach(([i,v])=>{const e=$('#'+i);if(e)e.textContent=v});
+  const u=$('#nx5-user');if(u)u.textContent=initials();
+  const c=$('#nx5-code');if(c)c.textContent=phone()||'AKASHFIT';
+  removeLegacyShell();
+}
+
+window.__nexusRefreshMemberUI = refresh;
+
+function start(){
+  build();
+  refresh();
+  setTimeout(refresh,50);
+  setTimeout(refresh,150);
+  setTimeout(refresh,300);
+  setTimeout(refresh,1000);
+
+  const m=$('#auth-modal');
+  if(m){
+    new MutationObserver(refresh).observe(m,{attributes:true,attributeFilter:['class','style','hidden']});
+  }
+
+  [
+    'nexus:member-live-update',
+    'nexus:member-refresh',
+    'nexus:member-auth',
+    'nexus:member-login',
+    'nexus:member-logout',
+    'storage',
+    'pageshow',
+    'focus'
+  ].forEach(evt => window.addEventListener(evt, () => refresh()));
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') refresh();
+  });
+}
+
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});
+else start();
 })();
+
 

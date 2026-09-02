@@ -2,7 +2,7 @@ import { supabase } from './supabaseClient.js';
 
 const MEMBER_SESSION_KEY = 'rg_member_session';
 const EVENT_NAME = 'nexus:member-live-update';
-const FALLBACK_INTERVAL_MS = 15000;
+const VISIBLE_POLL_INTERVAL_MS = 1000;
 
 let activeMemberTopic = null;
 let activeGymTopic = null;
@@ -12,11 +12,26 @@ let lastSessionFingerprint = '';
 let refreshTimer = null;
 let refreshInFlight = false;
 let retryTimer = null;
+let visibleFastPollTimer = null;
 
 function readSession() {
   try {
     const value = JSON.parse(localStorage.getItem(MEMBER_SESSION_KEY) || 'null');
-    return value && value.session_token && value.id && value.gym_id && value.gym_slug ? value : null;
+    const token = value?.session_token;
+    const memberId = value?.member_id || value?.id;
+    const gymSlug = value?.gym_slug || window.currentGymSlug || new URLSearchParams(window.location.search).get('gym') || 'akash-fitness';
+    const gymId = value?.gym_id || 1;
+    if (token && memberId) {
+      return {
+        ...value,
+        id: memberId,
+        member_id: memberId,
+        gym_slug: gymSlug,
+        gym_id: gymId,
+        session_token: token
+      };
+    }
+    return null;
   } catch (_) {
     return null;
   }
@@ -116,6 +131,10 @@ async function refreshFromServer(reason = 'live') {
     }
 
     window.dispatchEvent(new CustomEvent(EVENT_NAME, { detail: { ...data, member_id: merged.id, gym_id: merged.gym_id, gym_slug: merged.gym_slug }, reason }));
+    window.dispatchEvent(new CustomEvent('nexus:member-refresh', { detail: merged, reason }));
+    if (typeof window.__nexusRefreshMemberUI === 'function') window.__nexusRefreshMemberUI();
+    if (typeof window.__nexusHideOldPresentation === 'function') window.__nexusHideOldPresentation();
+    if (typeof window.renderAthletePassHUD === 'function') window.renderAthletePassHUD();
   } catch (error) {
     if (/session expired|session missing|member not found/i.test(error?.message || '')) {
       localStorage.removeItem(MEMBER_SESSION_KEY);
@@ -131,7 +150,7 @@ async function refreshFromServer(reason = 'live') {
 
 function scheduleRefresh(reason) {
   window.clearTimeout(refreshTimer);
-  refreshTimer = window.setTimeout(() => refreshFromServer(reason), 100);
+  refreshTimer = window.setTimeout(() => refreshFromServer(reason), 80);
 }
 
 async function startChannels(session) {
@@ -149,9 +168,11 @@ async function startChannels(session) {
   activeMemberTopic = memberTopic;
   activeGymTopic = gymTopic;
 
+  try { supabase.realtime.connect(); } catch (_) {}
+
   const memberChannel = supabase
     .channel(memberTopic)
-    .on('broadcast', { event: 'member_sync' }, () => scheduleRefresh('member-change'))
+    .on('broadcast', { event: 'member_sync' }, () => scheduleRefresh('member-broadcast'))
     .subscribe((status) => {
       if (status === 'SUBSCRIBED') scheduleRefresh('connected');
       if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
@@ -159,20 +180,20 @@ async function startChannels(session) {
         retryTimer = window.setTimeout(() => {
           const current = readSession();
           if (current) startChannels(current);
-        }, 2000);
+        }, 1500);
       }
     });
 
   const gymChannel = supabase
     .channel(gymTopic)
-    .on('broadcast', { event: 'gym_sync' }, () => scheduleRefresh('gym-change'))
+    .on('broadcast', { event: 'gym_sync' }, () => scheduleRefresh('gym-broadcast'))
     .subscribe((status) => {
       if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
         window.clearTimeout(retryTimer);
         retryTimer = window.setTimeout(() => {
           const current = readSession();
           if (current) startChannels(current);
-        }, 2000);
+        }, 1500);
       }
     });
 
@@ -195,24 +216,51 @@ async function reconcile() {
   }
 }
 
+function manageFallbackPolling() {
+  if (visibleFastPollTimer) {
+    clearInterval(visibleFastPollTimer);
+    visibleFastPollTimer = null;
+  }
+  if (document.visibilityState === 'visible') {
+    const session = readSession();
+    if (session?.session_token) {
+      visibleFastPollTimer = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          const s = readSession();
+          if (s?.session_token) {
+            scheduleRefresh('visible-fast-poll');
+          }
+        }
+      }, VISIBLE_POLL_INTERVAL_MS);
+    }
+  }
+}
+
 export async function startMemberLiveSync() {
   if (typeof window === 'undefined') return;
   await reconcile();
+  manageFallbackPolling();
   if (!window.__nexusLiveSyncInstalled) {
     window.__nexusLiveSyncInstalled = true;
-    window.addEventListener('focus', () => { reconcile(); scheduleRefresh('focus'); });
-    window.addEventListener('online', () => { reconcile(); scheduleRefresh('online'); });
-    window.addEventListener('pageshow', () => { reconcile(); scheduleRefresh('pageshow'); });
+    const wake = (reason) => {
+      try { supabase.realtime.connect(); } catch (_) {}
+      reconcile();
+      scheduleRefresh(reason);
+      manageFallbackPolling();
+    };
+    window.addEventListener('focus', () => wake('focus'));
+    window.addEventListener('online', () => wake('online'));
+    window.addEventListener('pageshow', () => wake('pageshow'));
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
-        reconcile();
-        scheduleRefresh('visible');
+        wake('visible');
+      } else {
+        if (visibleFastPollTimer) {
+          clearInterval(visibleFastPollTimer);
+          visibleFastPollTimer = null;
+        }
       }
     });
-    window.setInterval(() => {
-      reconcile();
-      refreshFromServer('fallback-poll');
-    }, FALLBACK_INTERVAL_MS);
   }
 }
 
