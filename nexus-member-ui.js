@@ -11,8 +11,8 @@
     document.head.appendChild(s);
   };
   const start=()=>{
-    loadScript('nexus-member-ui-v5','./nexus-member-ui-v5.js?v=20260901-single-shell3');
-    loadScript('nexus-member-ui-cleanup','./nexus-member-ui-cleanup.js?v=20260901-single-shell3');
+    loadScript('nexus-member-ui-v5','./nexus-member-ui-v5.js?v=20260901-fixed-shell4');
+    loadScript('nexus-member-ui-cleanup','./nexus-member-ui-cleanup.js?v=20260901-fixed-shell4');
   };
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start,{once:true});
   else start();

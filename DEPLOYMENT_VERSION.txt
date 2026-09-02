@@ -1,4 +1,4 @@
 NEXUS production deployment verification
-2026-08-26
+2026-09-01
 
-Purpose: force a fresh GitHub Pages deployment after the canonical Supabase publishable-key authentication fix.
+Purpose: Fix Akash Fitness mobile viewport layout, eliminating top gap/legacy shell space and locking #nx5-app as a fixed full-screen viewport.
