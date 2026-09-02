@@ -1,5 +1,5 @@
 // Akash Fitness PWA Service Worker — network-first app shell, never cache Supabase/API.
-const CACHE_NAME='akash-fitness-shell-v20260902-v7';
+const CACHE_NAME='akash-fitness-shell-v20260902-v8';
 const PRECACHE_ASSETS=['./','./index.html','./manifest.json','./assets/apple-touch-icon.png','./assets/icon-192.png','./assets/icon-512.png'];
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(PRECACHE_ASSETS)).catch(()=>{}))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
