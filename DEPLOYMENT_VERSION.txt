@@ -1,4 +1,4 @@
 NEXUS production deployment verification
 2026-09-01
 
-Purpose: Fix Akash Fitness mobile viewport layout, eliminating top gap/legacy shell space and locking #nx5-app as a fixed full-screen viewport.
+Purpose: Fix iOS Home Screen / PWA standalone viewport scaling with proper manifest, apple-mobile-web-app metadata, and viewport-fit=cover configuration.
