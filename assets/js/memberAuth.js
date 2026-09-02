@@ -6,7 +6,16 @@ function cleanPhone(phone) {
 }
 
 function getGymSlug() {
-  return new URLSearchParams(window.location.search).get('gym') || '';
+  const urlParam = new URLSearchParams(window.location.search).get('gym');
+  if (urlParam) return urlParam.toLowerCase().trim();
+  if (window.currentGymSlug) return window.currentGymSlug.toLowerCase().trim();
+  try {
+    const saved = JSON.parse(localStorage.getItem('rg_member_session') || 'null');
+    if (saved && (saved.gym_slug || saved.gym_id)) {
+      return String(saved.gym_slug || saved.gym_id).toLowerCase().trim();
+    }
+  } catch (_) {}
+  return (localStorage.getItem('rg_last_gym_slug') || 'akash-fitness').toLowerCase().trim();
 }
 
 function saveMemberSession(data) {
@@ -34,6 +43,7 @@ function saveMemberSession(data) {
   };
   localStorage.setItem('rg_member_session', JSON.stringify(session));
   window.__nexusMemberSession = session;
+  window.currentAthlete = session;
   window.__nexusStartMemberLiveSync?.();
   return session;
 }
@@ -74,6 +84,14 @@ export async function logoutMemberSession(sessionToken) {
   try { await supabase.rpc('rpc_member_logout', { p_session_token: String(sessionToken || '') }); } catch (_) {}
   localStorage.removeItem('rg_member_session');
   window.__nexusMemberSession = null;
+  window.currentAthlete = null;
+  const authModal = document.getElementById('auth-modal');
+  if (authModal) {
+    authModal.classList.remove('hidden');
+    authModal.style.display = 'flex';
+  }
+  window.dispatchEvent(new CustomEvent('nexus:member-logout'));
+  window.__nexusRefreshMemberUI?.();
 }
 
 export async function getPublicHudPass(gymSlug, phoneNumber) {
@@ -132,10 +150,13 @@ function applyMemberSessionToPortal(data, existing) {
   const session = saveRefreshedMember(data, existing);
   if (!session) return null;
   const memberData = { id: session.id, gym_id: session.gym_id, gym_slug: session.gym_slug, full_name: session.full_name, phone: session.phone, normalized_phone: session.normalized_phone, referral_code: session.referral_code, is_active: session.is_active, valid_until: session.valid_until, days_remaining: session.days_remaining, plan_name: session.plan_name, membership_status: session.membership_status, referral_count: session.referral_count, referral_free_days: session.referral_free_days, referral_money_saved: session.referral_money_saved, referrals: session.referrals };
+  window.currentAthlete = memberData;
   if (typeof window.renderAthletePass === 'function') window.renderAthletePass(memberData);
   localStorage.setItem('rg_member_session', JSON.stringify(session));
   applyReferralUI(session);
   window.__nexusMemberSession = session;
+  window.dispatchEvent(new CustomEvent('nexus:member-auth', { detail: session }));
+  window.__nexusRefreshMemberUI?.();
   return session;
 }
 
@@ -257,7 +278,13 @@ function installPortalAuthOverrides() {
       const fresh = await refreshMemberSession(gymSlug, result.session_token);
       applyMemberSessionToPortal(fresh, session);
       window.__nexusPendingMemberAuth = null;
-      document.getElementById('auth-modal')?.classList.add('hidden');
+      const authModal = document.getElementById('auth-modal');
+      if (authModal) {
+        authModal.classList.add('hidden');
+        authModal.style.display = 'none';
+      }
+      window.dispatchEvent(new CustomEvent('nexus:member-login', { detail: session }));
+      window.__nexusRefreshMemberUI?.();
       if (typeof window.playCyberChime === 'function') window.playCyberChime('success');
       if (typeof window.showToast === 'function') window.showToast(`Authenticated: Welcome, ${result.full_name}! ⚡`, 'success');
       if (typeof window.fetchFreshAthleteData === 'function') window.fetchFreshAthleteData(result.phone);
