@@ -29,12 +29,11 @@ function isRoleAllowed(role, allowedRoles) {
 
 function isSuperAdminContext(context, user) {
   return Boolean(
-    context?.is_super_admin === true || context?.is_admin === true ||
+    context?.is_super_admin === true ||
     normalizeRole(context?.role) === 'SUPER_ADMIN' ||
     normalizeRoles(context?.roles).some(r => normalizeRole(typeof r === 'string' ? r : r?.role) === 'SUPER_ADMIN') ||
     normalizeRole(user?.app_metadata?.role) === 'SUPER_ADMIN' ||
-    normalizeRole(user?.user_metadata?.role) === 'SUPER_ADMIN' ||
-    user?.app_metadata?.is_super_admin === true || user?.user_metadata?.is_super_admin === true
+    user?.app_metadata?.is_super_admin === true
   );
 }
 
@@ -89,19 +88,19 @@ export async function requireAuth(allowedRoles = [], requestedGymSlug = null, re
         return { ...r, role: normalizeRole(r.role), gym_slug: g ? g.slug : r.gym_slug, gym_name: g?.name };
       });
 
-      const metaRole = normalizeRole(user.user_metadata?.role || user.app_metadata?.role || 'GYM_OWNER');
-      const metaSlug = user.user_metadata?.gym_slug || user.app_metadata?.gym_slug || null;
-      if (metaRole && !userRoles.some(r => normalizeRole(r.role) === metaRole && (!metaSlug || r.gym_slug === metaSlug))) {
-        userRoles.push({ role: metaRole, gym_slug: metaSlug, gym_id: null });
+      const appRole = normalizeRole(user.app_metadata?.role);
+      const appSlug = user.app_metadata?.gym_slug || null;
+      if (appRole && !userRoles.some(r => normalizeRole(r.role) === appRole && (!appSlug || r.gym_slug === appSlug))) {
+        userRoles.push({ role: appRole, gym_slug: appSlug, gym_id: null });
       }
 
       context = {
         authenticated: true, user_id: user.id, email: user.email, roles: userRoles,
-        role: userRoles[0]?.role || metaRole,
+        role: userRoles[0]?.role || appRole || 'MEMBER',
         gym_id: userRoles[0]?.gym_id || null,
-        gym_slug: metaSlug || userRoles.find(r => r.gym_slug)?.gym_slug || requestedGymSlug || null,
+        gym_slug: appSlug || userRoles.find(r => r.gym_slug)?.gym_slug || requestedGymSlug || null,
         is_super_admin: userRoles.some(r => normalizeRole(r.role) === 'SUPER_ADMIN') ||
-          user.app_metadata?.is_super_admin === true || user.user_metadata?.is_super_admin === true
+          user.app_metadata?.is_super_admin === true
       };
     }
 

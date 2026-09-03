@@ -19,7 +19,17 @@ function readSession() {
     const value = JSON.parse(localStorage.getItem(MEMBER_SESSION_KEY) || 'null');
     const token = value?.session_token;
     const memberId = value?.member_id || value?.id;
-    const gymSlug = value?.gym_slug || window.currentGymSlug || new URLSearchParams(window.location.search).get('gym') || 'akash-fitness-2343';
+    const urlGym = new URLSearchParams(window.location.search).get('gym');
+    if (urlGym && value?.gym_slug) {
+      const normUrl = urlGym.toLowerCase().trim();
+      const normSession = String(value.gym_slug).toLowerCase().trim();
+      const isAkashUrl = normUrl === 'akash-fitness' || normUrl === 'akash-fitness-2343' || normUrl === 'retro-gym';
+      const isAkashSession = normSession === 'akash-fitness' || normSession === 'akash-fitness-2343' || normSession === 'retro-gym';
+      if (normUrl !== normSession && !(isAkashUrl && isAkashSession)) {
+        return null;
+      }
+    }
+    const gymSlug = value?.gym_slug || window.currentGymSlug || urlGym || 'akash-fitness-2343';
     const gymId = value?.gym_id || 1;
     if (token && memberId) {
       return {

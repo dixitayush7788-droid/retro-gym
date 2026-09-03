@@ -2161,17 +2161,28 @@ html, body {
       const gymHydrated = await fetchAndHydrateGym(slug);
       if (!gymHydrated) return;
 
-      // Check saved session
+      // Check saved session with strict tenant isolation
       const savedSession = loadPersistedSession();
       if (savedSession && (savedSession.session_token || savedSession.phone)) {
-        state.member = savedSession;
-        state.session.session_token = savedSession.session_token;
-        state.session.session_expires_at = savedSession.session_expires_at;
+        const sessionSlug = normalizeGymSlug(savedSession.gym_slug || '');
+        if (sessionSlug && sessionSlug !== state.tenant.slug) {
+          // Reject session from different tenant and require re-authentication
+          clearLocalAttendanceLock(state.tenant.slug, savedSession.id || savedSession.member_id);
+          localStorage.removeItem(MEMBER_SESSION_KEY);
+          state.member = null;
+          state.session.session_token = null;
+          state.session.session_expires_at = null;
+          showToast(`Active session was for another gym. Please authenticate for ${state.tenant.name}.`, 'warning');
+        } else {
+          state.member = savedSession;
+          state.session.session_token = savedSession.session_token;
+          state.session.session_expires_at = savedSession.session_expires_at;
 
-        // Background sync
-        refreshMemberSession();
-        checkAttendanceStatus();
-        startRealtimeSubscriptions();
+          // Background sync
+          refreshMemberSession();
+          checkAttendanceStatus();
+          startRealtimeSubscriptions();
+        }
       }
 
       state.ui.isInitializing = false;

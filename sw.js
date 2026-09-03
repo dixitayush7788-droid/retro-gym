@@ -31,18 +31,20 @@ self.addEventListener('message', (e) => {
 
 self.addEventListener('fetch', (e) => {
   const u = new URL(e.request.url);
-  // Never cache Supabase, API, RPC, Auth, WebSocket
+  // Never cache Supabase, API, RPC, Auth, WebSocket, or dynamic data endpoints
   if (
     u.hostname.includes('supabase.co') ||
     u.pathname.includes('/rpc/') ||
     u.pathname.includes('/rest/') ||
     u.pathname.includes('/auth/') ||
+    u.pathname.startsWith('/api/') ||
     e.request.headers.get('Upgrade') === 'websocket'
   ) {
     return;
   }
   if (e.request.method !== 'GET') return;
 
+  // App shell navigation requests (network-first, falling back to cached index.html)
   if (e.request.mode === 'navigate' || e.request.destination === 'document') {
     e.respondWith(
       fetch(e.request)
@@ -55,6 +57,14 @@ self.addEventListener('fetch', (e) => {
         .catch(() => caches.match(e.request).then((c) => c || caches.match('./index.html')))
     );
     return;
+  }
+
+  // Only cache static assets (scripts, stylesheets, images, fonts)
+  const isStaticAsset = ['script', 'style', 'image', 'font'].includes(e.request.destination) ||
+    PRECACHE_ASSETS.some((p) => u.pathname.endsWith(p.replace('./', '')));
+
+  if (!isStaticAsset) {
+    return; // Bypass Service Worker cache for all non-static asset requests
   }
 
   e.respondWith(

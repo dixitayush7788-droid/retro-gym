@@ -101,16 +101,16 @@
 
     function isSuperAdminUser(user, context) {
       if (context) {
-        if (context.is_super_admin === true || context.is_admin === true) return true;
+        if (context.is_super_admin === true) return true;
         if (context.role && String(context.role).toUpperCase() === 'SUPER_ADMIN') return true;
         if (Array.isArray(context.roles) && context.roles.some(r => String(typeof r === 'string' ? r : (r?.role || r?.role_name || r?.name || '')).toUpperCase() === 'SUPER_ADMIN')) return true;
       }
       if (user) {
-        const appMeta = user.app_metadata || {}, userMeta = user.user_metadata || {};
-        if (appMeta.is_super_admin === true || userMeta.is_super_admin === true) return true;
-        if (String(appMeta.role || '').toUpperCase() === 'SUPER_ADMIN' || String(userMeta.role || '').toUpperCase() === 'SUPER_ADMIN') return true;
+        // App metadata is set strictly by backend/service-role, never user_metadata
+        const appMeta = user.app_metadata || {};
+        if (appMeta.is_super_admin === true) return true;
+        if (String(appMeta.role || '').toUpperCase() === 'SUPER_ADMIN') return true;
         if (Array.isArray(appMeta.roles) && appMeta.roles.some(r => String(r).toUpperCase() === 'SUPER_ADMIN')) return true;
-        if (Array.isArray(userMeta.roles) && userMeta.roles.some(r => String(r).toUpperCase() === 'SUPER_ADMIN')) return true;
       }
       return false;
     }

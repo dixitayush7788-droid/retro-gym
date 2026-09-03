@@ -11,8 +11,8 @@ function getGymSlug() {
   if (window.currentGymSlug) return window.currentGymSlug.toLowerCase().trim();
   try {
     const saved = JSON.parse(localStorage.getItem('rg_member_session') || 'null');
-    if (saved && (saved.gym_slug || saved.gym_id)) {
-      return String(saved.gym_slug || saved.gym_id).toLowerCase().trim();
+    if (saved && typeof saved.gym_slug === 'string' && saved.gym_slug.trim() && isNaN(Number(saved.gym_slug))) {
+      return saved.gym_slug.toLowerCase().trim();
     }
   } catch (_) {}
   return (localStorage.getItem('rg_last_gym_slug') || 'akash-fitness-2343').toLowerCase().trim();
