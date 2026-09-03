@@ -1,9 +1,9 @@
 {
-  "id": "./index.html?gym=akash-fitness",
+  "id": "./index.html?gym=akash-fitness-2343",
   "name": "Akash Fitness - Member HUD",
   "short_name": "Akash Fit",
   "description": "Akash Fitness Digital Member HUD & Gym Pass",
-  "start_url": "./index.html?gym=akash-fitness",
+  "start_url": "./index.html?gym=akash-fitness-2343",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

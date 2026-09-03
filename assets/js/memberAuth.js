@@ -15,7 +15,7 @@ function getGymSlug() {
       return String(saved.gym_slug || saved.gym_id).toLowerCase().trim();
     }
   } catch (_) {}
-  return (localStorage.getItem('rg_last_gym_slug') || 'akash-fitness').toLowerCase().trim();
+  return (localStorage.getItem('rg_last_gym_slug') || 'akash-fitness-2343').toLowerCase().trim();
 }
 
 function saveMemberSession(data) {

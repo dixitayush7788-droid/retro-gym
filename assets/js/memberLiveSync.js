@@ -19,7 +19,7 @@ function readSession() {
     const value = JSON.parse(localStorage.getItem(MEMBER_SESSION_KEY) || 'null');
     const token = value?.session_token;
     const memberId = value?.member_id || value?.id;
-    const gymSlug = value?.gym_slug || window.currentGymSlug || new URLSearchParams(window.location.search).get('gym') || 'akash-fitness';
+    const gymSlug = value?.gym_slug || window.currentGymSlug || new URLSearchParams(window.location.search).get('gym') || 'akash-fitness-2343';
     const gymId = value?.gym_id || 1;
     if (token && memberId) {
       return {

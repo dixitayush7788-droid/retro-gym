@@ -11,6 +11,8 @@
   // --------------------------------------------------------------------------
   const SUPABASE_URL = 'https://zfvkvrhuovvbfbrutpph.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_bFbeqpwaWmp0aioDVSkLAg_J7X4lzWk';
+  const DEFAULT_GYM_SLUG = 'akash-fitness-2343';
+  const LEGACY_SLUG_ALIASES = ['akash-fitness', 'retro-gym'];
   const MEMBER_SESSION_KEY = 'rg_member_session';
   const LAST_GYM_SLUG_KEY = 'rg_last_gym_slug';
 
@@ -46,13 +48,13 @@
   // --------------------------------------------------------------------------
   const state = {
     tenant: {
-      id: 1,
-      slug: 'akash-fitness',
-      name: 'AKASH FITNESS',
+      id: 4,
+      slug: DEFAULT_GYM_SLUG,
+      name: 'Akash fitness',
       tagline: 'DIGITAL MEMBER HUD',
       logo_url: '',
-      owner_upi: 'gymowner@okhdfcbank',
-      owner_phone: '8467895365',
+      owner_upi: 'Akash@897',
+      owner_phone: '9044372343',
       status: 'OPEN', // OPEN | DELAYED | CLOSED | HOLIDAY | SUSPENDED | INACTIVE
       notice_text: 'Regular timings in effect. Stay hydrated and hit your sets!',
       delayed_time: '5:00 PM',
@@ -89,6 +91,57 @@
   // Expose state for runtime inspection
   if (typeof window !== 'undefined') {
     window.nexusState = state;
+  }
+
+  // --------------------------------------------------------------------------
+  // 2B. CALENDAR DATE & ATTENDANCE SAME-DAY PERSISTENCE
+  // --------------------------------------------------------------------------
+  function getTodayCalendarDateString() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function getAttendanceLockKey(gymSlug, memberId) {
+    const s = String(gymSlug || state.tenant.slug || DEFAULT_GYM_SLUG).toLowerCase().trim();
+    const m = String(memberId || state.member?.id || state.member?.member_id || '').trim();
+    const dateStr = getTodayCalendarDateString();
+    return `rg_att_lock_${s}_${m}_${dateStr}`;
+  }
+
+  function setLocalAttendanceLock(gymSlug, memberId, checkInTimeStr) {
+    try {
+      const key = getAttendanceLockKey(gymSlug, memberId);
+      const data = {
+        date: getTodayCalendarDateString(),
+        check_in_time: checkInTimeStr || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timestamp: Date.now()
+      };
+      localStorage.setItem(key, JSON.stringify(data));
+    } catch (_) {}
+  }
+
+  function getLocalAttendanceLock(gymSlug, memberId) {
+    try {
+      const key = getAttendanceLockKey(gymSlug, memberId);
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.date === getTodayCalendarDateString()) {
+        return parsed;
+      }
+      localStorage.removeItem(key);
+    } catch (_) {}
+    return null;
+  }
+
+  function clearLocalAttendanceLock(gymSlug, memberId) {
+    try {
+      const key = getAttendanceLockKey(gymSlug, memberId);
+      localStorage.removeItem(key);
+    } catch (_) {}
   }
 
   // --------------------------------------------------------------------------
@@ -167,24 +220,49 @@
   // --------------------------------------------------------------------------
   // 4. TENANT RESOLUTION & GATEKEEPER
   // --------------------------------------------------------------------------
-  function resolveCurrentGymSlug() {
-    const urlParam = new URLSearchParams(window.location.search).get('gym');
-    if (urlParam) return urlParam.toLowerCase().trim();
+  function normalizeGymSlug(slug) {
+    if (!slug || typeof slug !== 'string') return DEFAULT_GYM_SLUG;
+    const trimmed = slug.toLowerCase().trim();
+    if (LEGACY_SLUG_ALIASES.includes(trimmed)) {
+      return DEFAULT_GYM_SLUG;
+    }
+    return trimmed;
+  }
 
+  function resolveCurrentGymSlug() {
+    // 1. URL parameter ?gym=<slug> is authoritative when explicitly supplied
+    const urlParam = new URLSearchParams(window.location.search).get('gym');
+    if (urlParam) {
+      const resolved = normalizeGymSlug(urlParam);
+      localStorage.setItem(LAST_GYM_SLUG_KEY, resolved);
+      return resolved;
+    }
+
+    // 2. Check persisted session (ONLY valid non-numeric gym_slug string, never numeric gym_id)
     try {
       const saved = JSON.parse(localStorage.getItem(MEMBER_SESSION_KEY) || 'null');
-      if (saved && (saved.gym_slug || saved.gym_id)) {
-        return String(saved.gym_slug || saved.gym_id).toLowerCase().trim();
+      if (saved && typeof saved.gym_slug === 'string' && saved.gym_slug.trim() && isNaN(Number(saved.gym_slug))) {
+        const resolved = normalizeGymSlug(saved.gym_slug);
+        localStorage.setItem(LAST_GYM_SLUG_KEY, resolved);
+        return resolved;
       }
     } catch (_) {}
 
+    // 3. Check last remembered gym slug
     const last = localStorage.getItem(LAST_GYM_SLUG_KEY);
-    if (last) return last.toLowerCase().trim();
+    if (last && typeof last === 'string' && last.trim() && isNaN(Number(last))) {
+      const resolved = normalizeGymSlug(last);
+      localStorage.setItem(LAST_GYM_SLUG_KEY, resolved);
+      return resolved;
+    }
 
-    return 'akash-fitness';
+    // 4. Canonical deployment default for Akash Fitness
+    localStorage.setItem(LAST_GYM_SLUG_KEY, DEFAULT_GYM_SLUG);
+    return DEFAULT_GYM_SLUG;
   }
 
-  async function fetchAndHydrateGym(slug) {
+  async function fetchAndHydrateGym(inputSlug) {
+    const slug = normalizeGymSlug(inputSlug);
     const db = getSupabase();
     let gymData = null;
 
@@ -206,24 +284,25 @@
       }
     }
 
-    // Default tenant fallback for known primary deployment
+    // Default tenant fallback ONLY for known primary Akash Fitness deployment
     if (!gymData) {
-      if (slug === 'akash-fitness' || slug === 'retro-gym' || !slug) {
+      if (slug === DEFAULT_GYM_SLUG) {
         gymData = {
-          id: 1,
-          slug: 'akash-fitness',
-          name: 'AKASH FITNESS',
+          id: 4,
+          slug: DEFAULT_GYM_SLUG,
+          name: 'Akash fitness',
           is_active: true,
           status: 'ACTIVE',
           op_status: 'OPEN',
-          owner_upi: 'gymowner@okhdfcbank',
-          owner_phone: '8467895365',
+          owner_upi: 'Akash@897',
+          owner_phone: '9044372343',
           pricing: { p1: 1200, p3: 3200, p6: 5800, p12: 10500 },
           notice_text: 'Regular timings in effect. Stay hydrated and hit your sets!',
           delayed_time: '5:00 PM',
           features: { workouts: true, nutrition: true, qr_attendance: true, notices: true }
         };
       } else {
+        // Genuine unknown slug -> show tenant-not-found state
         state.ui.gatekeeperError = {
           title: 'Gym Station Not Found',
           message: '🏢 This gym station is not registered on the platform or has been decommissioned.',
@@ -240,7 +319,7 @@
       state.ui.gatekeeperError = {
         title: 'Service Suspended',
         message: '⚠️ Service Suspended. Please contact gym administration.',
-        details: `Gym: ${gymData.name || slug}`,
+        details: `Gym: ${gymData.name || gymData.gym_name || slug}`,
         type: 'suspended'
       };
       state.ui.isInitializing = false;
@@ -251,13 +330,13 @@
     // Populate state.tenant
     const p = gymData.pricing || {};
     state.tenant = {
-      id: gymData.id || 1,
+      id: gymData.id || 4,
       slug: gymData.slug || slug,
-      name: gymData.name || 'AKASH FITNESS',
-      tagline: `${gymData.name || slug.toUpperCase()} • DIGITAL MEMBER HUD`,
+      name: gymData.name || gymData.gym_name || 'Akash fitness',
+      tagline: gymData.tagline || gymData.gym_tagline || `${gymData.name || slug.toUpperCase()} • DIGITAL MEMBER HUD`,
       logo_url: gymData.logo_url || '',
-      owner_upi: gymData.owner_upi_id || gymData.owner_upi || 'gymowner@okhdfcbank',
-      owner_phone: gymData.owner_phone || '8467895365',
+      owner_upi: gymData.owner_upi_id || gymData.owner_upi || 'Akash@897',
+      owner_phone: gymData.owner_phone || gymData.support_phone || '9044372343',
       status: gymData.op_status || gymData.status || 'OPEN',
       notice_text: gymData.notice_text || 'Regular timings in effect. Stay hydrated and hit your sets!',
       delayed_time: gymData.delayed_time || '5:00 PM',
@@ -285,6 +364,10 @@
       if (!raw) return null;
       const parsed = JSON.parse(raw);
       if (parsed && (parsed.session_token || parsed.phone || parsed.full_name)) {
+        // Ensure gym_slug is normalized
+        if (parsed.gym_slug) {
+          parsed.gym_slug = normalizeGymSlug(parsed.gym_slug);
+        }
         return parsed;
       }
     } catch (_) {}
@@ -298,7 +381,7 @@
       id: memberData.member_id || memberData.id,
       member_id: memberData.member_id || memberData.id,
       gym_id: memberData.gym_id || state.tenant.id,
-      gym_slug: memberData.gym_slug || state.tenant.slug,
+      gym_slug: normalizeGymSlug(memberData.gym_slug || state.tenant.slug),
       full_name: memberData.full_name || 'Athlete',
       phone: memberData.phone || '',
       normalized_phone: memberData.phone || memberData.normalized_phone || '',
@@ -358,6 +441,16 @@
     const slug = state.tenant.slug;
     if (!db || !memberId || !token || !slug) return;
 
+    // Fast check: inspect local date-keyed marker first
+    const localLock = getLocalAttendanceLock(slug, memberId);
+    if (localLock) {
+      state.attendance = {
+        checked_in_today: true,
+        check_in_time: localLock.check_in_time,
+        attendance_status: 'VERIFIED'
+      };
+    }
+
     try {
       const { data, error } = await db.rpc('rpc_member_attendance_status', {
         p_gym_slug: slug,
@@ -365,11 +458,22 @@
         p_session_token: token
       });
       if (!error && data && data.success) {
+        const isCheckedIn = !!data.checked_in_today;
+        const timeStr = data.check_in
+          ? new Date(data.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          : (localLock?.check_in_time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+
         state.attendance = {
-          checked_in_today: !!data.checked_in_today,
-          check_in_time: data.check_in ? new Date(data.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null,
-          attendance_status: data.checked_in_today ? 'VERIFIED' : 'NOT_CHECKED_IN'
+          checked_in_today: isCheckedIn,
+          check_in_time: isCheckedIn ? timeStr : null,
+          attendance_status: isCheckedIn ? 'VERIFIED' : 'NOT_CHECKED_IN'
         };
+
+        if (isCheckedIn) {
+          setLocalAttendanceLock(slug, memberId, timeStr);
+        } else {
+          clearLocalAttendanceLock(slug, memberId);
+        }
         renderApp();
       }
     } catch (_) {}
@@ -501,6 +605,7 @@
       } catch (_) {}
     }
 
+    clearLocalAttendanceLock(state.tenant.slug, state.member?.id || state.member?.member_id);
     localStorage.removeItem(MEMBER_SESSION_KEY);
     state.member = null;
     state.session.session_token = null;
@@ -591,17 +696,71 @@
   // --------------------------------------------------------------------------
   // 7. QR CODE ATTENDANCE CHECK-IN ENGINE
   // --------------------------------------------------------------------------
-  function openQRScanner() {
+  async function openQRScanner() {
     if (!state.member?.id || !state.session.session_token) {
       showToast('Please authenticate to check in.', 'error');
       return;
     }
-    if (state.attendance.checked_in_today) {
+
+    const memberId = state.member?.id || state.member?.member_id;
+    const slug = state.tenant.slug;
+
+    // 1. Fast local check: if already verified today, do not open camera or request permission
+    const localLock = getLocalAttendanceLock(slug, memberId);
+    if (state.attendance.checked_in_today || localLock) {
+      const timeStr = state.attendance.check_in_time || localLock?.check_in_time || 'Reception';
+      state.attendance.checked_in_today = true;
+      state.attendance.check_in_time = timeStr;
+      state.attendance.attendance_status = 'VERIFIED';
+      renderApp();
       playCyberChime('success');
-      showToast(`✓ Attendance already verified today at ${state.attendance.check_in_time || 'Reception'}!`, 'success');
+      showToast(`✓ Attendance already verified today at ${timeStr}!`, 'success');
       return;
     }
 
+    // 2. Authoritative check with rpc_member_attendance_status before opening camera
+    const db = getSupabase();
+    const token = state.session.session_token;
+
+    if (!db || !token) {
+      showToast('Session error. Please log in again.', 'error');
+      return;
+    }
+
+    try {
+      const { data, error } = await db.rpc('rpc_member_attendance_status', {
+        p_gym_slug: slug,
+        p_member_id: memberId,
+        p_session_token: token
+      });
+
+      if (error) {
+        showToast('Could not verify attendance status. Please try again.', 'error');
+        return;
+      }
+
+      if (data && data.success && data.checked_in_today) {
+        const timeStr = data.check_in
+          ? new Date(data.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        state.attendance = {
+          checked_in_today: true,
+          check_in_time: timeStr,
+          attendance_status: 'VERIFIED'
+        };
+        setLocalAttendanceLock(slug, memberId, timeStr);
+        renderApp();
+        playCyberChime('success');
+        showToast(`✓ Attendance already verified today at ${timeStr}!`, 'success');
+        return;
+      }
+    } catch (err) {
+      showToast('Network error checking attendance. Please try again.', 'error');
+      return;
+    }
+
+    // 3. If and only if checked_in_today === false, open the QR scanner modal
     state.ui.qrModalOpen = true;
     renderApp();
 
@@ -681,20 +840,27 @@
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || 'Attendance punch rejected.');
 
+      const timeStr = data.check_in
+        ? new Date(data.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
       state.attendance = {
         checked_in_today: true,
-        check_in_time: data.check_in ? new Date(data.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        check_in_time: timeStr,
         attendance_status: 'VERIFIED'
       };
+
+      setLocalAttendanceLock(slug, memberId, timeStr);
 
       if (data.streak_count != null) {
         state.member.streak_count = Number(data.streak_count);
         saveCanonicalSession(state.member);
       }
 
+      closeQRScanner();
       playCyberChime('success');
       showToast(data.status === 'ALREADY_CHECKED_IN' ? '✓ Attendance already verified today!' : '✓ Reception Desk QR Attendance Verified! 🔥', 'success');
-      closeQRScanner();
+      renderApp();
     } catch (err) {
       playCyberChime('alert');
       showToast('Attendance verification failed: ' + (err?.message || err), 'error');
@@ -977,7 +1143,7 @@ html, body {
             <p class="text-sm text-zinc-300 max-w-xs mx-auto">${esc(err.message)}</p>
             ${err.details ? `<p class="font-mono text-xs text-zinc-500">${esc(err.details)}</p>` : ''}
           </div>
-          <button type="button" onclick="location.href='?gym=akash-fitness'" class="px-6 py-3.5 bg-cyberVolt text-black font-brand font-extrabold text-sm rounded-2xl shadow-glow-volt uppercase cursor-pointer hover:brightness-110 active:scale-95 transition-all">
+          <button type="button" onclick="location.href='?gym=akash-fitness-2343'" class="px-6 py-3.5 bg-cyberVolt text-black font-brand font-extrabold text-sm rounded-2xl shadow-glow-volt uppercase cursor-pointer hover:brightness-110 active:scale-95 transition-all">
             LAUNCH DEFAULT STATION ⚡
           </button>
         </div>
