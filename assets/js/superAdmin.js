@@ -2,7 +2,7 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 import { supabase } from './supabaseClient.js';
 
 const SUPABASE_URL = (typeof window !== 'undefined' && window.NEXUS_CONFIG?.SUPABASE_URL) || 'https://zfvkvrhuovvbfbrutpph.supabase.co';
-const SUPABASE_ANON_KEY = (typeof window !== 'undefined' && window.NEXUS_CONFIG?.SUPABASE_ANON_KEY) || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpmdmt2cmh1b3Z2YmZicnV0cHBoIiwiaWF0IjoxNzg3MTMyMjg0LCJleHAiOjIxMDI3MDgyODR9.M-WK1bgZDLXcuMTldMSwptx5XRpRnLAi-BxMFEoph4U';
+const SUPABASE_ANON_KEY = (typeof window !== 'undefined' && window.NEXUS_CONFIG?.SUPABASE_ANON_KEY) || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpmdmt2cmh1b3Z2YmZicnV0cHBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMzIyODQsImV4cCI6MjEwMjcwODI4NH0.M-WK1bgZDLXcuMTldMSwptx5XRpRnLAi-BxMFEoph4U';
 
 let cachedSuperAdminContext = null;
 let bootstrapPromise = null;
@@ -43,11 +43,9 @@ export async function onboardGymNode({ gymName, slug, phone, email, adminPin = '
   let isSuperAdmin = checkIsSuperAdmin(session.user, cachedSuperAdminContext);
   try { const { data: rpcContext, error: contextErr } = await supabase.rpc('rpc_get_current_user_context'); if (!contextErr && rpcContext) isSuperAdmin = isSuperAdmin || checkIsSuperAdmin(session.user, rpcContext); } catch (ctxErr) { console.warn('[ONBOARDING] User context RPC check note:', ctxErr); }
   if (!isSuperAdmin) throw new Error('Access Denied: Current user does not hold the SUPER_ADMIN role required to onboard new gym nodes.');
-
   const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
   const pricingPayload = { plan_1m_price: Number(p1), plan_3m_price: Number(p3), plan_6m_price: Number(p6), plan_12m_price: Number(p12) };
   const resolvedOwnerName = String(ownerName || `${gymName} Owner`).trim();
-
   // Auth provisioning is server-side only. The browser never receives or stores an owner password.
   const { data, error } = await supabase.functions.invoke('nexus-create-gym-owner', { body: { gym_name: gymName, slug: cleanSlug, owner_phone: phone, owner_email: email, owner_name: resolvedOwnerName, owner_upi_id: upi, admin_pin: String(adminPin || '1234'), saas_fee: Number(saasFee), validity_days: Number(validityDays), pricing: pricingPayload, feature_gates: features } });
   if (error) {
@@ -57,7 +55,6 @@ export async function onboardGymNode({ gymName, slug, phone, email, adminPin = '
     throw new Error(message);
   }
   if (!data?.success) throw new Error(data?.error || 'Owner onboarding failed.');
-
   return { success: true, gym: data.gym || { id: data.gym_id, name: gymName, slug: cleanSlug, phone, email }, gymId: data.gym_id, authUserId: data.owner_user_id || null, email, password: 'Set via secure email invitation', adminPin: String(adminPin || '1234'), slug: cleanSlug, gymName, phone, authNotice: data.auth_notice || 'Invitation email sent. Owner must open the email and set a password before first login.', invitationSent: data.invitation_sent === true };
 }
 
