@@ -19,7 +19,9 @@ export async function initAdminConsole() {
     document.getElementById('admin-lock-modal')?.classList.add('hidden');
     bindDeskLockHandler(userContext, targetGymSlug);
     installGymRenewalOverride(targetGymSlug, Boolean(userContext.is_super_admin));
-    installAtomicMemberRegistration();
+    // Member registration is installed at module load, before this async auth flow,
+    // so the onboarding button can never fall back to the legacy PIN-gated handler.
+    // Do not reinstall it here: doing so would overwrite the canonical WhatsApp wrapper.
     if (typeof window.fetchAllData === 'function') window.fetchAllData(false);
   } catch (error) {
     console.warn('[ADMIN AUTH] Halt console execution:', error.message);
@@ -148,16 +150,23 @@ function bindDeskLockHandler(userContext, gymSlug) {
 }
 
 function installAtomicMemberRegistration() {
+  if (typeof window === 'undefined' || window.__nexusCanonicalMemberRegistrationInstalled) return;
+  window.__nexusCanonicalMemberRegistrationInstalled = true;
+
   window.handleCreateMember = async function handleCreateMemberAtomic(e) {
     e?.preventDefault();
+    if (window.__nexusMemberRegistrationInFlight) return;
+    window.__nexusMemberRegistrationInFlight = true;
+
     const fullName = document.getElementById('new-member-name')?.value.trim() || '';
     const cleanPhone = (document.getElementById('new-member-phone')?.value || '').replace(/\D/g, '').slice(-10);
     const ageRaw = document.getElementById('new-member-age')?.value.trim() || '';
     const age = ageRaw ? parseInt(ageRaw, 10) : null;
     const address = document.getElementById('new-member-address')?.value.trim() || '';
-    const selectedPlanButton = document.querySelector('.plan-choice-btn.bg-gold[id^="plan-opt-"]');
-    const selectedPlanMonths = parseInt(selectedPlanButton?.id?.replace('plan-opt-', ''), 10) || 1;
-    const collectedAmount = parseFloat(document.getElementById('feeAmountInput')?.value) || 0;
+    const selectedPlanButton = document.querySelector('.plan-choice-btn[aria-pressed="true"], .plan-choice-btn.bg-gold[id^="plan-opt-"]');
+    const selectedPlanMonths = parseInt(selectedPlanButton?.id?.replace('plan-opt-', ''), 10);
+    const amountRaw = document.getElementById('feeAmountInput')?.value?.trim() || '';
+    const collectedAmount = amountRaw === '' ? NaN : Number(amountRaw);
     const isReferred = document.getElementById('ref-type-referred')?.checked;
     const cleanRefPhone = isReferred ? (document.getElementById('new-member-referrer')?.value || '').replace(/\D/g, '').slice(-10) : '';
     const photoSrc = document.getElementById('photo-preview-img')?.src || '';
@@ -165,9 +174,12 @@ function installAtomicMemberRegistration() {
     const gymSlug = (new URLSearchParams(window.location.search).get('gym') || '').trim().toLowerCase();
     const btn = document.getElementById('btn-submit-member');
     const toast = (message, type) => window.showToast?.(message, type);
-    if (!fullName) return toast('Please enter athlete full name', 'error');
-    if (!/^\d{10}$/.test(cleanPhone)) return toast('Please enter a valid 10-digit mobile number', 'error');
-    if (!gymSlug) return toast('Gym tenant is missing from this admin link', 'error');
+
+    if (!fullName) { window.__nexusMemberRegistrationInFlight = false; return toast('Please enter athlete full name', 'error'); }
+    if (!/^\d{10}$/.test(cleanPhone)) { window.__nexusMemberRegistrationInFlight = false; return toast('Please enter a valid 10-digit mobile number', 'error'); }
+    if (!gymSlug) { window.__nexusMemberRegistrationInFlight = false; return toast('Gym tenant is missing from this admin link', 'error'); }
+    if (!Number.isInteger(selectedPlanMonths) || selectedPlanMonths < 1) { window.__nexusMemberRegistrationInFlight = false; return toast('Please select a membership duration.', 'error'); }
+    if (!Number.isFinite(collectedAmount) || collectedAmount <= 0) { window.__nexusMemberRegistrationInFlight = false; document.getElementById('feeAmountInput')?.focus(); return toast('Please enter the actual amount collected.', 'error'); }
     if (btn) { btn.innerText = 'Registering Athlete to Cloud...'; btn.disabled = true; }
     try {
       const { data, error } = await supabase.rpc('register_member_with_referral', {
@@ -193,6 +205,7 @@ function installAtomicMemberRegistration() {
       toast(`Registration failed: ${err.message || err}`, 'error');
     } finally {
       if (btn) { btn.innerText = 'Confirm & Save Athlete to Cloud ⚡'; btn.disabled = false; }
+      window.__nexusMemberRegistrationInFlight = false;
     }
   };
 }
@@ -279,6 +292,11 @@ function installRobustCsvExport() {
     }
   };
 }
+
+// Install the canonical onboarding handler immediately. The admin auth/PIN flow is
+// intentionally not part of member registration, and this must exist before any
+// async auth/bootstrap work can finish or any user can tap the onboarding button.
+installAtomicMemberRegistration();
 
 if (typeof window !== 'undefined') {
   if (document.readyState === 'complete') installRobustCsvExport();
