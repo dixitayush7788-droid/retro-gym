@@ -1,9 +1,6 @@
-import { supabase } from './supabaseClient.js';
-
 (() => {
   'use strict';
   const $ = (id) => document.getElementById(id);
-  const getSlug = () => (new URLSearchParams(window.location.search).get('gym') || '').trim().toLowerCase();
 
   function clearOnboardingDefaults() {
     const fee = $('feeAmountInput');
@@ -28,6 +25,7 @@ import { supabase } from './supabaseClient.js';
       const before = feeInput ? Number(feeInput.value) : NaN;
       const hasExplicitAmount = Number.isFinite(before) && before > 0;
       const result = original.call(this, months, customFee);
+      // Selecting a duration must never overwrite an amount the owner already entered.
       if (feeInput) {
         feeInput.value = hasExplicitAmount ? String(before) : '';
         feeInput.placeholder = 'Enter actual amount collected';
@@ -72,62 +70,11 @@ import { supabase } from './supabaseClient.js';
     window.__nexusMemberCreateValidationWrapped = true;
   }
 
-  async function readPinConfigured(slug) {
-    if (!slug) return false;
-    try {
-      const client = window.__NEXUS_CANONICAL_SUPABASE_CLIENT__ || window.supabaseClient || window.db || supabase;
-      if (!client) return false;
-      const { data: gym, error } = await client.from('gyms').select('id').eq('slug', slug).maybeSingle();
-      if (error || !gym?.id) return false;
-      const { data, error: pinError } = await client.rpc('rpc_get_admin_pin_state', { p_gym_id: gym.id });
-      if (pinError) return false;
-      return data === true || data?.configured === true || data?.has_pin === true || data?.pin_configured === true || (data?.success === true && data?.configured !== false);
-    } catch (e) {
-      console.warn('[NEXUS PIN STATE]', e);
-      return false;
-    }
-  }
-
-  async function reconcileAdminPinGate() {
-    const slug = getSlug();
-    if (!slug || typeof window.setAdminPinMode !== 'function') return;
-
-    const configured = await readPinConfigured(slug);
-    const lockModal = $('admin-lock-modal');
-    const sessionKey = `retrogym_admin_auth_${slug}`;
-    const isSessionAuthorized = sessionStorage.getItem(sessionKey) === 'true' || sessionStorage.getItem('retrogym_admin_auth') === 'true';
-
-    if (configured) {
-      window.setAdminPinMode('unlock');
-      // The PIN is a console lock/unlock control only. A valid authenticated admin
-      // session must never be interrupted by member onboarding or a data refresh.
-      if (isSessionAuthorized && lockModal) lockModal.classList.add('hidden');
-      return;
-    }
-
-    // Only a genuinely unconfigured gym enters PIN setup. Do not infer setup from
-    // the absence of admin_pin_hash in the browser: the hash is intentionally never
-    // exposed by tenant RPCs.
-    if (lockModal) lockModal.classList.remove('hidden');
-    window.setAdminPinMode('setup-enter');
-  }
-
-  function wrapAdminLock() {
-    if (window.__nexusAdminLockWrapped || typeof window.lockAdminConsole !== 'function') return;
-    const original = window.lockAdminConsole;
-    window.lockAdminConsole = async function(...args) {
-      return original.apply(this, args);
-    };
-    window.__nexusAdminLockWrapped = true;
-  }
-
   function init() {
     wrapMemberPlanSelection();
     wrapMemberDrawer();
     wrapMemberCreateValidation();
-    wrapAdminLock();
     clearOnboardingDefaults();
-    reconcileAdminPinGate();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
