@@ -55,81 +55,86 @@
     if(rows.length){rows.forEach((row,i)=>{const cells=[...row.querySelectorAll('td')].map(x=>(x.textContent||'').trim()).filter(Boolean);const name=cells[0]||`Titan ${i+1}`;const plan=cells[1]||'Active';const amount=cells.find(x=>/₹|INR|\d{2,}/.test(x))||'—';const mode=cells.find(x=>/cash|upi|card|online/i.test(x))||'—';body.insertAdjacentHTML('beforeend',`<div style="display:grid;grid-template-columns:1.2fr .8fr .8fr .8fr 1.4fr;gap:10px;align-items:center;padding:12px;border:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.02);border-radius:14px;font:600 11px Inter,sans-serif;color:#cbd5e1"><strong style="color:#fff">${escapeHtml(name)}</strong><span>${escapeHtml(plan)}</span><b style="color:#00FF87">${escapeHtml(amount)}</b><span>${escapeHtml(mode)}</span><span class="nx-hash">#nx_${Math.random().toString(16).slice(2,10)}...</span></div>`)})}else{body.innerHTML='<div style="padding:18px;border:1px dashed rgba(255,255,255,.08);border-radius:14px;color:#64748b;font:500 11px Inter,sans-serif">Ledger will populate from live transaction records when payments are present.</div>'}
   }
 
+  function getClient(){return window.__NEXUS_CANONICAL_SUPABASE_CLIENT__||window.supabaseClient||window.db||null}
+  async function resolveGym(){
+    const client=getClient();
+    const slug=new URLSearchParams(window.location.search).get('gym')?.toLowerCase().trim()||'';
+    if(!client||!slug) return null;
+    const {data,error}=await client.from('gyms').select('id,name,slug').eq('slug',slug).maybeSingle();
+    if(error) throw error;
+    return data||null;
+  }
+
   function installFeeSync(){
-    if(window.__nexusFeeSyncInstalled || typeof window.fetchAllData !== 'function') return;
-    const originalFetchAllData=window.fetchAllData;
-    window.__nexusFeeSyncInstalled=true;
+    if(window.__nexusFeeSyncInstalled || typeof window.fetchAllData!=='function') return;
+    const originalFetchAllData=window.fetchAllData;window.__nexusFeeSyncInstalled=true;
     window.fetchAllData=async function(...args){
       await originalFetchAllData(...args);
       try{
-        const gymId=Number(window.currentGymConfig?.id||0);
-        if(!gymId || !window.supabaseClient || !Array.isArray(window.allMembers)) return;
-        const {data:payments,error}=await window.supabaseClient.from('payments').select('member_id,amount,payment_status').eq('gym_id',gymId);
+        const client=getClient();const gym=await resolveGym();
+        if(!gym||!client||!Array.isArray(window.allMembers)) return;
+        const {data:payments,error}=await client.from('payments').select('member_id,amount,payment_status').eq('gym_id',gym.id);
         if(error) throw error;
-        const totals=new Map();
-        (payments||[]).forEach(p=>{if(String(p.payment_status||'').toLowerCase()==='completed' && p.member_id) totals.set(p.member_id,(totals.get(p.member_id)||0)+Number(p.amount||0));});
-        window.allMembers.forEach(m=>{const id=m.id||m.raw?.id; if(id && totals.has(id)) m.feesPaid=totals.get(id); else if(id && !totals.has(id) && m.feesPaid==null) m.feesPaid=0;});
-        if(typeof window.renderMembersCards==='function') window.renderMembersCards();
-        if(window.activeDossierMember && typeof window.openAthleteDossier==='function') await window.openAthleteDossier(window.activeDossierMember.phone,false);
+        const totals=new Map();(payments||[]).forEach(p=>{if(String(p.payment_status||'').toLowerCase()==='completed'&&p.member_id)totals.set(p.member_id,(totals.get(p.member_id)||0)+Number(p.amount||0))});
+        window.allMembers.forEach(m=>{const id=m.id||m.raw?.id;if(id)m.feesPaid=totals.get(id)||0});
+        if(typeof window.renderMembersCards==='function')window.renderMembersCards();
+        if(window.activeDossierMember&&typeof window.openAthleteDossier==='function')await window.openAthleteDossier(window.activeDossierMember.phone,false);
       }catch(err){console.warn('[NEXUS FEE SYNC]',err)}
     };
   }
 
-  async function syncOnboardingPaymentAndWelcome(phone, amount, beforeId) {
-    const slug = new URLSearchParams(window.location.search).get('gym')?.toLowerCase().trim() || '';
-    const gymId = Number(window.currentGymConfig?.id || 0);
-    if (!slug || !gymId || !/^\d{10}$/.test(phone)) return;
-    try {
-      const { data: member, error: memberError } = await window.supabaseClient.from('members').select('id,full_name,normalized_phone,gym_id').eq('gym_id', gymId).eq('normalized_phone', phone).maybeSingle();
-      if (memberError || !member || (beforeId && member.id === beforeId)) return;
-      const { data: memberships } = await window.supabaseClient.from('member_memberships').select('id,end_date,plan_id').eq('gym_id', gymId).eq('member_id', member.id).order('end_date',{ascending:false}).limit(1);
-      const membership = memberships?.[0];
-      if (!membership) return;
-      const { data: existingPayments } = await window.supabaseClient.from('payments').select('id,amount').eq('gym_id',gymId).eq('member_id',member.id).eq('membership_id',membership.id);
-      if (!existingPayments?.length) {
-        const cleanAmount = Number(amount);
-        if (!Number.isFinite(cleanAmount) || cleanAmount < 0 || cleanAmount > 100000000) throw new Error('Invalid onboarding payment amount.');
-        const { error: payError } = await window.supabaseClient.rpc('rpc_nexus_record_payment',{p_gym_id:gymId,p_member_id:member.id,p_membership_id:membership.id,p_amount:cleanAmount,p_payment_method:'cash',p_payment_status:'completed',p_transaction_ref:null,p_notes:'New member registration payment'});
-        if (payError) throw payError;
-      }
-      if (typeof window.fetchAllData === 'function') await window.fetchAllData();
-      const expiry = membership.end_date ? new Date(`${membership.end_date}T00:00:00`).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : 'your active membership period';
-      const athleteLink = `${window.location.origin}${window.location.pathname.replace(/\/[^/]*$/,'/')}index.html?gym=${encodeURIComponent(slug)}`;
-      const msg = `Welcome to ${window.currentGymConfig?.gym_name || 'our gym'}, ${member.full_name}! 🏋️‍♂️\n\nYour athlete membership is now active.\nValid until: ${expiry}\n\n🎯 Your Athlete Link:\n${athleteLink}\n\nOpen the link, enter your registered mobile number +91 ${member.normalized_phone}, and set your 4-digit PIN to access your personal athlete dashboard.\n\nWelcome to the family! 💪🔥`;
-      const waUrl = `https://wa.me/91${member.normalized_phone}?text=${encodeURIComponent(msg)}`;
-      window.location.href = waUrl;
-    } catch (err) {
-      console.error('[NEXUS ONBOARDING PAYMENT/WELCOME]',err);
-      window.showToast?.(`Member saved, but payment/welcome step needs attention: ${err.message || err}`,'error');
+  async function syncOnboardingPaymentAndWelcome(phone,amount,beforeId){
+    const client=getClient();const slug=new URLSearchParams(window.location.search).get('gym')?.toLowerCase().trim()||'';
+    if(!client||!slug||!/^\d{10}$/.test(phone))throw new Error('Onboarding tenant/session is not ready.');
+    const gym=await resolveGym();if(!gym)throw new Error('Gym tenant not found.');
+    const {data:member,error:memberError}=await client.from('members').select('id,full_name,normalized_phone,gym_id').eq('gym_id',gym.id).eq('normalized_phone',phone).maybeSingle();
+    if(memberError)throw memberError;if(!member)throw new Error('New athlete record was not found after onboarding.');
+    if(beforeId&&member.id===beforeId)return;
+    const {data:memberships,error:membershipError}=await client.from('member_memberships').select('id,end_date,plan_id').eq('gym_id',gym.id).eq('member_id',member.id).order('end_date',{ascending:false}).limit(1);
+    if(membershipError)throw membershipError;const membership=memberships?.[0];if(!membership)throw new Error('Membership record was not created.');
+    const cleanAmount=Number(amount);if(!Number.isFinite(cleanAmount)||cleanAmount<=0||cleanAmount>100000000)throw new Error('Invalid onboarding payment amount.');
+    const {data:payments,error:paymentReadError}=await client.from('payments').select('id,amount,payment_status').eq('gym_id',gym.id).eq('member_id',member.id).eq('membership_id',membership.id).order('created_at',{ascending:false});
+    if(paymentReadError)throw paymentReadError;
+    const completed=(payments||[]).filter(p=>String(p.payment_status||'').toLowerCase()==='completed');
+    if(!completed.length){
+      const {error:payError}=await client.rpc('rpc_nexus_record_payment',{p_gym_id:gym.id,p_member_id:member.id,p_membership_id:membership.id,p_amount:cleanAmount,p_payment_method:'cash',p_payment_status:'completed',p_transaction_ref:null,p_notes:'New member registration payment'});
+      if(payError)throw payError;
+    }else if(Number(completed[0].amount)!==cleanAmount){
+      const {error:updateError}=await client.from('payments').update({amount:cleanAmount}).eq('id',completed[0].id).eq('gym_id',gym.id).eq('member_id',member.id);
+      if(updateError)throw updateError;
     }
+    if(typeof window.fetchAllData==='function')await window.fetchAllData();
+    const expiry=membership.end_date?new Date(`${membership.end_date}T00:00:00`).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'your active membership period';
+    const athleteLink=`${window.location.origin}${window.location.pathname.replace(/\/[^/]*$/,'/')}index.html?gym=${encodeURIComponent(slug)}`;
+    const msg=`Welcome to ${gym.name||'our gym'}, ${member.full_name}! 🏋️‍♂️\n\nYour athlete membership is now active.\nValid until: ${expiry}\n\n🎯 Your Athlete Link:\n${athleteLink}\n\nOpen the link, enter your registered mobile number +91 ${member.normalized_phone}, and set your 4-digit PIN to access your personal athlete dashboard.\n\nWelcome to the family! 💪🔥`;
+    const waUrl=`https://wa.me/91${member.normalized_phone}?text=${encodeURIComponent(msg)}`;
+    // Universal wa.me links are the supported iPhone handoff and pre-fill the chat composer.
+    window.location.assign(waUrl);
   }
 
   function installOnboardingFixes(){
-    if(window.__nexusOnboardingFixInstalled || typeof window.handleCreateMember !== 'function') return;
-    const originalCreateMember = window.handleCreateMember;
-    window.__nexusOnboardingFixInstalled = true;
-    window.handleCreateMember = async function(e){
-      const phone = (document.getElementById('new-member-phone')?.value || '').replace(/\D/g,'').slice(-10);
-      const amount = Number(document.getElementById('feeAmountInput')?.value);
-      const gymId = Number(window.currentGymConfig?.id || 0);
-      let beforeId = null;
-      if (gymId && /^\d{10}$/.test(phone)) {
-        try { const {data}=await window.supabaseClient.from('members').select('id').eq('gym_id',gymId).eq('normalized_phone',phone).maybeSingle(); beforeId=data?.id||null; } catch(_) {}
-      }
+    if(window.__nexusOnboardingFixInstalled||typeof window.handleCreateMember!=='function')return;
+    const originalCreateMember=window.handleCreateMember;window.__nexusOnboardingFixInstalled=true;
+    window.handleCreateMember=async function(e){
+      const phone=(document.getElementById('new-member-phone')?.value||'').replace(/\D/g,'').slice(-10);
+      const amount=Number(document.getElementById('feeAmountInput')?.value);const client=getClient();
+      let beforeId=null;
+      if(client&&/^\d{10}$/.test(phone))try{const gym=await resolveGym();if(gym){const {data}=await client.from('members').select('id').eq('gym_id',gym.id).eq('normalized_phone',phone).maybeSingle();beforeId=data?.id||null}}catch(_){ }
       await originalCreateMember(e);
       await new Promise(r=>setTimeout(r,350));
-      if (!beforeId && Number.isFinite(amount) && amount >= 0) await syncOnboardingPaymentAndWelcome(phone,amount,beforeId);
+      if(!beforeId&&Number.isFinite(amount)&&amount>0){
+        try{await syncOnboardingPaymentAndWelcome(phone,amount,beforeId)}catch(err){console.error('[NEXUS ONBOARDING PAYMENT/WELCOME]',err);window.showToast?.(`Member saved, but WhatsApp/payment sync failed: ${err.message||err}`,'error')}
+      }
     };
   }
 
   function hardenMobileBottomClearance(){
-    const styleId='nexus-owner-mobile-clearance';
-    if(document.getElementById(styleId))return;
+    const styleId='nexus-owner-mobile-clearance';if(document.getElementById(styleId))return;
     const style=document.createElement('style');style.id=styleId;
     style.textContent='@media(max-width:900px){body>div.min-h-screen{padding-bottom:170px!important}#nx-owner-sidebar{bottom:10px!important}}@media(max-width:560px){body>div.min-h-screen{padding-bottom:185px!important}}';
     document.head.appendChild(style);
   }
 
-  function init(){buildSidebar();buildCommandStrip();buildDrawer();upgradeExistingKpis();addLedgerPresentation();hardenMobileBottomClearance();installFeeSync();installOnboardingFixes();import('./assets/js/adminPaymentUI.js?v=20260904').catch(e=>console.warn('[NEXUS PAYMENT UI]',e));document.addEventListener('click',e=>{const d=document.getElementById('nx-command-drawer');if(d&&d.classList.contains('open')&&!d.contains(e.target)&&!e.target.closest('#nx-tools-open')&&!e.target.closest('#nx-tools-btn'))d.classList.remove('open')})}
+  function init(){buildSidebar();buildCommandStrip();buildDrawer();upgradeExistingKpis();addLedgerPresentation();hardenMobileBottomClearance();installFeeSync();installOnboardingFixes();import('./assets/js/adminPaymentUI.js?v=20260904-3').catch(e=>console.warn('[NEXUS PAYMENT UI]',e));document.addEventListener('click',e=>{const d=document.getElementById('nx-command-drawer');if(d&&d.classList.contains('open')&&!d.contains(e.target)&&!e.target.closest('#nx-tools-open')&&!e.target.closest('#nx-tools-btn'))d.classList.remove('open')})}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else setTimeout(init,0);
 })();
