@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient.js';
-import './adminUXFixes.js';
+import './adminUXFixes.js?v=20260904-2';
 
 (() => {
   'use strict';
