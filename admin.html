@@ -94,29 +94,45 @@
       }
 
       setStatus('SESSION VERIFIED — LOADING COMMAND DESK…');
-      const response=await fetch('./admin-core.html?v=20260831',{cache:'no-store',credentials:'same-origin'});
+      const response=await fetch('./admin-core.html?v=20260904',{cache:'no-store',credentials:'same-origin'});
       if(!response.ok) throw new Error('Admin core failed to load (HTTP '+response.status+').');
       let source=await response.text();
 
-      // Keep the existing core intact while making its configuration use the canonical publishable key.
       source=source.replace(/SUPABASE_ANON_KEY:\s*'[^']*'/,"SUPABASE_ANON_KEY: '"+SUPABASE_KEY+"'");
       source=source.replace(/SUPABASE_KEY\s*=\s*'[^']*'/g,"SUPABASE_KEY='"+SUPABASE_KEY+"'");
 
       if(!source.includes('nexus-owner-ui.css')){
-        source=source.replace('</head>','<link rel="stylesheet" href="./nexus-owner-ui.css?v=20260831">\n</head>');
+        source=source.replace('</head>','<link rel="stylesheet" href="./nexus-owner-ui.css?v=20260904">\n</head>');
       }
       if(!source.includes('nexus-owner-ui.js')){
-        const ownerScript='<scr'+'ipt src="./nexus-owner-ui.js?v=20260831"></scr'+'ipt>';
+        const ownerScript='<scr'+'ipt src="./nexus-owner-ui.js?v=20260904"></scr'+'ipt>';
         source=source.replace('</body>',ownerScript+'\n</body>');
+      }
+
+      // Critical mobile/runtime fallbacks. These do not replace Tailwind; they prevent
+      // hidden overlays from becoming visible when the CDN is unavailable and reserve
+      // real scroll space for the fixed owner navigation.
+      if(!source.includes('nexus-admin-mobile-fallback')){
+        source=source.replace('</head>',`<style id="nexus-admin-mobile-fallback">
+          .hidden{display:none!important}
+          @media(max-width:900px){
+            #add-member-card{max-height:calc(100dvh - 88px)!important;padding-bottom:120px!important;scroll-padding-bottom:120px!important}
+            #add-member-drawer{padding-bottom:82px!important}
+            #nexus-payment-modal>div{max-height:calc(100dvh - 24px)!important;overflow-y:auto!important;padding-bottom:110px!important}
+          }
+        </style>\n</head>`);
       }
 
       const parsed=new DOMParser().parseFromString(source,'text/html');
       if(!parsed.body) throw new Error('Admin core returned invalid HTML.');
 
-      // Never use document.write(): it can corrupt the document on Safari/iOS.
       const imported=document.importNode(parsed.documentElement,true);
       document.documentElement.replaceWith(imported);
       await executeCoreScripts();
+
+      // Load the final owner-form/PIN reconciliation only after the core and auth
+      // modules have installed their canonical handlers. This avoids wrapper races.
+      await loadExternalScript('./assets/js/adminUXFixes.js?v=20260904-3','module');
     }
 
     loadCore().catch(function(error){
