@@ -15,7 +15,7 @@
       <button title="Attendance">${icon('<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M7 2v4M17 2v4M3 9h18M8 13h2M14 13h2M8 17h2"/>')}<span>ATTEND.</span></button>
       <button title="Financial Ledger">${icon('<path d="M4 19V5m0 14h16M8 16v-5m4 5V7m4 9v-8"/>')}<span>LEDGER</span></button>
       <button title="Broadcast">${icon('<path d="M4 11a8 8 0 0 1 16 0M7 11a5 5 0 0 1 10 0M10 11a2 2 0 0 1 4 0M12 14v7"/>')}<span>BROADCAST</span></button>
-    </nav><div class="nx-bottom"><div class="nx-security">DB<br>SECURED</div><button id="nx-tools-btn" title="Owner tools">${icon('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.8 1.8 0 0 0 .36 2l.06.06-1.42 1.42-.06-.06a1.8 1.8 0 0 0-2-.36 1.8 1.8 0 0 0-1.1 1.65V20h-2v-.29A1.8 1.8 0 0 0 12.15 18a1.8 1.8 0 0 0-2 .36l-.06.06-1.42-1.42.06-.06a1.8 1.8 0 0 0 .36-2A1.8 1.8 0 0 0 7 13v-2h.29A1.8 1.8 0 0 0 9 10.75a1.8 1.8 0 0 0-.36-2l-.06-.06L10 7.27l.06.06a1.8 1.8 0 0 0 2 .36A1.8 1.8 0 0 0 13.15 6V5h2v1a1.8 1.8 0 0 0 1.1 1.65 1.8 1.8 0 0 0 2-.36l.06-.06 1.42 1.42-.06.06a1.8 1.8 0 0 0-.36 2A1.8 1.8 0 0 0 21 11v2h-1.6A1.8 1.8 0 0 0 19.4 15Z"/>')}<span>TOOLS</span></button></div>`;
+    </nav><div class="nx-bottom"><div class="nx-security">DB<br>SECURED</div><button id="nx-tools-btn" title="Owner tools">${icon('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.8 1.8 0 0 0 .36 2l.06.06-1.42 1.42-.06-.06a1.8 1.8 0 0 0-2-.36 1.8 1.8 0 0 0-1.1 1.65V20h-2v-.29A1.8 1.8 0 0 0 12.15 18a1.8 1.8 0 0 0-2 .36l-.06.06-1.42-1.42-.06-.06a1.8 1.8 0 0 0 .36-2A1.8 1.8 0 0 0 7 13v-2h.29A1.8 1.8 0 0 0 9 10.75a1.8 1.8 0 0 0-.36-2l-.06-.06L10 7.27l.06.06a1.8 1.8 0 0 0 2 .36A1.8 1.8 0 0 0 13.15 6V5h2v1a1.8 1.8 0 0 0 1.1 1.65 1.8 1.8 0 0 0 2-.36l.06-.06 1.42 1.42-.06.06a1.8 1.8 0 0 0-.36 2A1.8 1.8 0 0 0 21 11v2h-1.6A1.8 1.8 0 0 0 19.4 15Z"/>')}<span>TOOLS</span></button></div>`;
     document.body.appendChild(side);
     const [command,titans,attendance,ledger,broadcast]=side.querySelectorAll('.nx-nav button');
     command.addEventListener('click',()=>{window.scrollTo({top:0,behavior:'smooth'});setActive(command)});
@@ -55,6 +55,26 @@
     if(rows.length){rows.forEach((row,i)=>{const cells=[...row.querySelectorAll('td')].map(x=>(x.textContent||'').trim()).filter(Boolean);const name=cells[0]||`Titan ${i+1}`;const plan=cells[1]||'Active';const amount=cells.find(x=>/₹|INR|\d{2,}/.test(x))||'—';const mode=cells.find(x=>/cash|upi|card|online/i.test(x))||'—';body.insertAdjacentHTML('beforeend',`<div style="display:grid;grid-template-columns:1.2fr .8fr .8fr .8fr 1.4fr;gap:10px;align-items:center;padding:12px;border:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.02);border-radius:14px;font:600 11px Inter,sans-serif;color:#cbd5e1"><strong style="color:#fff">${escapeHtml(name)}</strong><span>${escapeHtml(plan)}</span><b style="color:#00FF87">${escapeHtml(amount)}</b><span>${escapeHtml(mode)}</span><span class="nx-hash">#nx_${Math.random().toString(16).slice(2,10)}...</span></div>`)})}else{body.innerHTML='<div style="padding:18px;border:1px dashed rgba(255,255,255,.08);border-radius:14px;color:#64748b;font:500 11px Inter,sans-serif">Ledger will populate from live transaction records when payments are present.</div>'}
   }
 
+  function installFeeSync(){
+    if(window.__nexusFeeSyncInstalled || typeof window.fetchAllData !== 'function') return;
+    const originalFetchAllData=window.fetchAllData;
+    window.__nexusFeeSyncInstalled=true;
+    window.fetchAllData=async function(...args){
+      await originalFetchAllData(...args);
+      try{
+        const gymId=Number(window.currentGymConfig?.id||0);
+        if(!gymId || !window.supabaseClient || !Array.isArray(window.allMembers)) return;
+        const {data:payments,error}=await window.supabaseClient.from('payments').select('member_id,amount,payment_status').eq('gym_id',gymId);
+        if(error) throw error;
+        const totals=new Map();
+        (payments||[]).forEach(p=>{if(String(p.payment_status||'').toLowerCase()==='completed' && p.member_id) totals.set(p.member_id,(totals.get(p.member_id)||0)+Number(p.amount||0));});
+        window.allMembers.forEach(m=>{const id=m.id||m.raw?.id; if(id && totals.has(id)) m.feesPaid=totals.get(id); else if(id && !totals.has(id) && m.feesPaid==null) m.feesPaid=0;});
+        if(typeof window.renderMembersCards==='function') window.renderMembersCards();
+        if(window.activeDossierMember && typeof window.openAthleteDossier==='function') await window.openAthleteDossier(window.activeDossierMember.phone,false);
+      }catch(err){console.warn('[NEXUS FEE SYNC]',err)}
+    };
+  }
+
   async function syncOnboardingPaymentAndWelcome(phone, amount, beforeId) {
     const slug = new URLSearchParams(window.location.search).get('gym')?.toLowerCase().trim() || '';
     const gymId = Number(window.currentGymConfig?.id || 0);
@@ -90,8 +110,7 @@
     window.__nexusOnboardingFixInstalled = true;
     window.handleCreateMember = async function(e){
       const phone = (document.getElementById('new-member-phone')?.value || '').replace(/\D/g,'').slice(-10);
-      const amountRaw = document.getElementById('feeAmountInput')?.value;
-      const amount = Number(amountRaw);
+      const amount = Number(document.getElementById('feeAmountInput')?.value);
       const gymId = Number(window.currentGymConfig?.id || 0);
       let beforeId = null;
       if (gymId && /^\d{10}$/.test(phone)) {
@@ -99,8 +118,7 @@
       }
       await originalCreateMember(e);
       await new Promise(r=>setTimeout(r,350));
-      if (beforeId) return;
-      if (Number.isFinite(amount) && amount >= 0) await syncOnboardingPaymentAndWelcome(phone,amount,beforeId);
+      if (!beforeId && Number.isFinite(amount) && amount >= 0) await syncOnboardingPaymentAndWelcome(phone,amount,beforeId);
     };
   }
 
@@ -112,6 +130,6 @@
     document.head.appendChild(style);
   }
 
-  function init(){buildSidebar();buildCommandStrip();buildDrawer();upgradeExistingKpis();addLedgerPresentation();hardenMobileBottomClearance();installOnboardingFixes();import('./assets/js/adminPaymentUI.js?v=20260904').catch(e=>console.warn('[NEXUS PAYMENT UI]',e));document.addEventListener('click',e=>{const d=document.getElementById('nx-command-drawer');if(d&&d.classList.contains('open')&&!d.contains(e.target)&&!e.target.closest('#nx-tools-open')&&!e.target.closest('#nx-tools-btn'))d.classList.remove('open')})}
+  function init(){buildSidebar();buildCommandStrip();buildDrawer();upgradeExistingKpis();addLedgerPresentation();hardenMobileBottomClearance();installFeeSync();installOnboardingFixes();import('./assets/js/adminPaymentUI.js?v=20260904').catch(e=>console.warn('[NEXUS PAYMENT UI]',e));document.addEventListener('click',e=>{const d=document.getElementById('nx-command-drawer');if(d&&d.classList.contains('open')&&!d.contains(e.target)&&!e.target.closest('#nx-tools-open')&&!e.target.closest('#nx-tools-btn'))d.classList.remove('open')})}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else setTimeout(init,0);
 })();
