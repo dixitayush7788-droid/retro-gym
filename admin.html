@@ -75,7 +75,7 @@
 
     async function resolveSingleTenant(client){
       const params=new URLSearchParams(window.location.search);
-      if((params.get('gym')||'').trim()) return true;
+      if((params.get('gym')||'').trim()) return false;
       try{
         const {data:ctx,error}=await client.rpc('rpc_get_current_user_context');
         if(error) return false;
@@ -111,8 +111,6 @@
         return;
       }
 
-      // Owner/admin links may be opened without ?gym=. Resolve a single assigned
-      // tenant before loading the strict core gatekeeper.
       if(await resolveSingleTenant(client)) return;
 
       setStatus('SESSION VERIFIED — LOADING COMMAND DESK…');
