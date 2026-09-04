@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient.js';
+import './adminUXFixes.js';
 
 (() => {
   'use strict';
@@ -71,7 +72,7 @@ import { supabase } from './supabaseClient.js';
       document.getElementById('nexus-payment-member').textContent = `${member.full_name} • +91 ${member.normalized_phone || phone}`;
       document.getElementById('nexus-payment-validity').textContent = membership.end_date ? new Date(`${membership.end_date}T00:00:00`).toLocaleDateString('en-GB') : '--';
       document.getElementById('nexus-payment-suggested').textContent = suggested ? money(suggested) : 'Custom';
-      document.getElementById('nexus-payment-amount').value = suggested ? String(suggested) : '';
+      document.getElementById('nexus-payment-amount').value = '';
       document.getElementById('nexus-payment-ref').value = ''; document.getElementById('nexus-payment-notes').value = '';
       const modal = document.getElementById('nexus-payment-modal'); modal.classList.remove('hidden'); modal.classList.add('flex');
       setTimeout(() => document.getElementById('nexus-payment-amount')?.focus(), 40);
