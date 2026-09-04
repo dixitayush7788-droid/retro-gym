@@ -55,7 +55,7 @@ import { supabase } from './supabaseClient.js';
     window.handleCreateMember = async function(e) {
       const feeInput = $('feeAmountInput');
       const fee = Number(feeInput?.value);
-      const selectedPlan = document.querySelector('.plan-choice-btn.bg-gold, .plan-choice-btn[aria-pressed="true"]');
+      const selectedPlan = document.querySelector('.plan-choice-btn[aria-pressed="true"]');
       if (!selectedPlan) {
         window.showToast?.('Please select a membership duration.', 'error');
         return;
@@ -70,35 +70,47 @@ import { supabase } from './supabaseClient.js';
     window.__nexusMemberCreateValidationWrapped = true;
   }
 
-  async function fixAdminPinGate() {
-    const slug = getSlug();
-    if (!slug || typeof window.setAdminPinMode !== 'function') return;
+  async function readPinConfigured(slug) {
+    if (!slug) return false;
     try {
       const { data: gym, error } = await supabase.from('gyms').select('id').eq('slug', slug).maybeSingle();
-      if (error || !gym?.id) return;
+      if (error || !gym?.id) return false;
       const { data, error: pinError } = await supabase.rpc('rpc_get_admin_pin_state', { p_gym_id: gym.id });
-      if (pinError) return;
-      const configured = data === true || data?.configured === true || data?.has_pin === true || data?.pin_configured === true || (data?.success === true && data?.configured !== false);
-      if (configured) window.setAdminPinMode('unlock');
+      if (pinError) return false;
+      return data === true || data?.configured === true || data?.has_pin === true || data?.pin_configured === true || (data?.success === true && data?.configured !== false);
     } catch (e) {
       console.warn('[NEXUS PIN STATE]', e);
+      return false;
     }
   }
 
-  function addMobileSafeArea() {
-    const root = document.querySelector('body > div.min-h-screen');
-    if (root) root.style.setProperty('padding-bottom', '190px', 'important');
+  async function reconcileAdminPinGate() {
+    const slug = getSlug();
+    if (!slug || typeof window.setAdminPinMode !== 'function') return;
+    const configured = await readPinConfigured(slug);
+    if (configured) window.setAdminPinMode('unlock');
+  }
+
+  function wrapAdminLock() {
+    if (window.__nexusAdminLockWrapped || typeof window.lockAdminConsole !== 'function') return;
+    const original = window.lockAdminConsole;
+    window.lockAdminConsole = async function(...args) {
+      const result = original.apply(this, args);
+      if (await readPinConfigured(getSlug())) window.setAdminPinMode?.('unlock');
+      return result;
+    };
+    window.__nexusAdminLockWrapped = true;
   }
 
   function init() {
     wrapMemberPlanSelection();
     wrapMemberDrawer();
     wrapMemberCreateValidation();
-    addMobileSafeArea();
+    wrapAdminLock();
     clearOnboardingDefaults();
-    fixAdminPinGate();
+    reconcileAdminPinGate();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
-  else setTimeout(init, 0);
+  else init();
 })();
