@@ -24,11 +24,15 @@ import { supabase } from './supabaseClient.js';
     if (window.__nexusPlanSelectionWrapped || typeof window.selectNewPlan !== 'function') return;
     const original = window.selectNewPlan;
     window.selectNewPlan = function(months, customFee = null) {
+      const feeInput = $('feeAmountInput');
+      const before = feeInput ? Number(feeInput.value) : NaN;
+      const hasExplicitAmount = Number.isFinite(before) && before > 0;
       const result = original.call(this, months, customFee);
-      const fee = $('feeAmountInput');
-      if (fee) {
-        fee.value = '';
-        fee.placeholder = 'Enter actual amount collected';
+      // Selecting a duration must never overwrite an amount the owner already entered.
+      // If no amount existed, keep it blank and require the owner to enter one.
+      if (feeInput) {
+        feeInput.value = hasExplicitAmount ? String(before) : '';
+        feeInput.placeholder = 'Enter actual amount collected';
       }
       document.querySelectorAll('.plan-choice-btn').forEach((btn) => btn.setAttribute('aria-pressed', 'false'));
       const active = $(`plan-opt-${months}`);
