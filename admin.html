@@ -73,6 +73,24 @@
       }
     }
 
+    async function resolveSingleTenant(client){
+      const params=new URLSearchParams(window.location.search);
+      if((params.get('gym')||'').trim()) return true;
+      try{
+        const {data:ctx,error}=await client.rpc('rpc_get_current_user_context');
+        if(error) return false;
+        const roles=Array.isArray(ctx?.roles)?ctx.roles:[];
+        const slugs=[...new Set(roles.map(r=>String(r?.gym_slug||'').trim().toLowerCase()).filter(Boolean))];
+        if(slugs.length===1){
+          const url=new URL(window.location.href);
+          url.searchParams.set('gym',slugs[0]);
+          window.location.replace(url.toString());
+          return true;
+        }
+      }catch(e){console.warn('[NEXUS ADMIN] Tenant auto-resolution note:',e)}
+      return false;
+    }
+
     async function loadCore(){
       if(!window.supabase || typeof window.supabase.createClient!=='function'){
         throw new Error('Supabase client failed to load. Please check your internet connection.');
@@ -93,6 +111,10 @@
         return;
       }
 
+      // Owner/admin links may be opened without ?gym=. Resolve a single assigned
+      // tenant before loading the strict core gatekeeper.
+      if(await resolveSingleTenant(client)) return;
+
       setStatus('SESSION VERIFIED — LOADING COMMAND DESK…');
       const response=await fetch('./admin-core.html?v=20260904',{cache:'no-store',credentials:'same-origin'});
       if(!response.ok) throw new Error('Admin core failed to load (HTTP '+response.status+').');
@@ -109,9 +131,6 @@
         source=source.replace('</body>',ownerScript+'\n</body>');
       }
 
-      // Critical mobile/runtime fallbacks. These do not replace Tailwind; they prevent
-      // hidden overlays from becoming visible when the CDN is unavailable and reserve
-      // real scroll space for the fixed owner navigation.
       if(!source.includes('nexus-admin-mobile-fallback')){
         source=source.replace('</head>',`<style id="nexus-admin-mobile-fallback">
           .hidden{display:none!important}
@@ -129,9 +148,6 @@
       const imported=document.importNode(parsed.documentElement,true);
       document.documentElement.replaceWith(imported);
       await executeCoreScripts();
-
-      // Load the final owner-form/PIN reconciliation only after the core and auth
-      // modules have installed their canonical handlers. This avoids wrapper races.
       await loadExternalScript('./assets/js/adminUXFixes.js?v=20260904-3','module');
     }
 
