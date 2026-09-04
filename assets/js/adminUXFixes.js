@@ -87,7 +87,7 @@ import { supabase } from './supabaseClient.js';
 
   function addMobileSafeArea() {
     const root = document.querySelector('body > div.min-h-screen');
-    if (root) root.style.paddingBottom = '190px';
+    if (root) root.style.setProperty('padding-bottom', '190px', 'important');
   }
 
   function init() {
