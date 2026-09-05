@@ -13,10 +13,15 @@ import { supabase } from './supabaseClient.js';
     return sessionStorage.getItem(`retrogym_admin_auth_${slug}`) === 'true' || sessionStorage.getItem('retrogym_admin_auth') === 'true';
   };
 
-  async function getPinState(slug) {
+  let pinState = { configured: null, gymId: null, slug: null };
+  let originalSetAdminPinMode = null;
+
+  async function getPinState(slug, force = false) {
     if (!slug) return { configured: false, gymId: null };
+    if (!force && pinState.slug === slug && typeof pinState.configured === 'boolean') return pinState;
+
     const client = window.__NEXUS_CANONICAL_SUPABASE_CLIENT__ || window.supabaseClient || window.db || supabase;
-    if (!client) return { configured: false, gymId: null };
+    if (!client) throw new Error('Supabase client unavailable.');
 
     const { data: gym, error: gymError } = await client
       .from('gyms')
@@ -27,40 +32,59 @@ import { supabase } from './supabaseClient.js';
 
     const { data, error } = await client.rpc('rpc_get_admin_pin_state', { p_gym_id: gym.id });
     if (error) throw error;
-    return { configured: data?.configured === true, gymId: gym.id };
+
+    const configured = data?.configured === true || data?.pin_configured === true;
+    pinState = { configured, gymId: gym.id, slug };
+    return pinState;
   }
 
-  async function applyGateState() {
+  function installPinModeGuard() {
+    if (window.__nexusAdminPinModeGuardInstalled || typeof window.setAdminPinMode !== 'function') return;
+    originalSetAdminPinMode = window.setAdminPinMode;
+    window.setAdminPinMode = function nexusCanonicalSetAdminPinMode(mode, ...args) {
+      // A configured tenant can NEVER be switched into PIN setup mode by legacy
+      // bootstrap code. Setup is only valid for a tenant whose server state says
+      // no PIN exists yet.
+      if (mode === 'setup-enter' && pinState.configured === true) {
+        return originalSetAdminPinMode.call(this, 'unlock', ...args);
+      }
+      return originalSetAdminPinMode.call(this, mode, ...args);
+    };
+    window.__nexusAdminPinModeGuardInstalled = true;
+  }
+
+  async function applyGateState(force = false) {
     const slug = getSlug();
     const modal = document.getElementById('admin-lock-modal');
-    if (!slug || typeof window.setAdminPinMode !== 'function') return;
+    if (!slug) return;
+
+    installPinModeGuard();
 
     try {
-      const { configured } = await getPinState(slug);
+      const { configured } = await getPinState(slug, force);
       if (configured) {
-        window.setAdminPinMode('unlock');
+        window.setAdminPinMode?.('unlock');
+        // Authentication through the real owner login is authoritative for console
+        // access. The PIN modal is only the local console lock, not onboarding auth.
         if (isSessionAuthorized(slug)) modal?.classList.add('hidden');
         else modal?.classList.remove('hidden');
       } else {
-        window.setAdminPinMode('setup-enter');
+        window.setAdminPinMode?.('setup-enter');
         modal?.classList.remove('hidden');
       }
     } catch (error) {
-      console.warn('[NEXUS SECURITY GATE] Unable to resolve PIN state:', error);
-      // Do not silently grant access when the security state cannot be resolved.
+      console.error('[NEXUS SECURITY GATE] Unable to resolve server PIN state:', error);
+      // Fail closed. Never turn an unknown security state into PIN setup.
       modal?.classList.remove('hidden');
+      if (originalSetAdminPinMode) originalSetAdminPinMode.call(window, 'unlock');
     }
   }
 
-  // Replace the legacy session check with the canonical server-backed state check.
-  // The old implementation inferred configuration from admin_pin_hash, but the
-  // tenant RPC deliberately strips that secret and returns only pin_configured.
   window.checkAdminSession = function nexusCanonicalAdminSessionCheck() {
-    void applyGateState();
+    installPinModeGuard();
+    void applyGateState(false);
   };
 
-  // Locking is still a real console lock. It must never fall back to PIN setup just
-  // because the browser does not have access to the server-side hash.
   window.lockAdminConsole = function nexusCanonicalAdminLock() {
     const slug = getSlug();
     sessionStorage.removeItem(`retrogym_admin_auth_${slug}`);
@@ -69,13 +93,14 @@ import { supabase } from './supabaseClient.js';
     window.clearPinKey?.();
     const modal = document.getElementById('admin-lock-modal');
     modal?.classList.remove('hidden');
-    void getPinState(slug).then(({ configured }) => {
+    void getPinState(slug, true).then(({ configured }) => {
       window.setAdminPinMode?.(configured ? 'unlock' : 'setup-enter');
     }).catch(() => {
-      window.setAdminPinMode?.('unlock');
+      // Unknown state stays locked and is never interpreted as "set a new PIN".
+      originalSetAdminPinMode?.call(window, 'unlock');
     });
     window.showToast?.('Admin Console Locked', 'info');
   };
 
-  window.__nexusRefreshAdminSecurityGate = applyGateState;
+  window.__nexusRefreshAdminSecurityGate = () => applyGateState(true);
 })();
