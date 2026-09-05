@@ -2781,14 +2781,11 @@
     function selectNewPlan(months, customFee = null) {
       selectedMonths = months;
       
-      let fee = customFee;
-      if (fee === null) {
-        if (months === 1) fee = currentGymConfig.plan_1m_price || 1200;
-        else if (months === 3) fee = currentGymConfig.plan_3m_price || 3200;
-        else if (months === 6) fee = currentGymConfig.plan_6m_price || 5800;
-        else if (months === 12) fee = currentGymConfig.plan_12m_price || 10500;
-        else fee = 1200;
-      }
+      // Duration and collected amount are independent. Never inject plan defaults
+      // into a member's actual payment.
+      const feeInput = document.getElementById('feeAmountInput');
+      const existingAmount = Number(feeInput?.value);
+      const fee = customFee !== null ? Number(customFee) : (Number.isFinite(existingAmount) && existingAmount > 0 ? existingAmount : null);
       selectedFee = fee;
 
       document.querySelectorAll('.plan-choice-btn').forEach(b => {
@@ -2803,8 +2800,11 @@
       const future = new Date();
       future.setMonth(future.getMonth() + months);
       document.getElementById('new-expiry-preview').innerText = future.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-      const feeInput = document.getElementById('feeAmountInput');
-      if (feeInput) feeInput.value = fee;
+      if (feeInput) {
+        if (fee !== null && Number.isFinite(fee) && fee > 0) feeInput.value = String(fee);
+        else feeInput.value = '';
+        feeInput.placeholder = 'Enter actual amount collected';
+      }
     }
 
     async function handleCreateMember(e) {
@@ -2825,8 +2825,17 @@
         return;
       }
 
-      const selectedPlanMonths = parseInt(selectedMonths, 10) || 1;
-      const collectedAmount = parseFloat(document.getElementById('feeAmountInput')?.value) || selectedFee || 1200;
+      const selectedPlanMonths = parseInt(selectedMonths, 10);
+      const collectedAmount = Number(document.getElementById('feeAmountInput')?.value);
+      if (![1,3,6,12].includes(selectedPlanMonths)) {
+        showToast("Please select a membership duration", "error");
+        return;
+      }
+      if (!Number.isFinite(collectedAmount) || collectedAmount <= 0) {
+        showToast("Please enter the actual amount collected", "error");
+        document.getElementById('feeAmountInput')?.focus();
+        return;
+      }
 
       const isReferred = document.getElementById('ref-type-referred')?.checked;
       const selectedReferrerValue = isReferred ? (document.getElementById('new-member-referrer')?.value || '') : '';
