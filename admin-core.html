@@ -1271,7 +1271,9 @@
     const SUPABASE_URL = "https://zfvkvrhuovvbfbrutpph.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpmdmt2cmh1b3Z2YmZicnV0cHBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMzIyODQsImV4cCI6MjEwMjcwODI4NH0.M-WK1bgZDLXcuMTldMSwptx5XRpRnLAi-BxMFEoph4U";
 
-    const db = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+    const db = window.__NEXUS_CANONICAL_SUPABASE_CLIENT__ || window.supabaseClient || (window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null);
+    window.__NEXUS_CANONICAL_SUPABASE_CLIENT__ = db;
+    window.supabaseClient = db;
 
     // Parse URL parameter for multi-tenant isolation (?gym=slug) — STRICT: ZERO DEFAULT FALLBACKS
     const urlParams = new URLSearchParams(window.location.search);
@@ -1286,7 +1288,7 @@
     let allAttendanceLogs = [];
     let currentFilter = 'all';
     let selectedMonths = 1;
-    let selectedFee = 1200;
+    let selectedFee = null;
     let activeDossierMember = null;
     let verifiedGymTenant = null;
     let currentGymConfig = {
@@ -1680,19 +1682,33 @@
       window.print();
     }
 
-    function checkAdminSession() {
-      const isAuth = sessionStorage.getItem(`retrogym_admin_auth_${currentGymSlug}`) === 'true' || sessionStorage.getItem('retrogym_admin_auth') === 'true';
+    async function resolveAdminPinState() {
+      if (!db || !currentGymConfig?.id) return false;
+      const { data, error } = await db.rpc('rpc_get_admin_pin_state', { p_gym_id: currentGymConfig.id });
+      if (error) throw error;
+      currentGymAdminPin = data?.configured === true || data?.pin_configured === true;
+      return currentGymAdminPin;
+    }
+
+    async function checkAdminSession() {
+      const isAuth = sessionStorage.getItem(`retrogym_admin_auth_${currentGymSlug}`) === 'true';
       const lockModal = document.getElementById('admin-lock-modal');
+      try {
+        await resolveAdminPinState();
+      } catch (error) {
+        console.error('[NEXUS PIN STATE]', error);
+        currentGymAdminPin = true; // fail closed: never force PIN setup when server state is unknown
+      }
       if (!currentGymAdminPin) {
         setAdminPinMode('setup-enter');
-        if (lockModal) lockModal.classList.remove('hidden');
+        lockModal?.classList.remove('hidden');
         clearPinKey();
       } else if (isAuth) {
-        if (lockModal) lockModal.classList.add('hidden');
+        lockModal?.classList.add('hidden');
         fetchAllData();
       } else {
         setAdminPinMode('unlock');
-        if (lockModal) lockModal.classList.remove('hidden');
+        lockModal?.classList.remove('hidden');
         clearPinKey();
       }
     }
@@ -3282,14 +3298,9 @@
       };
 
       localStorage.setItem(`retro_gym_config_${currentGymSlug}`, JSON.stringify(currentGymConfig));
-      // admin_pin_hash is never exposed to the browser; only keep a boolean configured state.
-      currentGymAdminPin = gym.admin_pin_hash ? true : null;
-
-      if (!currentGymAdminPin) {
-        setAdminPinMode('setup-enter');
-      } else {
-        setAdminPinMode('unlock');
-      }
+      // PIN configuration is resolved only through rpc_get_admin_pin_state().
+      // Never infer security state from a hidden hash column returned to the browser.
+      currentGymAdminPin = null;
 
       applyGymConfigToUI(currentGymConfig);
       applyGymBrandingToAdminUI(currentGymConfig);
@@ -3581,8 +3592,8 @@ _Old School Iron • Modern Discipline_`;
           console.warn("Real-time subscription note:", subErr);
         }
 
-        // 6. Check Admin Session and Load Data
-        checkAdminSession();
+        // 6. Resolve authoritative server PIN state, then load the console exactly once.
+        await checkAdminSession();
 
         // 7. Auto-refresh attendance feed every 30 seconds
         setInterval(() => fetchAttendanceFeed(false), 30000);
