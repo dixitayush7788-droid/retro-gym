@@ -200,6 +200,20 @@ function installAtomicMemberRegistration() {
       toast(`Athlete ${fullName} registered successfully.${rewardNote}`, 'success');
       window.closeAddMemberDrawer?.();
       await window.fetchAllData?.();
+
+      // The registration RPC is authoritative for membership and the exact collected amount.
+      // Keep welcome delivery in this canonical flow; do not wrap onboarding in UI overlays.
+      try {
+        const gymName = String(window.currentGymConfig?.name || window.currentGymConfig?.gym_name || 'our gym');
+        const athleteLink = new URL(`./index.html?gym=${encodeURIComponent(gymSlug)}`, window.location.href).toString();
+        const welcome = `Welcome to ${gymName}, ${fullName}! 🏋️‍♂️\n\nYour athlete membership is now active.\n\n🎯 Your Athlete Portal:\n${athleteLink}\n\nOpen the link, enter your registered mobile number (+91 ${cleanPhone}), and set your secure 4-digit PIN to access your personal dashboard.\n\nWelcome to the family! 💪🔥`;
+        const waUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(welcome)}`;
+        const a = document.createElement('a');
+        a.href = waUrl; a.target = '_blank'; a.rel = 'noopener noreferrer';
+        document.body.appendChild(a); a.click(); a.remove();
+      } catch (welcomeError) {
+        console.warn('[NEXUS WELCOME]', welcomeError);
+      }
     } catch (err) {
       console.error('[ATOMIC MEMBER REGISTRATION]', err);
       toast(`Registration failed: ${err.message || err}`, 'error');
