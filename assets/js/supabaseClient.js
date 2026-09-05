@@ -1,11 +1,14 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 // Canonical production Supabase configuration.
-// Use the project's active publishable key instead of any stale key embedded in
-// individual HTML pages. This prevents an old page-level API key from causing
-// "Invalid API key" authentication failures after a key rotation/deployment.
 const SUPABASE_URL = 'https://zfvkvrhuovvbfbrutpph.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_bFbeqpwaWmp0aioDVSkLAg_J7X4lzWk';
+
+function isAdminSurface() {
+  if (typeof window === 'undefined') return false;
+  const path = String(window.location.pathname || '').toLowerCase();
+  return /(?:^|\/)(?:admin|admin-login|super-admin|reset-password)\.html$/.test(path);
+}
 
 function initializeCanonicalClient() {
   if (typeof window !== 'undefined' && window.__NEXUS_CANONICAL_SUPABASE_CLIENT__) {
@@ -17,7 +20,8 @@ function initializeCanonicalClient() {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
-      storage: typeof window !== 'undefined' ? window.localStorage : undefined
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+      ...(isAdminSurface() ? { storageKey: 'nexus-admin-auth' } : {})
     }
   };
 
