@@ -205,7 +205,7 @@ function installAtomicMemberRegistration() {
       // Keep welcome delivery in this canonical flow; do not wrap onboarding in UI overlays.
       try {
         const gymName = String(window.currentGymConfig?.name || window.currentGymConfig?.gym_name || 'our gym');
-        const athleteLink = `${window.location.origin}${window.location.pathname.replace(/\\/[^\\/]*$/, '/') }index.html?gym=${encodeURIComponent(gymSlug)}`;
+        const athleteLink = new URL(`./index.html?gym=${encodeURIComponent(gymSlug)}`, window.location.href).toString();
         const welcome = `Welcome to ${gymName}, ${fullName}! 🏋️‍♂️\n\nYour athlete membership is now active.\n\n🎯 Your Athlete Portal:\n${athleteLink}\n\nOpen the link, enter your registered mobile number (+91 ${cleanPhone}), and set your secure 4-digit PIN to access your personal dashboard.\n\nWelcome to the family! 💪🔥`;
         const waUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(welcome)}`;
         const a = document.createElement('a');
