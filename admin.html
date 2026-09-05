@@ -36,7 +36,7 @@
     async function resolveSingleTenant(client){const params=new URLSearchParams(window.location.search);if((params.get('gym')||'').trim())return false;try{const {data:ctx,error}=await client.rpc('rpc_get_current_user_context');if(error)return false;const roles=Array.isArray(ctx?.roles)?ctx.roles:[];const slugs=[...new Set(roles.map(r=>String(r?.gym_slug||'').trim().toLowerCase()).filter(Boolean))];if(slugs.length===1){const url=new URL(window.location.href);url.searchParams.set('gym',slugs[0]);window.location.replace(url.toString());return true}}catch(e){console.warn('[NEXUS ADMIN] Tenant auto-resolution note:',e)}return false}
     async function loadCore(){
       if(!window.supabase||typeof window.supabase.createClient!=='function')throw new Error('Supabase client failed to load. Please check your internet connection.');
-      const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:window.localStorage}});
+      const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:'nexus-admin-auth',storage:window.localStorage}});
       window.__NEXUS_CANONICAL_SUPABASE_CLIENT__=client;window.supabaseClient=client;window.db=client;
       setStatus('SECURE BOOT — CHECKING ACCOUNT…');const result=await client.auth.getSession();if(result.error)throw result.error;if(!result.data?.session?.user){goLogin();return}
       if(await resolveSingleTenant(client))return;
