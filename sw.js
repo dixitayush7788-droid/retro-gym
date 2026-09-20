@@ -1,5 +1,5 @@
-// Akash Fitness PWA Service Worker — network-first app shell, never cache Supabase/API.
-const CACHE_NAME = 'akash-fitness-shell-v20260902-canonical-v2';
+// NEXUS PWA Service Worker — versioned network-first shell; never cache Supabase/API.
+const CACHE_NAME = 'nexus-shell-v20260905-stable-1';
 const PRECACHE_ASSETS = [
   './',
   './index.html',

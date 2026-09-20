@@ -1271,7 +1271,9 @@
     const SUPABASE_URL = "https://zfvkvrhuovvbfbrutpph.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpmdmt2cmh1b3Z2YmZicnV0cHBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMzIyODQsImV4cCI6MjEwMjcwODI4NH0.M-WK1bgZDLXcuMTldMSwptx5XRpRnLAi-BxMFEoph4U";
 
-    const db = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+    const db = window.__NEXUS_CANONICAL_SUPABASE_CLIENT__ || window.supabaseClient || (window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null);
+    window.__NEXUS_CANONICAL_SUPABASE_CLIENT__ = db;
+    window.supabaseClient = db;
 
     // Parse URL parameter for multi-tenant isolation (?gym=slug) — STRICT: ZERO DEFAULT FALLBACKS
     const urlParams = new URLSearchParams(window.location.search);
@@ -1286,7 +1288,7 @@
     let allAttendanceLogs = [];
     let currentFilter = 'all';
     let selectedMonths = 1;
-    let selectedFee = 1200;
+    let selectedFee = null;
     let activeDossierMember = null;
     let verifiedGymTenant = null;
     let currentGymConfig = {
@@ -1680,19 +1682,33 @@
       window.print();
     }
 
-    function checkAdminSession() {
-      const isAuth = sessionStorage.getItem(`retrogym_admin_auth_${currentGymSlug}`) === 'true' || sessionStorage.getItem('retrogym_admin_auth') === 'true';
+    async function resolveAdminPinState() {
+      if (!db || !currentGymConfig?.id) return false;
+      const { data, error } = await db.rpc('rpc_get_admin_pin_state', { p_gym_id: currentGymConfig.id });
+      if (error) throw error;
+      currentGymAdminPin = data?.configured === true || data?.pin_configured === true;
+      return currentGymAdminPin;
+    }
+
+    async function checkAdminSession() {
+      const isAuth = sessionStorage.getItem(`retrogym_admin_auth_${currentGymSlug}`) === 'true';
       const lockModal = document.getElementById('admin-lock-modal');
+      try {
+        await resolveAdminPinState();
+      } catch (error) {
+        console.error('[NEXUS PIN STATE]', error);
+        currentGymAdminPin = true; // fail closed: never force PIN setup when server state is unknown
+      }
       if (!currentGymAdminPin) {
         setAdminPinMode('setup-enter');
-        if (lockModal) lockModal.classList.remove('hidden');
+        lockModal?.classList.remove('hidden');
         clearPinKey();
       } else if (isAuth) {
-        if (lockModal) lockModal.classList.add('hidden');
+        lockModal?.classList.add('hidden');
         fetchAllData();
       } else {
         setAdminPinMode('unlock');
-        if (lockModal) lockModal.classList.remove('hidden');
+        lockModal?.classList.remove('hidden');
         clearPinKey();
       }
     }
@@ -2765,14 +2781,11 @@
     function selectNewPlan(months, customFee = null) {
       selectedMonths = months;
       
-      let fee = customFee;
-      if (fee === null) {
-        if (months === 1) fee = currentGymConfig.plan_1m_price || 1200;
-        else if (months === 3) fee = currentGymConfig.plan_3m_price || 3200;
-        else if (months === 6) fee = currentGymConfig.plan_6m_price || 5800;
-        else if (months === 12) fee = currentGymConfig.plan_12m_price || 10500;
-        else fee = 1200;
-      }
+      // Duration and collected amount are independent. Never inject plan defaults
+      // into a member's actual payment.
+      const feeInput = document.getElementById('feeAmountInput');
+      const existingAmount = Number(feeInput?.value);
+      const fee = customFee !== null ? Number(customFee) : (Number.isFinite(existingAmount) && existingAmount > 0 ? existingAmount : null);
       selectedFee = fee;
 
       document.querySelectorAll('.plan-choice-btn').forEach(b => {
@@ -2787,8 +2800,11 @@
       const future = new Date();
       future.setMonth(future.getMonth() + months);
       document.getElementById('new-expiry-preview').innerText = future.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-      const feeInput = document.getElementById('feeAmountInput');
-      if (feeInput) feeInput.value = fee;
+      if (feeInput) {
+        if (fee !== null && Number.isFinite(fee) && fee > 0) feeInput.value = String(fee);
+        else feeInput.value = '';
+        feeInput.placeholder = 'Enter actual amount collected';
+      }
     }
 
     async function handleCreateMember(e) {
@@ -2809,8 +2825,17 @@
         return;
       }
 
-      const selectedPlanMonths = parseInt(selectedMonths, 10) || 1;
-      const collectedAmount = parseFloat(document.getElementById('feeAmountInput')?.value) || selectedFee || 1200;
+      const selectedPlanMonths = parseInt(selectedMonths, 10);
+      const collectedAmount = Number(document.getElementById('feeAmountInput')?.value);
+      if (![1,3,6,12].includes(selectedPlanMonths)) {
+        showToast("Please select a membership duration", "error");
+        return;
+      }
+      if (!Number.isFinite(collectedAmount) || collectedAmount <= 0) {
+        showToast("Please enter the actual amount collected", "error");
+        document.getElementById('feeAmountInput')?.focus();
+        return;
+      }
 
       const isReferred = document.getElementById('ref-type-referred')?.checked;
       const selectedReferrerValue = isReferred ? (document.getElementById('new-member-referrer')?.value || '') : '';
@@ -3282,14 +3307,9 @@
       };
 
       localStorage.setItem(`retro_gym_config_${currentGymSlug}`, JSON.stringify(currentGymConfig));
-      // admin_pin_hash is never exposed to the browser; only keep a boolean configured state.
-      currentGymAdminPin = gym.admin_pin_hash ? true : null;
-
-      if (!currentGymAdminPin) {
-        setAdminPinMode('setup-enter');
-      } else {
-        setAdminPinMode('unlock');
-      }
+      // PIN configuration is resolved only through rpc_get_admin_pin_state().
+      // Never infer security state from a hidden hash column returned to the browser.
+      currentGymAdminPin = null;
 
       applyGymConfigToUI(currentGymConfig);
       applyGymBrandingToAdminUI(currentGymConfig);
@@ -3581,8 +3601,8 @@ _Old School Iron • Modern Discipline_`;
           console.warn("Real-time subscription note:", subErr);
         }
 
-        // 6. Check Admin Session and Load Data
-        checkAdminSession();
+        // 6. Resolve authoritative server PIN state, then load the console exactly once.
+        await checkAdminSession();
 
         // 7. Auto-refresh attendance feed every 30 seconds
         setInterval(() => fetchAttendanceFeed(false), 30000);
