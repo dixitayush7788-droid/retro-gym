@@ -73,3 +73,18 @@ begin
 end;$$;
 revoke execute on function public.rpc_nexus_member_portal(text,uuid,text) from public;
 grant execute on function public.rpc_nexus_member_portal(text,uuid,text) to anon,authenticated;
+
+-- Final V2 bootstrap payload additions: live gym status and notice.
+create or replace function public.rpc_nexus_app_bootstrap(p_gym_slug text)
+returns jsonb language plpgsql security definer set search_path to 'pg_catalog','public','auth' as $function$
+declare v_uid uuid; v_gym_id integer; v_roles jsonb;
+begin
+ v_uid:=auth.uid(); if v_uid is null then raise exception 'AUTH_REQUIRED'; end if;
+ select id into v_gym_id from public.gyms where lower(slug)=lower(btrim(p_gym_slug)) and is_active=true and deleted_at is null limit 1;
+ if v_gym_id is null then raise exception 'GYM_NOT_FOUND'; end if;
+ if not public.has_gym_access(v_gym_id::bigint) then raise exception 'GYM_ACCESS_DENIED'; end if;
+ select coalesce(jsonb_agg(distinct ur.role::text order by ur.role::text),'[]'::jsonb) into v_roles from public.user_roles ur where ur.user_id=v_uid and ur.gym_id=v_gym_id;
+ return jsonb_build_object('status','NEXUS_APP_BOOTSTRAP_READY','user',jsonb_build_object('id',v_uid),'gym',(select jsonb_build_object('id',g.id,'name',g.name,'slug',g.slug,'phone',g.phone,'email',g.email,'address',g.address,'timezone',g.timezone,'currency',g.currency,'is_active',g.is_active,'status',g.status,'notice_text',g.notice_text) from public.gyms g where g.id=v_gym_id),'roles',v_roles,'permissions',jsonb_build_object('can_manage_gym',public.has_gym_role(v_gym_id::bigint,array['owner','manager']::text[]),'can_manage_members',public.has_gym_role(v_gym_id::bigint,array['owner','manager','staff']::text[]),'can_manage_attendance',public.has_gym_role(v_gym_id::bigint,array['owner','manager','staff','trainer']::text[]),'can_manage_payments',public.has_gym_role(v_gym_id::bigint,array['owner','manager','staff']::text[]),'can_manage_plans',public.has_gym_role(v_gym_id::bigint,array['owner','manager']::text[])),'stats',jsonb_build_object('members_total',(select count(*) from public.members where gym_id=v_gym_id and deleted_at is null),'members_active',(select count(*) from public.members where gym_id=v_gym_id and is_active and deleted_at is null),'memberships_current',(select count(*) from public.member_memberships where gym_id=v_gym_id and start_date<=current_date and end_date>=current_date),'attendance_today',(select count(*) from public.attendance where gym_id=v_gym_id and attendance_date=current_date),'payments_today',(select count(*) from public.payments where gym_id=v_gym_id and created_at::date=current_date),'revenue_today',coalesce((select sum(amount) from public.payments where gym_id=v_gym_id and created_at::date=current_date),0)),'plans',coalesce((select jsonb_agg(jsonb_build_object('id',p.id,'name',p.name,'duration_days',p.duration_days,'price',p.price,'description',p.description,'is_active',p.is_active) order by p.name) from public.plans p where p.gym_id=v_gym_id and p.is_active),'[]'::jsonb),'recent_attendance',coalesce((select jsonb_agg(jsonb_build_object('id',x.id,'member_id',x.member_id,'member_name',x.member_name,'attendance_date',x.attendance_date,'check_in',x.check_in,'check_out',x.check_out) order by x.check_in desc) from (select a.id,a.member_id,m.full_name member_name,a.attendance_date,a.check_in,a.check_out from public.attendance a join public.members m on m.id=a.member_id where a.gym_id=v_gym_id order by a.check_in desc limit 10)x),'[]'::jsonb));
+end;$function$;
+revoke execute on function public.rpc_nexus_app_bootstrap(text) from public;
+grant execute on function public.rpc_nexus_app_bootstrap(text) to anon,authenticated;
