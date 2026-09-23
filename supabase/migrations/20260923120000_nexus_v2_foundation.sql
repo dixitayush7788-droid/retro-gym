@@ -13,6 +13,10 @@ create table if not exists public.member_nutrition_assignments(
 );
 create index if not exists nutrition_templates_gym_active_idx on public.nutrition_templates(gym_id,is_active);
 create index if not exists member_nutrition_gym_member_idx on public.member_nutrition_assignments(gym_id,member_id,is_active);
+create index if not exists member_nutrition_assigned_by_idx on public.member_nutrition_assignments(assigned_by);
+create index if not exists member_nutrition_template_idx on public.member_nutrition_assignments(template_id);
+create index if not exists nutrition_templates_created_by_idx on public.nutrition_templates(created_by);
+create index if not exists member_portal_sessions_gym_idx on public.member_portal_sessions(gym_id);
 alter table public.nutrition_templates enable row level security;
 alter table public.member_nutrition_assignments enable row level security;
 drop policy if exists nutrition_templates_select on public.nutrition_templates;
@@ -20,9 +24,13 @@ drop policy if exists nutrition_templates_manage on public.nutrition_templates;
 drop policy if exists member_nutrition_select on public.member_nutrition_assignments;
 drop policy if exists member_nutrition_manage on public.member_nutrition_assignments;
 create policy nutrition_templates_select on public.nutrition_templates for select to authenticated using(has_gym_access(gym_id::bigint));
-create policy nutrition_templates_manage on public.nutrition_templates for all to authenticated using(has_gym_role(gym_id::bigint,array['owner','manager','trainer']::text[])) with check(has_gym_role(gym_id::bigint,array['owner','manager','trainer']::text[]));
+create policy nutrition_templates_insert on public.nutrition_templates for insert to authenticated with check(has_gym_role(gym_id::bigint,array['owner','manager','trainer']::text[]));
+create policy nutrition_templates_update on public.nutrition_templates for update to authenticated using(has_gym_role(gym_id::bigint,array['owner','manager','trainer']::text[])) with check(has_gym_role(gym_id::bigint,array['owner','manager','trainer']::text[]));
+create policy nutrition_templates_delete on public.nutrition_templates for delete to authenticated using(has_gym_role(gym_id::bigint,array['owner','manager','trainer']::text[]));
 create policy member_nutrition_select on public.member_nutrition_assignments for select to authenticated using(has_gym_access(gym_id::bigint));
-create policy member_nutrition_manage on public.member_nutrition_assignments for all to authenticated using(has_gym_role(gym_id::bigint,array['owner','manager','trainer']::text[])) with check(has_gym_role(gym_id::bigint,array['owner','manager','trainer']::text[]));
+create policy member_nutrition_insert on public.member_nutrition_assignments for insert to authenticated with check(has_gym_role(gym_id::bigint,array['owner','manager','trainer']::text[]));
+create policy member_nutrition_update on public.member_nutrition_assignments for update to authenticated using(has_gym_role(gym_id::bigint,array['owner','manager','trainer']::text[])) with check(has_gym_role(gym_id::bigint,array['owner','manager','trainer']::text[]));
+create policy member_nutrition_delete on public.member_nutrition_assignments for delete to authenticated using(has_gym_role(gym_id::bigint,array['owner','manager','trainer']::text[]));
 
 create or replace function public.rpc_nexus_onboard_member(p_gym_id integer,p_full_name text,p_phone text,p_age integer default null,p_address text default null,p_duration_days integer default null,p_amount numeric default null,p_payment_method text default 'cash',p_payment_status text default 'completed',p_nutrition jsonb default null,p_referred_by_member_id uuid default null)
 returns jsonb language plpgsql security definer set search_path to 'pg_catalog','public','auth' as $$
