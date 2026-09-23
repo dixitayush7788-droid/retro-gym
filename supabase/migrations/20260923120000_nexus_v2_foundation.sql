@@ -88,3 +88,40 @@ begin
 end;$function$;
 revoke execute on function public.rpc_nexus_app_bootstrap(text) from public;
 grant execute on function public.rpc_nexus_app_bootstrap(text) to anon,authenticated;
+
+
+-- V2 realtime hardening: one attendance row per member/day and live sync tables.
+create unique index if not exists attendance_one_per_member_day_idx on public.attendance(gym_id,member_id,attendance_date);
+alter table public.attendance replica identity full;
+alter table public.members replica identity full;
+alter table public.member_memberships replica identity full;
+alter table public.payments replica identity full;
+alter table public.member_nutrition_assignments replica identity full;
+do $$
+begin
+  if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='attendance') then alter publication supabase_realtime add table public.attendance; end if;
+  if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='members') then alter publication supabase_realtime add table public.members; end if;
+  if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='member_memberships') then alter publication supabase_realtime add table public.member_memberships; end if;
+  if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='payments') then alter publication supabase_realtime add table public.payments; end if;
+  if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='member_nutrition_assignments') then alter publication supabase_realtime add table public.member_nutrition_assignments; end if;
+end $$;
+
+-- Member portal also exposes the gym contact so renewal/concierge actions are real WhatsApp handoffs.
+create or replace function public.rpc_nexus_member_portal(p_gym_slug text,p_member_id uuid,p_session_token text)
+returns jsonb language plpgsql security definer set search_path to 'pg_catalog','public','auth','extensions' as $$
+declare v_gym_id integer;v_hash text;v_session_id uuid;v_member record;v_membership record;v_gym record;
+begin
+ select id,name,slug,phone,email,address,timezone,currency,status,notice_text into v_gym from public.gyms where lower(slug)=lower(btrim(p_gym_slug)) and is_active and deleted_at is null limit 1;
+ if v_gym.id is null then return jsonb_build_object('success',false,'error','Gym not found');end if;
+ v_gym_id:=v_gym.id;
+ v_hash:=encode(extensions.digest(p_session_token,'sha256'),'hex');
+ select id into v_session_id from public.member_portal_sessions where token_hash=v_hash and member_id=p_member_id and gym_id=v_gym_id and expires_at>now() limit 1;
+ if v_session_id is null then return jsonb_build_object('success',false,'error','Session expired');end if;
+ select id,full_name,phone,referral_code,is_active into v_member from public.members where id=p_member_id and gym_id=v_gym_id and deleted_at is null;
+ if v_member.id is null then return jsonb_build_object('success',false,'error','Member not found');end if;
+ select mm.id,mm.start_date,mm.end_date,mm.status::text status,p.name plan_name into v_membership from public.member_memberships mm join public.plans p on p.id=mm.plan_id where mm.member_id=p_member_id and mm.gym_id=v_gym_id order by mm.end_date desc,mm.created_at desc limit 1;
+ update public.member_portal_sessions set last_seen_at=now(),expires_at=greatest(expires_at,now()+interval '30 days') where id=v_session_id;
+ return jsonb_build_object('success',true,'gym',jsonb_build_object('id',v_gym.id,'name',v_gym.name,'slug',v_gym.slug,'phone',v_gym.phone,'email',v_gym.email,'address',v_gym.address,'timezone',v_gym.timezone,'currency',v_gym.currency,'status',v_gym.status,'notice_text',v_gym.notice_text),'member',jsonb_build_object('id',v_member.id,'full_name',v_member.full_name,'phone',v_member.phone,'referral_code',v_member.referral_code,'is_active',v_member.is_active),'membership',coalesce(to_jsonb(v_membership),'{}'::jsonb),'attendance',coalesce((select jsonb_agg(jsonb_build_object('date',a.attendance_date,'check_in',a.check_in,'check_out',a.check_out) order by a.attendance_date desc) from(select * from public.attendance where gym_id=v_gym_id and member_id=p_member_id order by attendance_date desc limit 60)a),'[]'::jsonb),'nutrition',coalesce((select jsonb_agg(jsonb_build_object('id',n.id,'plan',n.custom_plan,'start_date',n.start_date,'end_date',n.end_date) order by n.created_at desc) from public.member_nutrition_assignments n where n.gym_id=v_gym_id and n.member_id=p_member_id and n.is_active),'[]'::jsonb));
+end; $$;
+revoke execute on function public.rpc_nexus_member_portal(text,uuid,text) from public;
+grant execute on function public.rpc_nexus_member_portal(text,uuid,text) to anon,authenticated;
