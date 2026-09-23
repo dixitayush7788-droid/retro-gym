@@ -1,1 +1,1 @@
-{"name":"NEXUS V2","short_name":"NEXUS","start_url":"./index.html","display":"standalone","background_color":"#070b0e","theme_color":"#070b0e","icons":[]}
+{"name":"NEXUS V2","short_name":"NEXUS","start_url":"./index.html","display":"standalone","background_color":"#070b0e","theme_color":"#070b0e","icons":[{"src":"./icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
