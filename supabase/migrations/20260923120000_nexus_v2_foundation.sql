@@ -205,3 +205,17 @@ begin
 end;$$;
 revoke execute on function public.rpc_nexus_member_portal(text,uuid,text) from public;
 grant execute on function public.rpc_nexus_member_portal(text,uuid,text) to anon,authenticated;
+
+
+-- V2 referral-aware onboarding wrapper
+create or replace function public.rpc_nexus_onboard_member_with_referral(p_gym_id integer,p_full_name text,p_phone text,p_age integer default null,p_address text default null,p_duration_days integer default null,p_amount numeric default null,p_payment_method text default 'cash',p_payment_status text default 'completed',p_nutrition jsonb default null,p_referral_code text default null)
+returns jsonb language plpgsql security definer set search_path to 'pg_catalog','public','auth' as $$
+declare v_uid uuid:=auth.uid();v_referrer uuid;
+begin
+ if v_uid is null then raise exception 'AUTH_REQUIRED' using errcode='42501';end if;
+ if not public.has_gym_role(p_gym_id::bigint,array['owner','manager','staff']::text[]) then raise exception 'MEMBER_MANAGEMENT_DENIED' using errcode='42501';end if;
+ if nullif(btrim(coalesce(p_referral_code,'')),'') is not null then select id into v_referrer from public.members where gym_id=p_gym_id and upper(referral_code)=upper(btrim(p_referral_code)) and deleted_at is null limit 1;if v_referrer is null then raise exception 'REFERRAL_CODE_NOT_FOUND';end if;end if;
+ return public.rpc_nexus_onboard_member(p_gym_id,p_full_name,p_phone,p_age,p_address,p_duration_days,p_amount,p_payment_method,p_payment_status,p_nutrition,v_referrer);
+end;$$;
+revoke all on function public.rpc_nexus_onboard_member_with_referral(integer,text,text,integer,text,integer,numeric,text,text,jsonb,text) from public;
+grant execute on function public.rpc_nexus_onboard_member_with_referral(integer,text,text,integer,text,integer,numeric,text,text,jsonb,text) to authenticated;
