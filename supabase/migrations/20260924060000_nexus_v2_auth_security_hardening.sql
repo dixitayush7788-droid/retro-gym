@@ -149,3 +149,17 @@ revoke execute on function public.sync_gym_operational_status() from anon,authen
 revoke execute on function public.rpc_nexus_superadmin_list_gyms(text) from anon;
 revoke execute on function public.rpc_nexus_superadmin_set_gym_active(integer,boolean) from anon;
 revoke execute on function public.rpc_nexus_create_gym_for_owner(uuid,text,text,text,text,text,numeric,integer,jsonb,jsonb,text) from anon;
+
+-- Application RPC allowlist: only the routes actually called by V2 remain exposed to authenticated users.
+grant execute on function public.rpc_get_current_user_context() to authenticated;
+grant execute on function public.rpc_nexus_app_bootstrap(text) to authenticated;
+grant execute on function public.rpc_nexus_member_search(integer,text,integer,integer) to authenticated;
+grant execute on function public.rpc_nexus_member_detail(integer,uuid) to authenticated;
+grant execute on function public.rpc_nexus_check_in(integer,uuid,text) to authenticated;
+grant execute on function public.rpc_nexus_check_out(integer,uuid) to authenticated;
+grant execute on function public.rpc_nexus_assign_nutrition(integer,uuid,text,text,jsonb,date) to authenticated;
+grant execute on function public.rpc_nexus_record_payment(integer,uuid,uuid,numeric,text,text,text,text) to authenticated;
+grant execute on function public.rpc_nexus_update_gym_notice(integer,text) to authenticated;
+grant execute on function public.rpc_nexus_onboard_member_with_referral(integer,text,text,integer,text,integer,numeric,text,text,jsonb,text) to authenticated;
+grant execute on function public.rpc_nexus_superadmin_list_gyms(text) to authenticated;
+grant execute on function public.rpc_nexus_superadmin_set_gym_active(integer,boolean) to authenticated;
