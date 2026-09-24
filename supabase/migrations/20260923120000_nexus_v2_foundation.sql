@@ -125,3 +125,27 @@ begin
 end; $$;
 revoke execute on function public.rpc_nexus_member_portal(text,uuid,text) from public;
 grant execute on function public.rpc_nexus_member_portal(text,uuid,text) to anon,authenticated;
+
+
+-- V2 secure gym notice write RPC
+create or replace function public.rpc_nexus_update_gym_notice(p_gym_id integer, p_notice text)
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'pg_catalog','public','auth'
+as $$
+declare v_uid uuid:=auth.uid();
+begin
+  if v_uid is null then raise exception 'AUTH_REQUIRED' using errcode='42501'; end if;
+  if not public.has_gym_role(p_gym_id::bigint,array['owner','manager']::text[]) then
+    raise exception 'GYM_MANAGEMENT_DENIED' using errcode='42501';
+  end if;
+  update public.gyms
+  set notice_text=nullif(btrim(coalesce(p_notice,'')),''), updated_at=now()
+  where id=p_gym_id and deleted_at is null;
+  if not found then raise exception 'GYM_NOT_FOUND' using errcode='P0002'; end if;
+  return jsonb_build_object('status','GYM_NOTICE_UPDATED','gym_id',p_gym_id);
+end;
+$$;
+revoke all on function public.rpc_nexus_update_gym_notice(integer,text) from public;
+grant execute on function public.rpc_nexus_update_gym_notice(integer,text) to authenticated;
